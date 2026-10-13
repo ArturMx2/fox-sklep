@@ -62,7 +62,7 @@ $fx_w = function ( $w ) {
 		<button type="button" data-fx-world-set="rower"><?php echo esc_html( fx_mod( 'world_rower_title' ) ); ?></button>
 	</div>
 </div>
-<?php else : ?>
+<?php elseif ( fx_mod( 'hero_on' ) ) : ?>
 <section class="fx-hero fx-shade-flat">
 	<?php echo fx_media( fx_mod( 'hero_img' ), 'full', 'fx-cover', '' ); // phpcs:ignore ?>
 	<div class="fx-hero__in">
@@ -86,6 +86,9 @@ $fx_w = function ( $w ) {
 <?php endif; ?>
 
 <?php /* ---------- H1, wstęp i atuty (SEO) ---------- */ ?>
+<?php if ( ! fx_mod( 'intro_on' ) ) : ?>
+<h1 class="screen-reader-text"><?php echo esc_html( fx_mod( 'seo_h1' ) ? fx_mod( 'seo_h1' ) : get_bloginfo( 'name' ) ); ?></h1>
+<?php else : ?>
 <section class="fx-intro fx-wrap">
 	<h1 class="fx-intro__h1"><?php echo esc_html( fx_mod( 'seo_h1' ) ? fx_mod( 'seo_h1' ) : get_bloginfo( 'name' ) ); ?></h1>
 	<?php if ( fx_mod( 'seo_lead' ) ) : ?>
@@ -100,10 +103,14 @@ $fx_w = function ( $w ) {
 		</ul>
 	<?php endif; ?>
 </section>
+<?php endif; ?>
 
 <?php
 /* ---------- Kategorie (linki SEO) ---------- */
 $fx_hub = function ( $key, $world ) use ( $fx_w ) {
+	if ( ! fx_mod( "hub_{$key}_on" ) ) {
+		return;
+	}
 	$items = fx_home_hub_items( fx_mod( "hub_{$key}_links" ) );
 	if ( ! $items ) {
 		return;
@@ -145,7 +152,7 @@ if ( $fx_worlds ) {
 
 <?php /* ---------- Produkty ---------- */ ?>
 <?php
-if ( class_exists( 'WooCommerce' ) ) :
+if ( class_exists( 'WooCommerce' ) && fx_mod( 'new_on' ) ) :
 	$count  = max( 3, min( 12, (int) fx_mod( 'new_count' ) ) );
 	$source = fx_mod( 'new_source' );
 	$atts   = 'limit="' . $count . '" columns="3"';
@@ -191,11 +198,12 @@ endif;
 ?>
 
 <?php /* ---------- Odkrywaj ---------- */ ?>
+<?php if ( fx_mod( 'explore_on' ) ) : ?>
 <section style="padding:48px 0 64px">
 	<h2 class="fx-h-section fx-wrap" style="margin-bottom:24px"><?php echo esc_html( fx_mod( 'explore_title' ) ); ?></h2>
 	<div class="fx-scroller">
 		<?php
-		for ( $i = 1; $i <= 5; $i++ ) :
+		for ( $i = 1; $i <= min( 12, max( 1, (int) fx_mod( 'explore_count' ) ) ); $i++ ) :
 			$label = fx_mod( "explore_{$i}_label" );
 			if ( ! $label ) {
 				continue;
@@ -210,10 +218,13 @@ endif;
 	</div>
 </section>
 
+<?php endif; ?>
+
 <?php /* ---------- Duże kafle ---------- */ ?>
+<?php if ( fx_mod( 'tiles_on' ) ) : ?>
 <section class="fx-tiles">
 	<?php
-	for ( $i = 1; $i <= 4; $i++ ) :
+	for ( $i = 1; $i <= min( 8, max( 1, (int) fx_mod( 'tiles_count' ) ) ); $i++ ) :
 		$title = fx_mod( "tile_{$i}_title" );
 		if ( ! $title ) {
 			continue;
@@ -233,14 +244,16 @@ endif;
 	<?php endfor; ?>
 </section>
 
+<?php endif; ?>
+
 <?php /* ---------- Dyscypliny (gdy przełącznik Moto / Rower wyłączony) ---------- */ ?>
 <?php $fx_hub( 'casual', '' ); ?>
-<?php if ( ! $fx_worlds ) : ?>
+<?php if ( ! $fx_worlds && fx_mod( 'disc_on' ) ) : ?>
 <section class="fx-section fx-wrap">
 	<h2 class="fx-h-label"><?php echo esc_html( fx_mod( 'disc_title' ) ); ?></h2>
 	<div class="fx-disc">
 		<?php
-		for ( $i = 1; $i <= 4; $i++ ) :
+		for ( $i = 1; $i <= min( 8, max( 1, (int) fx_mod( 'disc_count' ) ) ); $i++ ) :
 			$label = fx_mod( "disc_{$i}_label" );
 			if ( ! $label ) {
 				continue;
@@ -369,7 +382,7 @@ endif;
 <?php /* ---------- O sklepie (tekst SEO) ---------- */ ?>
 <?php
 $seo_text = fx_mod( 'seo_text' );
-if ( $seo_text ) :
+if ( $seo_text && fx_mod( 'about_on' ) ) :
 	$parts = explode( '<!--more-->', $seo_text, 2 );
 	?>
 	<section class="fx-section fx-wrap fx-about">

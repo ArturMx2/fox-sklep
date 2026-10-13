@@ -21,6 +21,11 @@ defined( 'ABSPATH' ) || exit;
 function fx_home_seo_defaults( $home ) {
 	$c = 'kategoria-produktu/';
 	return array(
+		'intro_on'         => true,
+		'hub_moto_on'      => true,
+		'hub_rower_on'     => true,
+		'hub_casual_on'    => true,
+		'about_on'         => true,
 		'seo_title'        => 'Sklep FOX Racing – motocross, enduro i MTB | FOX.SKLEP.PL',
 		'seo_desc'         => 'Sklep crossowy i enduro FOX Racing: kaski V1–V3, stroje na crossa, buty, ochraniacze i odzież rowerowa MTB. Sklep stacjonarny pod Wrocławiem, 14 dni na zwrot.',
 		'seo_h1'           => 'Sklep FOX Racing – sprzęt na crossa, enduro i MTB',
@@ -75,10 +80,13 @@ add_action( 'customize_register', function ( $wp ) {
 	};
 	$add( 'seo_title', 'fx_home_seo', 'Tytuł strony głównej w Google (puste = z Yoast)' );
 	$add( 'seo_desc', 'fx_home_seo', 'Opis strony głównej w Google (puste = z Yoast)', 'textarea' );
+	$add( 'intro_on', 'fx_home_seo', 'Pokaż H1 i wstęp na górze strony', 'checkbox' );
 	$add( 'seo_lead', 'fx_home_seo', 'Wstęp pod H1 (na górze strony)', 'textarea' );
+	$add( 'about_on', 'fx_home_seo', 'Pokaż tekst „O sklepie” na dole strony', 'checkbox' );
 	$add( 'seo_points', 'fx_home_seo', 'Atuty pod wstępem (jedna linia = jeden punkt)', 'textarea' );
 	$add( 'about_title', 'fx_home_seo', 'Nagłówek tekstu „O sklepie” (na dole strony)' );
 	foreach ( array( 'moto' => 'Moto', 'rower' => 'Rower', 'casual' => 'Casual (dla wszystkich)' ) as $k => $l ) {
+		$add( "hub_{$k}_on", 'fx_home_hubs', "{$l} – pokaż sekcję", 'checkbox' );
 		$add( "hub_{$k}_title", 'fx_home_hubs', "{$l} – nagłówek" );
 		$add( "hub_{$k}_sub", 'fx_home_hubs', "{$l} – podtytuł" );
 		$add( "hub_{$k}_links", 'fx_home_hubs', "{$l} – kategorie („Nazwa linku | adres”, jedna na linię)", 'textarea' );

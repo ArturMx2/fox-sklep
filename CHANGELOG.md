@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.7.0 – zarządzanie stroną główną w Dostosuj
+- Każda sekcja strony głównej ma „Pokaż sekcję”: baner (pojedynczy), Moto / Rower, H1 i wstęp, kategorie Moto / Rower / Casual (osobno), produkty, Odkrywaj, duże kafle, dyscypliny, zawodnik, poradniki, najczęstsze pytania, sklep stacjonarny, „O sklepie”.
+- Liczba kafli do ustawienia: Odkrywaj 1–12, duże kafle 1–8, dyscypliny 1–8. Po zmianie liczby od razu pojawiają się pola kolejnych kafli (zbędne są ukryte). Nieparzysty ostatni duży kafel rozciąga się na całą szerokość.
+- Wyłączony H1 i wstęp: H1 zostaje w kodzie strony (niewidoczny), żeby nie stracić go dla Google.
+
 ## 3.6.3 – czytelne nazwy rozmiarów
 - Rozmiar „OS” wyświetlany jako „Uniwersalny”, „YOS” jako „Junior” – na karcie produktu (przyciski rozmiarów), w podglądzie rozmiarów na listingu, w filtrze, w kompletach i w koszyku.
 - Lista do edycji w Narzędziach sklepu („OS = Uniwersalny”, jedna para na linię). Tylko wyświetlanie – w produktach, zamówieniach i BaseLinkerze zostają oryginalne wartości.

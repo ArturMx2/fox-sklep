@@ -58,6 +58,14 @@ function fx_defaults() {
 		'guides_cat_rower'  => 0,
 		// Odkrywaj.
 		'explore_title'   => 'Odkrywaj',
+		'hero_on'         => true,
+		'explore_on'      => true,
+		'explore_count'   => 5,
+		'tiles_on'        => true,
+		'tiles_count'     => 4,
+		'disc_on'         => true,
+		'disc_count'      => 4,
+		'new_on'          => true,
 		// Kafle.
 		'disc_title'      => 'Wybierz dyscyplinę',
 		// Nowości.
@@ -291,6 +299,7 @@ function fx_customize( $wp ) {
 	/* Hero */
 	$section( 'fx_home_hero', 'Strona główna – baner', 'Sekcje strony głównej działają, gdy w Ustawienia → Czytanie wybrana jest statyczna strona główna albo najnowsze wpisy.' );
 	$add( 'home_enabled', 'fx_home_hero', 'Używaj nowej strony głównej motywu (odznacz, aby pokazać treść strony ustawionej jako główna)', 'checkbox' );
+	$add( 'hero_on', 'fx_home_hero', 'Pokaż pojedynczy baner (gdy baner Moto / Rower jest wyłączony)', 'checkbox' );
 	$add( 'hero_img', 'fx_home_hero', 'Zdjęcie banera (min. 2400 px szerokości)', 'image' );
 	$add( 'hero_title', 'fx_home_hero', 'Nagłówek' );
 	$add( 'hero_sub', 'fx_home_hero', 'Podtytuł' );
@@ -317,34 +326,44 @@ function fx_customize( $wp ) {
 
 	/* Odkrywaj */
 	$section( 'fx_home_explore', 'Strona główna – Odkrywaj', 'Rząd pionowych kafli przewijany w bok. Puste kafle (bez nazwy) są pomijane.' );
+	$add( 'explore_on', 'fx_home_explore', 'Pokaż sekcję', 'checkbox' );
 	$add( 'explore_title', 'fx_home_explore', 'Tytuł sekcji' );
-	for ( $i = 1; $i <= 5; $i++ ) {
-		$add( "explore_{$i}_img", 'fx_home_explore', "Kafel {$i} – zdjęcie (pionowe 5:7)", 'image' );
-		$add( "explore_{$i}_label", 'fx_home_explore', "Kafel {$i} – nazwa" );
-		$add( "explore_{$i}_url", 'fx_home_explore', "Kafel {$i} – link", 'url' );
-		$add( "explore_{$i}_world", 'fx_home_explore', "Kafel {$i} – pokazuj dla", 'world' );
+	$add( 'explore_count', 'fx_home_explore', 'Liczba kafli (1–12) – po zmianie pojawią się pola kolejnych kafli', 'number', array( 'input_attrs' => array( 'min' => 1, 'max' => 12 ) ) );
+	for ( $i = 1; $i <= 12; $i++ ) {
+		$on = fx_count_cb( 'explore_count', $i );
+		$add( "explore_{$i}_img", 'fx_home_explore', "Kafel {$i} – zdjęcie (pionowe 5:7)", 'image', array( 'active_callback' => $on ) );
+		$add( "explore_{$i}_label", 'fx_home_explore', "Kafel {$i} – nazwa", 'text', array( 'active_callback' => $on ) );
+		$add( "explore_{$i}_url", 'fx_home_explore', "Kafel {$i} – link", 'url', array( 'active_callback' => $on ) );
+		$add( "explore_{$i}_world", 'fx_home_explore', "Kafel {$i} – pokazuj dla", 'world', array( 'active_callback' => $on ) );
 	}
 
 	/* Kafle */
 	$section( 'fx_home_tiles', 'Strona główna – duże kafle', 'Linki w kaflu: jedna linia na przycisk, w formacie „Etykieta | adres”.' );
-	for ( $i = 1; $i <= 4; $i++ ) {
-		$add( "tile_{$i}_img", 'fx_home_tiles', "Kafel {$i} – zdjęcie", 'image' );
-		$add( "tile_{$i}_title", 'fx_home_tiles', "Kafel {$i} – tytuł" );
-		$add( "tile_{$i}_links", 'fx_home_tiles', "Kafel {$i} – przyciski", 'textarea' );
-		$add( "tile_{$i}_world", 'fx_home_tiles', "Kafel {$i} – pokazuj dla", 'world' );
+	$add( 'tiles_on', 'fx_home_tiles', 'Pokaż sekcję', 'checkbox' );
+	$add( 'tiles_count', 'fx_home_tiles', 'Liczba kafli (1–8)', 'number', array( 'input_attrs' => array( 'min' => 1, 'max' => 8 ) ) );
+	for ( $i = 1; $i <= 8; $i++ ) {
+		$on = fx_count_cb( 'tiles_count', $i );
+		$add( "tile_{$i}_img", 'fx_home_tiles', "Kafel {$i} – zdjęcie", 'image', array( 'active_callback' => $on ) );
+		$add( "tile_{$i}_title", 'fx_home_tiles', "Kafel {$i} – tytuł", 'text', array( 'active_callback' => $on ) );
+		$add( "tile_{$i}_links", 'fx_home_tiles', "Kafel {$i} – przyciski", 'textarea', array( 'active_callback' => $on ) );
+		$add( "tile_{$i}_world", 'fx_home_tiles', "Kafel {$i} – pokazuj dla", 'world', array( 'active_callback' => $on ) );
 	}
 
 	/* Dyscypliny */
 	$section( 'fx_home_disc', 'Strona główna – dyscypliny' );
+	$add( 'disc_on', 'fx_home_disc', 'Pokaż sekcję (gdy baner Moto / Rower jest wyłączony)', 'checkbox' );
 	$add( 'disc_title', 'fx_home_disc', 'Tytuł sekcji' );
-	for ( $i = 1; $i <= 4; $i++ ) {
-		$add( "disc_{$i}_img", 'fx_home_disc', "Kafel {$i} – zdjęcie (kwadrat)", 'image' );
-		$add( "disc_{$i}_label", 'fx_home_disc', "Kafel {$i} – nazwa" );
-		$add( "disc_{$i}_url", 'fx_home_disc', "Kafel {$i} – link", 'url' );
+	$add( 'disc_count', 'fx_home_disc', 'Liczba kafli (1–8)', 'number', array( 'input_attrs' => array( 'min' => 1, 'max' => 8 ) ) );
+	for ( $i = 1; $i <= 8; $i++ ) {
+		$on = fx_count_cb( 'disc_count', $i );
+		$add( "disc_{$i}_img", 'fx_home_disc', "Kafel {$i} – zdjęcie (kwadrat)", 'image', array( 'active_callback' => $on ) );
+		$add( "disc_{$i}_label", 'fx_home_disc', "Kafel {$i} – nazwa", 'text', array( 'active_callback' => $on ) );
+		$add( "disc_{$i}_url", 'fx_home_disc', "Kafel {$i} – link", 'url', array( 'active_callback' => $on ) );
 	}
 
 	/* Nowości */
 	$section( 'fx_home_new', 'Strona główna – produkty' );
+	$add( 'new_on', 'fx_home_new', 'Pokaż sekcję', 'checkbox' );
 	$add( 'new_title', 'fx_home_new', 'Tytuł sekcji' );
 	$add( 'new_source', 'fx_home_new', 'Które produkty pokazać', 'source' );
 	$add( 'new_tag', 'fx_home_new', 'Slug tagu (gdy wybrano „Produkty z tagiem”)' );
@@ -401,4 +420,11 @@ function fx_world_cat( $world ) {
 		}
 	}
 	return 0;
+}
+
+/** Pole kafla widoczne w Dostosuj tylko, gdy jego numer mieści się w ustawionej liczbie kafli. */
+function fx_count_cb( $count_key, $i ) {
+	return function () use ( $count_key, $i ) {
+		return $i <= (int) fx_mod( $count_key );
+	};
 }
