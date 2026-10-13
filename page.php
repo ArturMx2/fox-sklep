@@ -12,13 +12,14 @@ get_header();
 while ( have_posts() ) :
 	the_post();
 
-	if ( fx_is_elementor() ) {
+	$fx_is_shop_page = function_exists( 'is_cart' ) && ( is_cart() || is_checkout() || is_account_page() );
+
+	if ( fx_is_elementor() && ! $fx_is_shop_page ) {
 		// Strona z Elementora ma własny układ i nagłówki – wyświetlamy ją bez zmian.
+		// Koszyk, zamówienie i konto zawsze w układzie motywu (marginesy, szerokość), nawet gdy zbudowane w Elementorze.
 		the_content();
 		continue;
 	}
-
-	$fx_is_shop_page = function_exists( 'is_cart' ) && ( is_cart() || is_checkout() || is_account_page() );
 	?>
 	<article id="post-<?php the_ID(); ?>" <?php post_class( 'fx-page fx-wrap' ); ?>>
 		<?php fx_breadcrumb(); ?>

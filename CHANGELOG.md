@@ -1,5 +1,11 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.9.2 – wygląd zamówienia i strony podziękowania
+- Metody płatności i dostawy jako kafelki: cały kafelek klikalny, wybrany obramowany na czarno, opis metody w środku kafelka.
+- Zamówienie: dane klienta po lewej w białych kartach (imię i nazwisko obok siebie), po prawej podsumowanie z płatnością (przyklejone przy przewijaniu); na telefonie jedno pod drugim. Duży przycisk „Kupuję i płacę” na całą szerokość.
+- Koszyk, zamówienie i konto zawsze z marginesami motywu, także gdy strona jest zbudowana w Elementorze (wcześniej treść przyklejona do lewej krawędzi).
+- Strona podziękowania: wyśrodkowana, podsumowanie (numer, data, kwota, płatność) w jednym pasku, tabela zamówienia i adresy w kartach.
+
 ## 3.9.1 – zamówienie
 - Oświadczenie Przelewy24 (regulamin i obowiązek informacyjny) zaznaczone od razu, także po zmianie metody płatności lub dostawy.
 - „Wysłać na inny adres?” domyślnie odznaczone.

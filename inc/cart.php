@@ -172,7 +172,18 @@ add_action( 'wp_footer', function () {
 				}
 			});
 		}
-		fxP24();
+		/* Kafelki: klasa .fx-on dla przeglądarek bez :has() */
+		function fxTiles() {
+			document.querySelectorAll('#payment ul.payment_methods > li, ul#shipping_method li').forEach(function (li) {
+				var r = li.querySelector('input[type="radio"]');
+				li.classList.toggle('fx-on', !!(r && r.checked));
+			});
+		}
+		fxP24(); fxTiles();
+		document.addEventListener('change', function () { setTimeout(fxTiles, 10); });
+		if (window.jQuery) {
+			jQuery(document.body).on('updated_checkout payment_method_selected', function () { setTimeout(fxTiles, 60); });
+		}
 		if (window.jQuery) {
 			jQuery(document.body).on('updated_checkout payment_method_selected', function () { setTimeout(fxP24, 50); });
 		}
