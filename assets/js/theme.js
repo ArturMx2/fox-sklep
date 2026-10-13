@@ -451,4 +451,45 @@
 		/* klik w link w panelu – zamknij od razu (przy wolnym ładowaniu strony nie wisi otwarte) */
 		nav.addEventListener('click', function (e) { if (e.target.closest('.fx-mega a')) { setOpen(null); } });
 	})();
+
+	/* Karta produktu: kolumna zakupowa przyklejona obok zdjęć (komputer).
+	   Gdy kolumna jest wyższa niż ekran, przykleja się dołem – widać zawsze przycisk „Dodaj do koszyka”. */
+	(function () {
+		var summary = document.querySelector('.single-product div.product div.summary');
+		var gallery = document.querySelector('.fx-gallery');
+		if (!summary || !gallery) { return; }
+		function headerBottom() {
+			var h = document.querySelector('.fx-header');
+			return h ? Math.max(0, h.getBoundingClientRect().bottom) : 0;
+		}
+		function update() {
+			if (window.innerWidth < 1025) { return; }
+			var top = headerBottom() + 24;
+			var free = window.innerHeight - summary.offsetHeight - 24;
+			summary.parentNode.style.setProperty('--fx-sticky-top', Math.round(Math.min(top, free)) + 'px');
+		}
+		update();
+		window.addEventListener('load', update);
+		window.addEventListener('resize', update);
+		$(document.body).on('found_variation reset_data', function () { setTimeout(update, 50); });
+		if ('ResizeObserver' in window) { new ResizeObserver(update).observe(summary); }
+
+		/* Telefon: licznik zdjęć 1/6 przy przesuwaniu palcem */
+		var track = gallery.querySelector('.woocommerce-product-gallery__wrapper');
+		var slides = track ? track.children.length : 0;
+		if (slides > 1) {
+			var count = document.createElement('span');
+			count.className = 'fx-gallery__count';
+			count.textContent = '1 / ' + slides;
+			gallery.appendChild(count);
+			track.addEventListener('scroll', function () {
+				var i = Math.round(track.scrollLeft / Math.max(1, track.clientWidth)) + 1;
+				count.textContent = Math.min(i, slides) + ' / ' + slides;
+			}, { passive: true });
+		}
+		/* Zmiana wariantu podmienia pierwsze zdjęcie – pokaż je */
+		$('form.variations_form').on('found_variation', function () {
+			if (track && window.innerWidth < 1025) { track.scrollTo({ left: 0, behavior: 'smooth' }); }
+		});
+	})();
 })(jQuery);

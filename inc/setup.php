@@ -31,9 +31,9 @@ function fx_setup() {
 			),
 		)
 	);
-	add_theme_support( 'wc-product-gallery-zoom' );
+	// Galeria bez slidera i bez lupy: na komputerze zdjęcia jedno pod drugim (przewijane razem ze stroną,
+	// kolumna z ceną stoi obok), na telefonie przesuwane palcem. Klik w zdjęcie otwiera powiększenie.
 	add_theme_support( 'wc-product-gallery-lightbox' );
-	add_theme_support( 'wc-product-gallery-slider' );
 
 	// Nazwa "primary" celowo taka sama jak w wielu motywach – WordPress
 	// przy zmianie motywu sam przypisze dotychczasowe menu główne.

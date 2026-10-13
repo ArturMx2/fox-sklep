@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 2.6.2
+Version: 2.7.0
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -273,7 +273,9 @@ button,input,select,textarea{font:inherit;color:inherit}
 .fx-cat-intro a{text-decoration:underline;text-underline-offset:3px}
 .fx-cat-intro h1,.fx-cat-intro h2,.fx-cat-intro h3,.fx-cat-intro h4{font-family:var(--fx-body);font-size:16px;font-weight:700;letter-spacing:0;margin:0 0 4px;color:var(--fx-ink)}
 .fx-cat-intro img{display:none}
-.fx-cat-desc{margin-top:64px;padding-top:40px}
+.fx-cat-desc{clear:both;margin-top:64px;padding-top:48px;border-top:1px solid var(--fx-line)}
+.fx-cat-desc__body.fx-prose{max-width:none;column-gap:64px}
+.fx-cat-desc__body.fx-prose>:first-child{margin-top:0}
 
 /* Podkategorie */
 .fx-chips{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0 8px;width:100%;clear:both}
@@ -357,33 +359,58 @@ button,input,select,textarea{font:inherit;color:inherit}
 .fx-savings__sub{color:var(--fx-ink-2);font-size:14px}
 .fx-savings__sub strong{color:var(--fx-ink)}
 /* Część zakupowa: zawsze w swoim miejscu, bez przyklejania; pływające kolumny zamknięte przed sekcjami poniżej. */
-.woocommerce div.product div.summary,.woocommerce div.product div.images{position:relative!important;top:auto!important}
 .woocommerce div.product::after{content:"";display:table;clear:both}
+
+/* Galeria: komputer – zdjęcia jedno pod drugim (pierwsze duże, kolejne po dwa), kolumna zakupowa przyklejona obok.
+   Zdjęcia przewijają się razem ze stroną; gdy skończą się zdjęcia, cała sekcja jedzie dalej w dół. */
+@media (min-width:1025px){
+  .woocommerce div.product div.images.fx-gallery{width:58%;margin-bottom:0}
+  .woocommerce div.product div.summary{width:37%;position:sticky;top:var(--fx-sticky-top,150px);align-self:flex-start}
+  .fx-gallery .woocommerce-product-gallery__wrapper{display:grid!important;grid-template-columns:1fr 1fr;gap:8px;transform:none!important;width:auto!important}
+  .fx-gallery .woocommerce-product-gallery__image{width:auto!important;float:none!important;margin:0!important;padding:0!important}
+  .fx-gallery .woocommerce-product-gallery__image:first-child{grid-column:1/-1}
+  .fx-gallery .woocommerce-product-gallery__image:nth-child(n+2):last-child:nth-child(even){grid-column:1/-1}
+}
+.fx-gallery .woocommerce-product-gallery__image a{display:block;cursor:zoom-in}
+.fx-gallery .woocommerce-product-gallery__image img{width:100%;height:auto;aspect-ratio:1/1;object-fit:contain;display:block;margin:0!important}
+.fx-gallery .woocommerce-product-gallery__trigger{display:none}
+/* Telefon i tablet: zdjęcia przesuwane palcem, licznik 1/6 */
+@media (max-width:1024px){
+  .woocommerce div.product div.summary{width:100%;float:none}
+  .woocommerce div.product div.images.fx-gallery{width:auto;float:none}
+  .fx-gallery{position:relative;margin:0 calc(var(--fx-gutter)*-1) 20px!important}
+  .fx-gallery .woocommerce-product-gallery__wrapper{display:flex!important;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;transform:none!important;width:auto!important;gap:0}
+  .fx-gallery .woocommerce-product-gallery__wrapper::-webkit-scrollbar{display:none}
+  .fx-gallery .woocommerce-product-gallery__image{flex:0 0 100%;width:100%!important;float:none!important;margin:0!important;padding:0!important;scroll-snap-align:start}
+  .fx-gallery__count{position:absolute;right:calc(var(--fx-gutter) + 4px);bottom:12px;background:rgba(255,255,255,.92);color:var(--fx-ink);font-size:13px;font-weight:600;padding:4px 10px;border-radius:var(--fx-pill);pointer-events:none}
+}
+@media (min-width:1025px){.fx-gallery__count{display:none}}
+.fx-pmain{display:flow-root;position:relative}
 /* Opis produktu pod częścią zakupową */
 .fx-pdesc{clear:both;display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:48px;padding-top:56px;margin-top:16px;border-top:1px solid var(--fx-line)}
 .fx-pdesc__title{font-size:30px;margin:0 0 16px}
 .fx-pdesc__body{max-width:760px}
 .fx-pdesc__body.fx-prose{max-width:740px}
 /* Opis produktu – typografia odporna na style z wtyczek, importów i wklejek (Word, stary motyw) */
-.fx-pdesc .fx-prose{color:var(--fx-ink-2);font-family:var(--fx-body)!important;font-size:16.5px!important;line-height:1.75!important;font-weight:400!important}
-.fx-pdesc .fx-prose :where(p,li,span,div,td,th,dd,dt,em,small){font-family:inherit!important;font-size:inherit!important;line-height:inherit!important;font-weight:inherit}
-.fx-pdesc .fx-prose :where(strong,b){font-weight:600!important;color:var(--fx-ink)}
-.fx-pdesc .fx-prose p{margin:0 0 1em}
-.fx-pdesc .fx-prose :where(h2,h3,h4,h5,h6){font-family:var(--fx-display)!important;color:var(--fx-ink);font-weight:500!important;line-height:1.25!important;letter-spacing:-.005em;margin:1.8em 0 .6em}
-.fx-pdesc .fx-prose h2{font-size:23px!important}
-.fx-pdesc .fx-prose h3{font-size:19px!important}
-.fx-pdesc .fx-prose :where(h4,h5,h6){font-size:16.5px!important;font-weight:600!important}
-.fx-pdesc .fx-prose>:first-child{margin-top:0}
-.fx-pdesc .fx-prose :where(h2,h3,h4) :where(strong,b){font-weight:inherit!important}
-.fx-pdesc .fx-prose :where(ul,ol){margin:0 0 1.3em;padding-left:1.3em}
-.fx-pdesc .fx-prose li{margin:0 0 .45em;padding-left:.2em}
-.fx-pdesc .fx-prose ul li::marker{color:var(--fx-ink)}
-.fx-pdesc .fx-prose a{color:var(--fx-ink);text-decoration:underline;text-underline-offset:3px}
-.fx-pdesc .fx-prose img{max-width:100%;height:auto;margin:20px 0}
-.fx-pdesc .fx-prose table{width:100%;border-collapse:collapse;margin:0 0 1.3em;font-size:15px!important}
-.fx-pdesc .fx-prose :where(td,th){border:1px solid var(--fx-line);padding:8px 10px;text-align:left}
-.fx-pdesc .fx-prose iframe{max-width:100%}
-@media (max-width:600px){.fx-pdesc .fx-prose{font-size:16px!important}.fx-pdesc .fx-prose h2{font-size:21px!important}}
+.fx-prose.fx-prose{color:var(--fx-ink-2);font-family:var(--fx-body)!important;font-size:16.5px!important;line-height:1.75!important;font-weight:400!important}
+.fx-prose.fx-prose :where(p,li,span,div,td,th,dd,dt,em,small){font-family:inherit!important;font-size:inherit!important;line-height:inherit!important;font-weight:inherit}
+.fx-prose.fx-prose :where(strong,b){font-weight:600!important;color:var(--fx-ink)}
+.fx-prose.fx-prose p{margin:0 0 1em}
+.fx-prose.fx-prose :where(h2,h3,h4,h5,h6){font-family:var(--fx-display)!important;color:var(--fx-ink);font-weight:500!important;line-height:1.25!important;letter-spacing:-.005em;margin:1.8em 0 .6em}
+.fx-prose.fx-prose h2{font-size:23px!important}
+.fx-prose.fx-prose h3{font-size:19px!important}
+.fx-prose.fx-prose :where(h4,h5,h6){font-size:16.5px!important;font-weight:600!important}
+.fx-prose.fx-prose>:first-child{margin-top:0}
+.fx-prose.fx-prose :where(h2,h3,h4) :where(strong,b){font-weight:inherit!important}
+.fx-prose.fx-prose :where(ul,ol){margin:0 0 1.3em;padding-left:1.3em}
+.fx-prose.fx-prose li{margin:0 0 .45em;padding-left:.2em}
+.fx-prose.fx-prose ul li::marker{color:var(--fx-ink)}
+.fx-prose.fx-prose a{color:var(--fx-ink);text-decoration:underline;text-underline-offset:3px}
+.fx-prose.fx-prose img{max-width:100%;height:auto;margin:20px 0}
+.fx-prose.fx-prose table{width:100%;border-collapse:collapse;margin:0 0 1.3em;font-size:15px!important}
+.fx-prose.fx-prose :where(td,th){border:1px solid var(--fx-line);padding:8px 10px;text-align:left}
+.fx-prose.fx-prose iframe{max-width:100%}
+@media (max-width:600px){.fx-prose.fx-prose{font-size:16px!important}.fx-prose.fx-prose h2{font-size:21px!important}}
 .fx-pdesc__side .fx-acc{border-top:1px solid var(--fx-ink)}
 .fx-pdesc__main:only-child,.fx-pdesc__side:only-child{grid-column:1/-1}
 @media (max-width:900px){.fx-pdesc{grid-template-columns:1fr;gap:24px;padding-top:40px}}

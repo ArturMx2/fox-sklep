@@ -1,5 +1,11 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 2.7.0 – galeria przewijana, opis kategorii na całą szerokość
+- Karta produktu (komputer): zdjęcia jedno pod drugim (pierwsze duże, kolejne po dwa), kolumna z ceną i przyciskiem przyklejona obok. Przewijając, oglądasz zdjęcia; po ostatnim zdjęciu cała sekcja jedzie dalej w dół. Gdy kolumna jest wyższa niż ekran, przykleja się dołem (przycisk koszyka zawsze widoczny).
+- Telefon: zdjęcia przesuwane palcem, licznik „3 / 6”. Zmiana wariantu pokazuje jego zdjęcie.
+- Bez slidera i lupy WooCommerce (mniej skryptów); klik w zdjęcie otwiera powiększenie.
+- Opis kategorii pod produktami: na całą szerokość, bez kolumny „O kategorii”, ta sama typografia co opis produktu.
+
 ## 2.6.2 – formatowanie opisów
 - Opis produktu: stała, czytelna typografia (tekst 16,5 px, nagłówki 23/19 px, listy, tabele), odporna na style z wtyczek, importów i wklejek z Worda.
 - SEO: <h1> w opisie produktu, krótkim opisie i opisach kategorii wyświetlany jako <h2> – na stronie jest jeden H1. Treść w bazie bez zmian.

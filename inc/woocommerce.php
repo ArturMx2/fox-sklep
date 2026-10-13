@@ -90,7 +90,7 @@ function fx_archive_bottom() {
 	if ( '' === trim( wp_strip_all_tags( $bot ) ) ) {
 		return;
 	}
-	echo '<section id="fx-opis" class="fx-seo fx-cat-desc"><div class="fx-seo__head"><div class="fx-kicker">O kategorii</div></div><div class="fx-seo__body">' . fx_rich( $bot ) . '</div></section>'; // phpcs:ignore
+	echo '<section id="fx-opis" class="fx-cat-desc"><div class="fx-cat-desc__body fx-prose">' . fx_rich( $bot ) . '</div></section>'; // phpcs:ignore
 }
 
 function fx_is_term_archive() {
@@ -365,3 +365,23 @@ add_action( 'woocommerce_after_single_product_summary', function () {
 
 /* Krótki opis – te same porządki co w opisie (jeden H1, bez wklejonych czcionek). */
 add_filter( 'woocommerce_short_description', 'fx_clean_html', 20 );
+
+/* =====================================================================
+ * GALERIA PRODUKTU: wszystkie zdjęcia w pełnym rozmiarze (bez slidera)
+ * ===================================================================== */
+add_filter( 'woocommerce_gallery_image_size', function () {
+	return 'woocommerce_single';
+} );
+add_filter( 'woocommerce_single_product_image_gallery_classes', function ( $classes ) {
+	$classes[] = 'fx-gallery';
+	return $classes;
+} );
+
+/* Zdjęcia + kolumna zakupowa w jednym bloku – kolumna przykleja się tylko na wysokości zdjęć,
+   a po ostatnim zdjęciu cała sekcja jedzie dalej (opis, zestawy, seria). */
+add_action( 'woocommerce_before_single_product_summary', function () {
+	echo '<div class="fx-pmain">';
+}, 1 );
+add_action( 'woocommerce_after_single_product_summary', function () {
+	echo '</div>';
+}, 1 );
