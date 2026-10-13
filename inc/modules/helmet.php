@@ -1,232 +1,719 @@
 <?php
 /**
- * Walidacja rozmiaru kasku.
+ * Obowiązkowy rzeczywisty obwód głowy przy zakupie kasku.
  *
- * Gdy w koszyku jest produkt z kategorii kasków (ustawienia: Narzędzia sklepu),
- * klient musi podać obwód głowy w cm. Jeśli ustawione są zakresy rozmiarów
- * (np. „M | 57-58”), obwód jest porównywany z wybranym rozmiarem kasku –
- * przy niezgodności zamówienie wymaga potwierdzenia rozmiaru.
- * Obwód zapisuje się w zamówieniu: w panelu, w e-mailach i na stronie podziękowania.
- *
- * Działa z klasycznym zamówieniem [woocommerce_checkout] i z blokiem zamówienia.
+ * Przeniesione 1:1 z dotychczasowego kodu fox.sklep.pl (wersja 3.0, klasyczny checkout):
+ * wykrywanie kasku po słowie „kask” w nazwie, pole z obowiązkowym potwierdzeniem pomiaru,
+ * zapis jako obwod_glowy / pomiar_glowy_potwierdzony / fox_head_circumference,
+ * dopisanie do uwag zamówienia (BaseLinker), notatka wewnętrzna, panel, e-maile, strona podziękowania.
+ * Te same nazwy pól co dotychczas – integracje i stare zamówienia działają bez zmian.
+ * Zmiana: style przeniesione do style.css motywu.
  *
  * @package foxsklep
  */
 
 defined( 'ABSPATH' ) || exit;
 
-/* ---------- Pomocnicze ---------- */
-function fx_helmet_cat_ids() {
-	static $ids = null;
-	if ( null !== $ids ) {
-		return $ids;
-	}
-	$ids = array();
-	foreach ( array_filter( array_map( 'trim', explode( ',', (string) fx_tool( 'helmet_cats' ) ) ) ) as $slug ) {
-		$t = get_term_by( 'slug', $slug, 'product_cat' );
-		if ( $t ) {
-			$ids[] = (int) $t->term_id;
-			$ids   = array_merge( $ids, array_map( 'intval', get_term_children( $t->term_id, 'product_cat' ) ) );
-		}
-	}
-	return $ids = array_unique( $ids );
-}
 
-function fx_helmet_ranges() {
-	$out = array();
-	foreach ( fx_lines( fx_tool( 'helmet_ranges' ) ) as $r ) {
-		if ( preg_match( '/(\d+(?:[.,]\d+)?)\s*[-–]\s*(\d+(?:[.,]\d+)?)/', $r[1], $m ) ) {
-			$out[ mb_strtolower( trim( $r[0] ) ) ] = array( (float) str_replace( ',', '.', $m[1] ), (float) str_replace( ',', '.', $m[2] ) );
-		}
-	}
-	return $out;
-}
+/* ==========================================================================
+ * 1. WYKRYWANIE KASKU W KOSZYKU
+ * ========================================================================== */
 
 /**
- * Kaski w koszyku: [ [nazwa, rozmiar], ... ].
+ * Sprawdza, czy nazwa produktu zawiera słowo „kask”.
+ *
+ * Działa również dla wariantów produktów.
  */
-function fx_cart_helmets() {
-	if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
-		return array();
-	}
-	$cats = fx_helmet_cat_ids();
-	if ( ! $cats ) {
-		return array();
-	}
-	$out = array();
-	foreach ( WC()->cart->get_cart() as $item ) {
-		$pid = (int) $item['product_id'];
-		if ( ! array_intersect( wc_get_product_cat_ids( $pid ), $cats ) ) {
-			continue;
-		}
-		$size = '';
-		if ( ! empty( $item['variation'] ) ) {
-			foreach ( $item['variation'] as $attr => $value ) {
-				$tax   = str_replace( 'attribute_', '', $attr );
-				$label = taxonomy_exists( $tax ) && ( $t = get_term_by( 'slug', $value, $tax ) ) ? $t->name : $value; // phpcs:ignore
-				if ( '' === $size || preg_match( '/(rozmiar|size)/i', $tax ) ) {
-					$size = $label;
-				}
-			}
-		}
-		$out[] = array( $item['data']->get_name(), $size );
-	}
-	return $out;
-}
+function fox_hc_v3_product_is_helmet( $product ) {
 
-/**
- * Sprawdza obwód. Zwraca komunikat błędu albo ''.
- */
-function fx_helmet_check( $cm, $confirmed ) {
-	$helmets = fx_cart_helmets();
-	if ( ! $helmets ) {
-		return '';
+	if ( ! $product instanceof WC_Product ) {
+		return false;
 	}
-	$cm = (float) str_replace( ',', '.', (string) $cm );
-	if ( $cm < 40 || $cm > 70 ) {
-		return 'W koszyku jest kask – podaj obwód głowy w centymetrach (np. 57).';
+
+	$product_names = array(
+		$product->get_name(),
+	);
+
+	/*
+	 * Przy wariancie sprawdzamy także nazwę produktu nadrzędnego.
+	 */
+	if ( $product->is_type( 'variation' ) ) {
+
+		$parent_product = wc_get_product(
+			$product->get_parent_id()
+		);
+
+		if ( $parent_product instanceof WC_Product ) {
+			$product_names[] = $parent_product->get_name();
+		}
 	}
-	$ranges = fx_helmet_ranges();
-	if ( ! $ranges || $confirmed ) {
-		return '';
-	}
-	foreach ( $helmets as $h ) {
-		$key = mb_strtolower( $h[1] );
-		if ( isset( $ranges[ $key ] ) && ( $cm < $ranges[ $key ][0] || $cm > $ranges[ $key ][1] ) ) {
-			return sprintf(
-				'Obwód %s cm nie pasuje do rozmiaru %s (%s–%s cm) kasku „%s”. Zmień rozmiar w koszyku albo zaznacz potwierdzenie rozmiaru.',
-				wc_format_localized_decimal( $cm ),
-				$h[1],
-				wc_format_localized_decimal( $ranges[ $key ][0] ),
-				wc_format_localized_decimal( $ranges[ $key ][1] ),
-				$h[0]
+
+	foreach ( $product_names as $product_name ) {
+
+		$product_name = (string) $product_name;
+
+		if ( function_exists( 'mb_stripos' ) ) {
+
+			$contains_helmet = false !== mb_stripos(
+				$product_name,
+				'kask',
+				0,
+				'UTF-8'
+			);
+
+		} else {
+
+			$contains_helmet = false !== stripos(
+				$product_name,
+				'kask'
 			);
 		}
-	}
-	return '';
-}
 
-/* ---------- Koszyk: informacja ---------- */
-add_action( 'woocommerce_before_cart_table', function () {
-	if ( fx_cart_helmets() ) {
-		echo '<div class="woocommerce-info fx-helmet-info">W koszyku jest kask. Przy zamówieniu podasz obwód głowy – sprawdzimy, czy rozmiar pasuje.</div>';
-	}
-} );
-
-/* ---------- Klasyczne zamówienie ---------- */
-add_filter( 'woocommerce_checkout_fields', function ( $fields ) {
-	if ( ! fx_cart_helmets() ) {
-		return $fields;
-	}
-	$fields['order'] = array(
-		'fx_head_cm' => array(
-			'type'              => 'number',
-			'label'             => 'Obwód głowy (cm)',
-			'description'       => 'Zmierz centymetrem krawieckim nad brwiami i uszami. Potrzebny do sprawdzenia rozmiaru kasku.',
-			'required'          => true,
-			'priority'          => 1,
-			'class'             => array( 'form-row-wide' ),
-			'custom_attributes' => array( 'min' => 40, 'max' => 70, 'step' => '0.5', 'inputmode' => 'decimal' ),
-		),
-	) + ( fx_helmet_ranges() ? array(
-		'fx_head_confirm' => array(
-			'type'     => 'checkbox',
-			'label'    => 'Potwierdzam wybrany rozmiar kasku, nawet jeśli nie pasuje do podanego obwodu',
-			'required' => false,
-			'priority' => 2,
-			'class'    => array( 'form-row-wide' ),
-		),
-	) : array() ) + ( isset( $fields['order'] ) ? $fields['order'] : array() );
-	return $fields;
-} );
-
-add_action( 'woocommerce_after_checkout_validation', function ( $data, $errors ) {
-	// phpcs:disable WordPress.Security.NonceVerification -- WooCommerce weryfikuje nonce zamówienia.
-	$cm      = isset( $_POST['fx_head_cm'] ) ? sanitize_text_field( wp_unslash( $_POST['fx_head_cm'] ) ) : '';
-	$confirm = ! empty( $_POST['fx_head_confirm'] );
-	// phpcs:enable
-	$msg = fx_helmet_check( $cm, $confirm );
-	if ( $msg ) {
-		$errors->add( 'fx_head_cm', $msg );
-	}
-}, 10, 2 );
-
-add_action( 'woocommerce_checkout_create_order', function ( $order ) {
-	// phpcs:disable WordPress.Security.NonceVerification
-	if ( isset( $_POST['fx_head_cm'] ) && '' !== $_POST['fx_head_cm'] ) {
-		$order->update_meta_data( '_fx_head_cm', sanitize_text_field( wp_unslash( $_POST['fx_head_cm'] ) ) );
-		if ( ! empty( $_POST['fx_head_confirm'] ) ) {
-			$order->update_meta_data( '_fx_head_confirm', 'yes' );
+		if ( $contains_helmet ) {
+			return true;
 		}
 	}
-	// phpcs:enable
-} );
 
-/* ---------- Blok zamówienia (Checkout Block) ---------- */
-add_action( 'woocommerce_init', function () {
-	if ( ! function_exists( 'woocommerce_register_additional_checkout_field' ) ) {
+	return false;
+}
+
+
+/**
+ * Sprawdza, czy w koszyku znajduje się przynajmniej jeden kask.
+ */
+function fox_hc_v3_cart_has_helmet() {
+
+	if (
+		! function_exists( 'WC' ) ||
+		! WC()->cart
+	) {
+		return false;
+	}
+
+	foreach ( WC()->cart->get_cart() as $cart_item ) {
+
+		if (
+			empty( $cart_item['data'] ) ||
+			! $cart_item['data'] instanceof WC_Product
+		) {
+			continue;
+		}
+
+		if ( fox_hc_v3_product_is_helmet( $cart_item['data'] ) ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
+/* ==========================================================================
+ * 2. OBSŁUGA WARTOŚCI POMIARU
+ * ========================================================================== */
+
+/**
+ * Pobiera pomiar przesłany przez formularz.
+ */
+function fox_hc_v3_get_posted_measurement() {
+
+	if ( ! isset( $_POST['fox_head_circumference'] ) ) {
+		return '';
+	}
+
+	$value = wc_clean(
+		wp_unslash(
+			$_POST['fox_head_circumference']
+		)
+	);
+
+	$value = trim( (string) $value );
+
+	/*
+	 * Klient może wpisać 57,5 albo 57.5.
+	 */
+	return str_replace( ',', '.', $value );
+}
+
+
+/**
+ * Formatuje wartość pomiaru.
+ *
+ * 57.0 zmienia na 57
+ * 57.5 pozostawia jako 57,5
+ */
+function fox_hc_v3_format_measurement( $value ) {
+
+	$value = (float) $value;
+
+	$formatted = rtrim(
+		rtrim(
+			number_format( $value, 1, '.', '' ),
+			'0'
+		),
+		'.'
+	);
+
+	return str_replace( '.', ',', $formatted );
+}
+
+
+/**
+ * Sprawdza, czy klient zaznaczył potwierdzenie.
+ */
+function fox_hc_v3_measurement_is_confirmed() {
+
+	return ! empty(
+		$_POST['fox_head_measurement_confirmed']
+	);
+}
+
+
+/* ==========================================================================
+ * 3. WYŚWIETLENIE SEKCJI W CHECKOUT
+ * ========================================================================== */
+
+/**
+ * Wyświetla całą sekcję jako jeden spójny box.
+ */
+add_action(
+	'woocommerce_before_checkout_billing_form',
+	'fox_hc_v3_display_measurement_box',
+	5
+);
+
+function fox_hc_v3_display_measurement_box( $checkout ) {
+
+	if ( ! fox_hc_v3_cart_has_helmet() ) {
 		return;
 	}
-	try {
-		woocommerce_register_additional_checkout_field(
-			array(
-				'id'         => 'fox/head-cm',
-				'label'      => 'Obwód głowy w cm (wymagany przy zamówieniu kasku)',
-				'location'   => 'order',
-				'type'       => 'text',
-				'required'   => false,
+
+	$measurement = '';
+
+	if ( isset( $_POST['fox_head_circumference'] ) ) {
+
+		$measurement = wc_clean(
+			wp_unslash(
+				$_POST['fox_head_circumference']
 			)
 		);
-		if ( fx_helmet_ranges() ) {
-			woocommerce_register_additional_checkout_field(
+	}
+
+	$is_confirmed = fox_hc_v3_measurement_is_confirmed();
+
+	?>
+
+	<div class="fox-helmet-check">
+
+		<div class="fox-helmet-check__heading">
+
+			<span
+				class="fox-helmet-check__icon"
+				aria-hidden="true"
+			>
+				✓
+			</span>
+
+			<div class="fox-helmet-check__heading-content">
+
+				<h3>
+					Sprawdźmy rozmiar kasku dwa razy
+				</h3>
+
+				<p>
+					W Twoim koszyku znajduje się kask. Przed realizacją
+					zamówienia porównamy wybrany rozmiar z podanym
+					obwodem głowy.
+				</p>
+
+			</div>
+
+		</div>
+
+		<div class="fox-helmet-check__alert">
+
+			<strong>
+				Podaj rzeczywisty wynik z miarki.
+			</strong>
+
+			<span>
+				Nie zaokrąglaj pomiaru w górę, nie dodawaj zapasu
+				i nie wybieraj rozmiaru „na przyszłość”.
+			</span>
+
+		</div>
+
+		<div class="fox-helmet-check__field">
+
+			<label for="fox_head_circumference">
+
+				Rzeczywisty obwód głowy w cm
+
+				<abbr
+					class="required"
+					title="wymagane"
+				>
+					*
+				</abbr>
+
+			</label>
+
+			<div class="fox-helmet-check__input-wrapper">
+
+				<input
+					type="text"
+					name="fox_head_circumference"
+					id="fox_head_circumference"
+					value="<?php echo esc_attr( $measurement ); ?>"
+					placeholder="np. 57"
+					inputmode="decimal"
+					autocomplete="off"
+					maxlength="4"
+					pattern="[0-9]{2}([,.][0-9])?"
+					required
+					aria-required="true"
+					aria-describedby="fox_head_measurement_help"
+				>
+
+				<span class="fox-helmet-check__unit">
+					cm
+				</span>
+
+			</div>
+
+			<p
+				id="fox_head_measurement_help"
+				class="fox-helmet-check__help"
+			>
+				Poprowadź miarkę poziomo około 1–2 cm nad brwiami,
+				nad uszami i przez najszersze miejsce z tyłu głowy.
+			</p>
+
+		</div>
+
+		<label
+			class="fox-helmet-check__confirmation"
+			for="fox_head_measurement_confirmed"
+		>
+
+			<input
+				type="checkbox"
+				name="fox_head_measurement_confirmed"
+				id="fox_head_measurement_confirmed"
+				value="1"
+				<?php checked( $is_confirmed ); ?>
+				required
+				aria-required="true"
+			>
+
+			<span>
+				<strong>
+					Potwierdzam, że podałem rzeczywisty wynik z miarki.
+				</strong>
+
+				Bez zaokrąglania w górę i bez dodawania zapasu.
+			</span>
+
+		</label>
+
+		<div class="fox-helmet-check__footer">
+
+			<strong>
+				Nie znasz obwodu głowy? Najpierw go zmierz.
+			</strong>
+
+			<p>
+				Wiek, wzrost ani rozmiar ubrań nie są wyznacznikiem
+				rozmiaru kasku. Dobieranie kasku na podstawie wieku
+				bardzo często kończy się wyborem niewłaściwego rozmiaru.
+			</p>
+
+		</div>
+
+	</div>
+
+	<?php
+}
+
+
+/* ==========================================================================
+ * 4. WALIDACJA FORMULARZA
+ * ========================================================================== */
+
+/**
+ * Blokuje złożenie zamówienia bez poprawnego pomiaru.
+ */
+add_action(
+	'woocommerce_after_checkout_validation',
+	'fox_hc_v3_validate_measurement',
+	10,
+	2
+);
+
+function fox_hc_v3_validate_measurement( $data, $errors ) {
+
+	if ( ! fox_hc_v3_cart_has_helmet() ) {
+		return;
+	}
+
+	$measurement = fox_hc_v3_get_posted_measurement();
+
+	if ( '' === $measurement ) {
+
+		$errors->add(
+			'fox_head_measurement_required',
+			'Zmierz głowę i podaj jej rzeczywisty obwód w centymetrach.',
+			array(
+				'id' => 'fox_head_circumference',
+			)
+		);
+
+	} elseif (
+		! preg_match(
+			'/^[0-9]{2}(?:\.[0-9])?$/',
+			$measurement
+		)
+	) {
+
+		$errors->add(
+			'fox_head_measurement_invalid',
+			'Podaj sam rzeczywisty wynik pomiaru, np. 57 lub 57,5.',
+			array(
+				'id' => 'fox_head_circumference',
+			)
+		);
+
+	} else {
+
+		$measurement_number = (float) $measurement;
+
+		if (
+			$measurement_number < 40 ||
+			$measurement_number > 75
+		) {
+
+			$errors->add(
+				'fox_head_measurement_range',
+				'Sprawdź podany pomiar. Obwód głowy powinien mieścić się w zakresie od 40 do 75 cm.',
 				array(
-					'id'       => 'fox/head-confirm',
-					'label'    => 'Potwierdzam rozmiar kasku, nawet jeśli nie pasuje do obwodu',
-					'location' => 'order',
-					'type'     => 'checkbox',
+					'id' => 'fox_head_circumference',
 				)
 			);
 		}
-	} catch ( \Throwable $e ) {
-		return;
 	}
-} );
 
-add_action( 'woocommerce_store_api_checkout_update_order_from_request', function ( $order, $request ) {
-	$fields  = (array) $request->get_param( 'additional_fields' );
-	$cm      = isset( $fields['fox/head-cm'] ) ? (string) $fields['fox/head-cm'] : '';
-	$confirm = ! empty( $fields['fox/head-confirm'] );
-	$msg     = fx_helmet_check( $cm, $confirm );
-	if ( $msg ) {
-		throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException( 'fx_head_cm', esc_html( $msg ), 400 );
-	}
-	if ( '' !== $cm ) {
-		$order->update_meta_data( '_fx_head_cm', sanitize_text_field( $cm ) );
-	}
-}, 10, 2 );
+	if ( ! fox_hc_v3_measurement_is_confirmed() ) {
 
-/* ---------- Wyświetlanie w zamówieniu ---------- */
-add_action( 'woocommerce_admin_order_data_after_shipping_address', function ( $order ) {
-	$cm = $order->get_meta( '_fx_head_cm' );
-	if ( $cm ) {
-		echo '<p><strong>Obwód głowy:</strong> ' . esc_html( $cm ) . ' cm' . ( 'yes' === $order->get_meta( '_fx_head_confirm' ) ? ' (klient potwierdził rozmiar mimo niezgodności)' : '' ) . '</p>';
-	}
-} );
-
-add_filter( 'woocommerce_email_order_meta_fields', function ( $fields, $sent_to_admin, $order ) {
-	$cm = $order->get_meta( '_fx_head_cm' );
-	if ( $cm ) {
-		$fields['fx_head_cm'] = array(
-			'label' => 'Obwód głowy',
-			'value' => $cm . ' cm',
+		$errors->add(
+			'fox_head_measurement_confirmation',
+			'Potwierdź, że podałeś rzeczywisty pomiar głowy bez dodawania zapasu.',
+			array(
+				'id' => 'fox_head_measurement_confirmed',
+			)
 		);
 	}
-	return $fields;
-}, 10, 3 );
+}
 
-add_action( 'woocommerce_order_details_after_order_table', function ( $order ) {
-	$cm = $order->get_meta( '_fx_head_cm' );
-	if ( $cm ) {
-		echo '<p class="fx-head-cm"><strong>Obwód głowy:</strong> ' . esc_html( $cm ) . ' cm</p>';
+
+/* ==========================================================================
+ * 5. ZAPIS W ZAMÓWIENIU
+ * ========================================================================== */
+
+/**
+ * Zapisuje pomiar:
+ *
+ * 1. Jako pole zamówienia obwod_glowy.
+ * 2. Jako potwierdzenie pomiaru.
+ * 3. W standardowym polu uwag zamówienia.
+ *
+ * Pole uwag jest celowo uzupełniane, aby informacja była widoczna
+ * także w systemach integrujących zamówienia, np. BaseLinker.
+ */
+add_action(
+	'woocommerce_checkout_create_order',
+	'fox_hc_v3_save_measurement_in_order',
+	20,
+	2
+);
+
+function fox_hc_v3_save_measurement_in_order( $order, $data ) {
+
+	if (
+		! $order instanceof WC_Order ||
+		! fox_hc_v3_cart_has_helmet()
+	) {
+		return;
 	}
-} );
+
+	$measurement = fox_hc_v3_get_posted_measurement();
+
+	if (
+		'' === $measurement ||
+		! is_numeric( $measurement )
+	) {
+		return;
+	}
+
+	$measurement = fox_hc_v3_format_measurement(
+		$measurement
+	);
+
+	$measurement_with_unit = $measurement . ' cm';
+
+	/*
+	 * Czytelne, publiczne pola zamówienia.
+	 * Bez znaku "_" na początku, aby nie były traktowane
+	 * jako ukryte pola techniczne.
+	 */
+	$order->update_meta_data(
+		'obwod_glowy',
+		$measurement_with_unit
+	);
+
+	$order->update_meta_data(
+		'pomiar_glowy_potwierdzony',
+		'TAK — rzeczywisty pomiar bez dodawania zapasu'
+	);
+
+	/*
+	 * Dodatkowa techniczna kopia wartości.
+	 */
+	$order->update_meta_data(
+		'fox_head_circumference',
+		$measurement_with_unit
+	);
+
+	/*
+	 * Informacja zapisywana w standardowych uwagach zamówienia.
+	 * BaseLinker powinien pobrać ją jako „Uwagi”.
+	 */
+	$helmet_note = sprintf(
+		'Obwód głowy: %s.',
+		$measurement_with_unit
+	);
+
+	$current_customer_note = trim(
+		(string) $order->get_customer_note()
+	);
+
+	if ( '' !== $current_customer_note ) {
+
+		$new_customer_note =
+			$helmet_note .
+			"\n\n" .
+			$current_customer_note;
+
+	} else {
+
+		$new_customer_note = $helmet_note;
+	}
+
+	$order->set_customer_note( $new_customer_note );
+}
+
+
+/**
+ * Dodaje wewnętrzną notatkę po utworzeniu zamówienia.
+ */
+add_action(
+	'woocommerce_checkout_order_created',
+	'fox_hc_v3_add_internal_order_note',
+	20
+);
+
+function fox_hc_v3_add_internal_order_note( $order ) {
+
+	if ( ! $order instanceof WC_Order ) {
+		return;
+	}
+
+	$measurement = $order->get_meta(
+		'obwod_glowy',
+		true
+	);
+
+	if ( ! $measurement ) {
+		return;
+	}
+
+	$order->add_order_note(
+		sprintf(
+			'DOUBLE-CHECK KASKU: klient podał obwód głowy %s. Sprawdź zgodność z wybranym rozmiarem przed realizacją.',
+			$measurement
+		)
+	);
+}
+
+
+/* ==========================================================================
+ * 6. WYŚWIETLENIE W PANELU WOOCOMMERCE
+ * ========================================================================== */
+
+/**
+ * Pokazuje obwód głowy w danych zamówienia.
+ */
+add_action(
+	'woocommerce_admin_order_data_after_billing_address',
+	'fox_hc_v3_display_measurement_in_admin',
+	10
+);
+
+function fox_hc_v3_display_measurement_in_admin( $order ) {
+
+	if ( ! $order instanceof WC_Order ) {
+		return;
+	}
+
+	$measurement = $order->get_meta(
+		'obwod_glowy',
+		true
+	);
+
+	$confirmation = $order->get_meta(
+		'pomiar_glowy_potwierdzony',
+		true
+	);
+
+	if ( ! $measurement ) {
+		return;
+	}
+
+	?>
+
+	<div
+		style="
+			margin-top: 14px;
+			padding: 12px 14px;
+			border-left: 4px solid #e63b21;
+			background: #fff4f1;
+		"
+	>
+
+		<p style="margin: 0 0 6px;">
+
+			<strong>
+				Obwód głowy do weryfikacji:
+			</strong>
+
+			<br>
+
+			<span style="font-size: 20px; font-weight: 700;">
+				<?php echo esc_html( $measurement ); ?>
+			</span>
+
+		</p>
+
+		<?php if ( $confirmation ) : ?>
+
+			<p style="margin: 0;">
+
+				<strong>
+					Potwierdzenie klienta:
+				</strong>
+
+				<br>
+
+				<?php echo esc_html( $confirmation ); ?>
+
+			</p>
+
+		<?php endif; ?>
+
+	</div>
+
+	<?php
+}
+
+
+/* ==========================================================================
+ * 7. WYŚWIETLENIE W E-MAILACH
+ * ========================================================================== */
+
+/**
+ * Dodaje obwód głowy do wiadomości e-mail z zamówieniem.
+ */
+add_filter(
+	'woocommerce_email_order_meta_fields',
+	'fox_hc_v3_add_measurement_to_emails',
+	20,
+	3
+);
+
+function fox_hc_v3_add_measurement_to_emails(
+	$fields,
+	$sent_to_admin,
+	$order
+) {
+
+	if ( ! $order instanceof WC_Order ) {
+		return $fields;
+	}
+
+	$measurement = $order->get_meta(
+		'obwod_glowy',
+		true
+	);
+
+	if ( ! $measurement ) {
+		return $fields;
+	}
+
+	$fields['fox_head_circumference'] = array(
+		'label' => 'Rzeczywisty obwód głowy',
+		'value' => $measurement,
+	);
+
+	return $fields;
+}
+
+
+/* ==========================================================================
+ * 8. WYŚWIETLENIE NA STRONIE POTWIERDZENIA ZAMÓWIENIA
+ * ========================================================================== */
+
+/**
+ * Pokazuje pomiar klientowi po złożeniu zamówienia.
+ */
+add_action(
+	'woocommerce_order_details_after_customer_details',
+	'fox_hc_v3_display_measurement_in_order_details',
+	20
+);
+
+function fox_hc_v3_display_measurement_in_order_details( $order ) {
+
+	if ( ! $order instanceof WC_Order ) {
+		return;
+	}
+
+	$measurement = $order->get_meta(
+		'obwod_glowy',
+		true
+	);
+
+	if ( ! $measurement ) {
+		return;
+	}
+
+	?>
+
+	<section class="woocommerce-customer-details fox-order-head-size">
+
+		<h2 class="woocommerce-column__title">
+			Dopasowanie kasku
+		</h2>
+
+		<p>
+			<strong>Podany obwód głowy:</strong>
+			<?php echo esc_html( $measurement ); ?>
+		</p>
+
+		<p>
+			Przed realizacją zamówienia porównamy pomiar
+			z wybranym rozmiarem kasku.
+		</p>
+
+	</section>
+
+	<?php
+}

@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 2.4.3
+Version: 2.5.0
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -442,9 +442,263 @@ button,input,select,textarea{font:inherit;color:inherit}
 .fx-alert__msg.is-error,.fx-kit__msg.is-error{color:var(--fx-sale)}
 .fx-hp{position:absolute!important;left:-9999px!important;width:1px;height:1px;opacity:0}
 
-/* Obwód głowy w zamówieniu */
-.fx-helmet-info{margin-bottom:24px}
-#fx_head_cm_field .description{font-size:13px;color:var(--fx-muted)}
+/* Obwód głowy przy zamówieniu kasku (style z dotychczasowego kodu, w kolorach motywu) */
+.fox-helmet-check,
+		.fox-helmet-check *,
+		.fox-helmet-check *::before,
+		.fox-helmet-check *::after {
+			box-sizing: border-box;
+		}
+
+		.fox-helmet-check {
+			width: 100%;
+			margin: 0 0 26px;
+			padding: 22px;
+			border: 2px solid var(--fx-ink);
+			border-radius: 6px;
+			background: #fff;
+		}
+
+		.fox-helmet-check__heading {
+			display: flex;
+			align-items: flex-start;
+			gap: 13px;
+			margin: 0 0 17px;
+		}
+
+		.fox-helmet-check__icon {
+			display: flex;
+			flex: 0 0 32px;
+			width: 32px;
+			height: 32px;
+			align-items: center;
+			justify-content: center;
+			margin: 0;
+			border-radius: 50%;
+			background: var(--fx-ink);
+			color: #fff;
+			font-size: 17px;
+			font-weight: 700;
+			line-height: 1;
+		}
+
+		.fox-helmet-check__heading-content {
+			flex: 1 1 auto;
+			min-width: 0;
+		}
+
+		.fox-helmet-check__heading h3 {
+			margin: 0 0 5px;
+			padding: 0;
+			font-size: 20px;
+			font-weight: 700;
+			line-height: 1.3;
+			color: #333;
+		}
+
+		.fox-helmet-check__heading p {
+			margin: 0;
+			padding: 0;
+			font-size: 15px;
+			line-height: 1.5;
+			color: #555;
+		}
+
+		.fox-helmet-check__alert {
+			display: block;
+			margin: 0 0 20px;
+			padding: 13px 15px;
+			border: 0;
+			border-left: 4px solid var(--fx-sale);
+			background: #fdf3ef;
+			color: #444;
+		}
+
+		.fox-helmet-check__alert strong {
+			display: block;
+			margin: 0 0 2px;
+			font-size: 15px;
+			line-height: 1.4;
+		}
+
+		.fox-helmet-check__alert span {
+			display: block;
+			margin: 0;
+			font-size: 14px;
+			line-height: 1.5;
+		}
+
+		.fox-helmet-check__field {
+			display: block;
+			width: 100%;
+			margin: 0 0 17px;
+			padding: 0;
+		}
+
+		.fox-helmet-check__field > label {
+			display: block;
+			margin: 0 0 7px;
+			padding: 0;
+			font-size: 16px;
+			font-weight: 700;
+			line-height: 1.4;
+			color: #333;
+		}
+
+		.fox-helmet-check__field .required {
+			border: 0;
+			color: var(--fx-sale);
+			text-decoration: none;
+		}
+
+		.fox-helmet-check__input-wrapper {
+			position: relative;
+			display: block;
+			width: 100%;
+		}
+
+		.fox-helmet-check__input-wrapper input {
+			display: block;
+			width: 100%;
+			height: 52px;
+			min-height: 52px;
+			margin: 0;
+			padding: 10px 56px 10px 14px;
+			border: 1px solid #aaa;
+			border-radius: 4px;
+			outline: none;
+			background: #fff;
+			color: #222;
+			font-size: 19px;
+			font-weight: 700;
+			line-height: 1.2;
+			box-shadow: none;
+		}
+
+		.fox-helmet-check__input-wrapper input::placeholder {
+			color: #999;
+			font-weight: 500;
+			opacity: 1;
+		}
+
+		.fox-helmet-check__input-wrapper input:focus {
+			border-color: #222;
+			box-shadow: 0 0 0 1px #222;
+		}
+
+		.fox-helmet-check__unit {
+			position: absolute;
+			top: 50%;
+			right: 15px;
+			transform: translateY(-50%);
+			color: #666;
+			font-size: 15px;
+			font-weight: 700;
+			pointer-events: none;
+		}
+
+		.fox-helmet-check__help {
+			margin: 8px 0 0;
+			padding: 0;
+			font-size: 13px;
+			line-height: 1.5;
+			color: #666;
+		}
+
+		.fox-helmet-check__confirmation {
+			display: flex;
+			width: 100%;
+			align-items: flex-start;
+			gap: 10px;
+			margin: 0;
+			padding: 14px;
+			border: 1px solid #ddd;
+			border-radius: 4px;
+			background: #f7f7f7;
+			color: #333;
+			cursor: pointer;
+		}
+
+		.fox-helmet-check__confirmation input {
+			flex: 0 0 auto;
+			width: 18px;
+			height: 18px;
+			margin: 2px 0 0;
+			padding: 0;
+			accent-color: #222;
+		}
+
+		.fox-helmet-check__confirmation span {
+			display: block;
+			flex: 1 1 auto;
+			margin: 0;
+			font-size: 13px;
+			font-weight: 400;
+			line-height: 1.5;
+		}
+
+		.fox-helmet-check__confirmation strong {
+			display: block;
+			margin: 0;
+			font-size: 13px;
+			font-weight: 700;
+		}
+
+		.fox-helmet-check__footer {
+			margin: 16px 0 0;
+			padding: 0;
+			color: #555;
+		}
+
+		.fox-helmet-check__footer strong {
+			display: block;
+			margin: 0 0 2px;
+			font-size: 13px;
+			line-height: 1.5;
+		}
+
+		.fox-helmet-check__footer p {
+			margin: 0;
+			padding: 0;
+			font-size: 13px;
+			line-height: 1.5;
+		}
+
+		@media (max-width: 600px) {
+			.fox-helmet-check {
+				margin-bottom: 22px;
+				padding: 17px;
+			}
+
+			.fox-helmet-check__heading {
+				gap: 11px;
+			}
+
+			.fox-helmet-check__icon {
+				flex-basis: 29px;
+				width: 29px;
+				height: 29px;
+				font-size: 15px;
+			}
+
+			.fox-helmet-check__heading h3 {
+				font-size: 17px;
+			}
+
+			.fox-helmet-check__heading p {
+				font-size: 14px;
+			}
+
+			.fox-helmet-check__alert {
+				padding: 12px;
+			}
+
+			.fox-helmet-check__input-wrapper input {
+				font-size: 18px;
+			}
+		}
+.fox-order-head-size{margin-top:24px}
+.woocommerce .fox-helmet-check .fox-helmet-check__heading h3{margin:0 0 5px!important;font-family:var(--fx-body)}
 
 
 /* Dostępne rozmiary po najechaniu (tylko urządzenia z kursorem) */

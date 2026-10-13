@@ -15,8 +15,6 @@ function fx_tool_defaults() {
 		'badge_new_days'   => 30,
 		'badge_sale_pct'   => true,
 		'badge_low_stock'  => 2,
-		'helmet_cats'      => 'kaski, kaski-odziez-mtb',
-		'helmet_ranges'    => '',
 		'filter_size_attr'  => '',
 		'filter_color_attr' => '',
 		'stock_alerts'     => true,
@@ -42,8 +40,6 @@ add_action( 'customize_register', function ( $wp ) {
 		'badge_new_days'   => array( 'number', 'Etykieta „Nowość” – przez ile dni od dodania produktu (0 = wyłączona)', 'absint' ),
 		'badge_sale_pct'   => array( 'checkbox', 'Etykieta promocji z procentem rabatu (np. −20%)', 'fx_sanitize_bool' ),
 		'badge_low_stock'  => array( 'number', 'Etykieta „Ostatnie sztuki”, gdy na stanie jest najwyżej tyle sztuk (0 = wyłączona)', 'absint' ),
-		'helmet_cats'      => array( 'text', 'Kategorie kasków (slugi po przecinku, z podkategoriami) – wymagany obwód głowy przy zamówieniu', 'sanitize_text_field' ),
-		'helmet_ranges'    => array( 'textarea', 'Zakresy rozmiarów kasków w cm, jedna linia na rozmiar, np. „M | 57-58”. Puste = bez sprawdzania zgodności.', 'sanitize_textarea_field' ),
 		'stock_alerts'     => array( 'checkbox', 'Formularz „Powiadom mnie o dostępności” przy niedostępnych rozmiarach', 'fx_sanitize_bool' ),
 		'stock_alert_text' => array( 'textarea', 'Informacja pod formularzem powiadomienia (RODO)', 'sanitize_textarea_field' ),
 	);

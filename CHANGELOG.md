@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 2.5.0 – walidacja kasku 1:1 z fox.sklep.pl v3.0
+- Moduł obwodu głowy zastąpiony Twoim kodem v3.0 (sekcje 1–8 bez zmian logiki): wykrywanie kasku po nazwie, pole + potwierdzenie w klasycznym checkoucie, format 2 cyfry z opcjonalnym miejscem po przecinku, zakres 40–75 cm.
+- Te same pola zamówienia: obwod_glowy, pomiar_glowy_potwierdzony, fox_head_circumference; dopisek do uwag klienta (BaseLinker) i notatka wewnętrzna DOUBLE-CHECK.
+- Style z sekcji 9 przeniesione do style.css (kolory motywu); usunięte ustawienia „kategorie kasków” i „zakresy rozmiarów”.
+
 ## 2.4.3
 - Cena „Od X zł” dla produktów wariantowych w sklepie i kategoriach (gdy warianty mają różne ceny) –
   logika 1:1 z dotychczasowego kodu. Karta produktu bez zmian.
