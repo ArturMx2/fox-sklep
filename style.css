@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.9.3
+Version: 3.9.4
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -1319,4 +1319,32 @@ html.fx-added-open{overflow:hidden}
   .fx-added__row img,.fx-added__img{width:88px!important;height:88px!important}
   .fx-added__btns{grid-template-columns:1fr}
   .fx-added__btns .fx-btn--outline{order:2}
+}
+
+/* ==========================================================================
+   Nagłówek: logo po lewej, duża wyszukiwarka na środku – 3.9.4
+   ========================================================================== */
+.fx-header__in{grid-template-columns:auto minmax(0,1fr) auto;gap:24px}
+.fx-header__left{gap:8px}
+.fx-logo{text-align:left}
+.fx-header__search{display:flex;justify-content:center;min-width:0}
+.fx-header .fx-search{flex:1 1 auto;width:100%;max-width:680px;height:50px;padding:0 5px 0 18px;gap:10px;border:2px solid var(--fx-ink);border-radius:var(--fx-pill);background:#fff;transition:box-shadow .15s}
+.fx-header .fx-search:focus-within{box-shadow:0 0 0 4px rgba(12,10,8,.12)}
+.fx-header .fx-search>svg{flex:0 0 auto;color:var(--fx-muted)}
+.fx-header .fx-search input[type=search]{font-size:16px;height:100%}
+.fx-header .fx-search input[type=search]::placeholder{color:#7b776f}
+.fx-header .fx-search .fx-search__btn{flex:0 0 auto;height:40px;padding:0 22px;border-radius:var(--fx-pill);background:var(--fx-ink);color:#fff;font:600 15px/1 var(--fx-body);display:inline-flex;align-items:center}
+.fx-header .fx-search .fx-search__btn:hover{opacity:.88}
+@media (max-width:1024px){
+  .fx-header__in{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"left right" "search search";row-gap:0;min-height:0;padding-top:8px;padding-bottom:10px}
+  .fx-header__left{grid-area:left}
+  .fx-header__right{grid-area:right}
+  .fx-header__search{grid-area:search;padding-top:6px}
+  .fx-header .fx-header__search .fx-search{display:flex!important;max-width:none;height:46px}
+  .fx-header .fx-search .fx-search__btn{height:36px;padding:0 16px;font-size:14px}
+  .fx-logo{justify-self:start}
+}
+@media (max-width:420px){
+  .fx-header .fx-search input[type=search]::placeholder{font-size:14px}
+  .fx-header .fx-search .fx-search__btn{display:none}
 }

@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.9.4 – nagłówek: logo po lewej, wyszukiwarka na środku
+- Logo w lewym rogu, duża wyszukiwarka na środku (czarna ramka, podpowiedź „np. kask V1, buty, strój na crossa”, przycisk „Szukaj”).
+- Telefon: wyszukiwarka zawsze widoczna pod logo, na całą szerokość (zamiast ikonki lupy).
+
 ## 3.9.3 – prowadzenie do zamówienia
 - Okno „Produkt został dodany do koszyka”: zdjęcie, rozmiar, cena, pasek darmowej dostawy, suma koszyka, „Kontynuuj zakupy” / „Przejdź do koszyka” i „lub od razu: Zamawiam”. Działa po dodaniu z karty produktu i z listy (AJAX). Na telefonie wysuwa się od dołu.
 - Komputer: czarny przycisk „Zamawiam | suma” w nagłówku (nagłówek jest przyklejony, więc widoczny cały czas), gdy w koszyku coś jest. Licznik koszyka na czerwono.
