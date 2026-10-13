@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.9.1 – zamówienie
+- Oświadczenie Przelewy24 (regulamin i obowiązek informacyjny) zaznaczone od razu, także po zmianie metody płatności lub dostawy.
+- „Wysłać na inny adres?” domyślnie odznaczone.
+
 ## 3.9.0 – strona główna bez ryzyka SEO
 - Tytuł i opis strony głównej domyślnie z Yoast (te same co dziś: „Oficjalny sklep FOX Racing - FOX.SKLEP.PL”).
 - H1 i wstęp jak na obecnej stronie głównej („FOX SKLEP współpracuj z najlepszymi” + ten sam akapit); sekcja na dole z obecnym H2 „FOX.SKLEP.PL – najnowsze kolekcje, szeroki wybór, fachowe doradztwo.” i jego tekstem, a pod nim dodatkowe treści.

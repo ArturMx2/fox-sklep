@@ -139,3 +139,45 @@ add_filter( 'gettext', function ( $t, $text, $domain ) {
 	}
 	return $t;
 }, 20, 3 );
+
+/* ---------- Zamówienie: wygodniej dla klienta ---------- */
+
+/* „Wysłać na inny adres?” domyślnie odznaczone – większość wysyła na adres z formularza. */
+add_filter( 'woocommerce_ship_to_different_address_checked', '__return_false', 99 );
+
+/*
+ * Oświadczenie Przelewy24 (regulamin i obowiązek informacyjny) zaznaczone od razu.
+ * Pole dodaje wtyczka płatności i odświeża je przy każdej zmianie metody / dostawy,
+ * dlatego zaznaczamy je po każdym odświeżeniu formularza. Klient nadal może je odznaczyć.
+ * Wyłączenie: add_filter( 'fx_p24_precheck', '__return_false' );
+ */
+add_action( 'wp_footer', function () {
+	if ( ! function_exists( 'is_checkout' ) || ! is_checkout() || is_order_received_page() || ! apply_filters( 'fx_p24_precheck', true ) ) {
+		return;
+	}
+	?>
+	<script>
+	(function () {
+		function fxP24() {
+			document.querySelectorAll('.woocommerce-checkout input[type="checkbox"]').forEach(function (cb) {
+				if (cb.dataset.fxP24) { return; }
+				var box = cb.closest('label, p, li, div');
+				var txt = ((box && box.textContent) || '') + ' ' + (cb.name || '') + ' ' + (cb.id || '');
+				if (/przelewy24|p24/i.test(txt) && /regulamin|regulation|obowi[aą]zk|rodo|accept/i.test(txt)) {
+					cb.dataset.fxP24 = '1';
+					if (!cb.checked) {
+						cb.checked = true;
+						cb.dispatchEvent(new Event('change', { bubbles: true }));
+					}
+				}
+			});
+		}
+		fxP24();
+		if (window.jQuery) {
+			jQuery(document.body).on('updated_checkout payment_method_selected', function () { setTimeout(fxP24, 50); });
+		}
+		document.addEventListener('change', function (e) { if (e.target && e.target.name === 'payment_method') { setTimeout(fxP24, 50); } });
+	})();
+	</script>
+	<?php
+}, 99 );
