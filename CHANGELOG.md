@@ -1,5 +1,15 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 2.0.0 – przebudowa części sklepowej
+- Motyw nie nadpisuje już żadnych szablonów WooCommerce (listing, kategoria, karta produktu).
+  Wszystko działa na standardowym HTML WooCommerce, którego oczekują wtyczki (CommerceKit, YITH, GTM4WP).
+- Wygląd sklepu wyłącznie przez CSS, własne elementy przez oficjalne haki WooCommerce:
+  wstęp i pełny opis kategorii, podkategorie jako pigułki, akordeon z opisem, Zbuduj komplet.
+- Układ siatki robi WooCommerce: 3 produkty w rzędzie, 2 na telefonie.
+- Własne przyciski rozmiarów tylko wtedy, gdy wariantami nie zajmuje się wtyczka.
+- Przycisk „Dodaj do koszyka” w kolorze motywu także przed wyborem rozmiaru.
+- Przetestowane na lokalnym WordPressie z WooCommerce 11.2: kategorie, karta produktu, koszyk, telefon.
+
 ## 1.0.8
 - Karta w listingu wraca do prostego układu (bez haków, w których CommerceKit otwiera własne opakowania i chowa zdjęcie, nazwę i cenę).
 - Etykiety wtyczek pod ceną jako małe plakietki, serduszko ulubionych w prawym górnym rogu.

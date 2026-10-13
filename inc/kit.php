@@ -186,7 +186,7 @@ function fx_kit_section( $product ) {
 	$img   = get_post_meta( $host_id, '_fx_kit_img', true );
 	$host  = wc_get_product( $host_id );
 	?>
-	<section class="fx-kit fx-wrap" id="fx-kit" data-fx-kit>
+	<section class="fx-kit" id="fx-kit" data-fx-kit>
 		<div class="fx-kit__head">
 			<div>
 				<div class="fx-kicker">Zbuduj komplet</div>

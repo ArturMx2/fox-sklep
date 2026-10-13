@@ -78,6 +78,8 @@
 	var sizePattern = /(rozmiar|size|wielko)/i;
 
 	function buildSwatches($form) {
+		// Jeśli wariantami zajmuje się wtyczka (np. CommerceKit), nie dokładamy własnych przycisków.
+		if ($form.find('[class*="cgkit"], [class*="swatch"]').not('.fx-swatches, .fx-swatches *').length) { return; }
 		$form.find('table.variations select').each(function () {
 			var select = this;
 			var $select = $(select);

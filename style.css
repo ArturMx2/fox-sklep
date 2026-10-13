@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 1.0.8
+Version: 2.0.0
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -217,96 +217,82 @@ button,input,select,textarea{font:inherit;color:inherit}
 .woocommerce-breadcrumb,.fx-breadcrumb,.rank-math-breadcrumb,#breadcrumbs{font-size:13px;color:var(--fx-muted);margin:20px 0 0}
 .woocommerce-breadcrumb a,.fx-breadcrumb a,.rank-math-breadcrumb a,#breadcrumbs a{color:var(--fx-muted)}
 
-/* ---------- Kategoria ---------- */
-.fx-cat-intro{max-width:760px;margin:16px 0 4px;color:var(--fx-ink-2);font-size:16px;line-height:1.6}
+/* =====================================================================
+   SKLEP – style na STANDARDOWYM HTML WooCommerce (bez nadpisanych szablonów).
+   Układ siatki i kolumn robi WooCommerce (woocommerce-layout.css), motyw
+   zmienia tylko wygląd.
+   ===================================================================== */
+.fx-shop{padding-bottom:80px}
+.fx-shop .woocommerce-products-header{margin:0}
+.fx-shop .woocommerce-products-header__title,.fx-shop h1.page-title{font-size:clamp(34px,4.5vw,56px);letter-spacing:-.02em;line-height:1.05;margin:16px 0 8px}
+
+/* Wstęp kategorii */
+.fx-cat-intro{max-width:780px;margin:8px 0 0;color:var(--fx-ink-2);font-size:16px;line-height:1.6}
 .fx-cat-intro p:last-child{margin-bottom:0}
+.fx-cat-intro a{text-decoration:underline;text-underline-offset:3px}
 .fx-cat-intro h1,.fx-cat-intro h2,.fx-cat-intro h3,.fx-cat-intro h4{font-family:var(--fx-body);font-size:16px;font-weight:700;letter-spacing:0;margin:0 0 4px;color:var(--fx-ink)}
 .fx-cat-intro img{display:none}
-.fx-cat-intro a{text-decoration:underline;text-underline-offset:3px}
-.fx-toolbar{position:sticky;top:72px;z-index:20;background:#fff;border-bottom:1px solid var(--fx-line);padding-top:14px;padding-bottom:14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.admin-bar .fx-toolbar{top:104px}
-.fx-toolbar__spacer{flex:1 1 auto}
-.fx-toolbar .woocommerce-ordering{margin:0}
-.fx-toolbar select.orderby,.fx-toolbar .orderby{height:44px;border:1.5px solid #cfccc5;border-radius:var(--fx-pill);padding:0 16px;font-weight:500;font-size:14px;background:#fff}
-.fx-toolbar .woocommerce-result-count{margin:0;font-size:14px;color:var(--fx-muted)}
-.fx-cat-desc{margin-top:72px;padding-top:40px}
-@media (max-width:1024px){.fx-toolbar{top:72px}}
+.fx-cat-desc{margin-top:64px;padding-top:40px}
 
-/* ---------- Siatka produktów ---------- */
-/* Siatka odporna na style i elementy dokładane przez wtyczki (CommerceKit, YITH, Woo). */
-ul.products,.woocommerce ul.products,.woocommerce-page ul.products,body ul.products[class*="columns-"]{list-style:none!important;margin:24px 0 0!important;padding:0!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:40px 16px!important;width:100%!important;float:none!important}
-ul.products::before,ul.products::after{content:none!important;display:none!important}
-/* Elementy wtyczek, które nie są kartą produktu, zajmują cały wiersz zamiast jednej komórki; puste znikają. */
-ul.products>:not(li.product){grid-column:1/-1!important;width:auto!important;margin:0!important}
-ul.products>:not(li.product):empty{display:none!important}
-ul.products>ul.products{margin:0!important}
-ul.products>li.product,.woocommerce ul.products li.product,.woocommerce-page ul.products li.product,ul.products[class*="columns-"] li.product{width:auto!important;max-width:none!important;margin:0!important;float:none!important;clear:none!important;padding:0!important;position:relative;min-width:0;text-align:left}
-@media (max-width:760px){ul.products,.woocommerce ul.products,body ul.products[class*="columns-"]{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:28px 8px!important}}
-.fx-card{display:flex;flex-direction:column;gap:6px;position:relative;color:var(--fx-ink)}
-.fx-card:hover{color:var(--fx-ink)}
-.fx-card__media{position:relative;display:block;aspect-ratio:1;background:var(--fx-pack);overflow:hidden;margin-bottom:8px}
-.fx-card__media img{position:absolute;inset:0;width:100%!important;height:100%!important;object-fit:contain;margin:0!important;transition:opacity .2s}
-.fx-card__media img.fx-card__alt{opacity:0}
-.fx-card:hover .fx-card__media img.fx-card__alt{opacity:1}
-.fx-card__badge{font-size:13px;font-weight:700}
-.fx-card__badge--sale{color:var(--fx-sale)}
-.fx-card__title,.woocommerce ul.products li.product .fx-card__title{font-size:16px!important;font-weight:400;font-family:var(--fx-body);letter-spacing:0;margin:0;padding:0;line-height:1.35;text-transform:none}
-.fx-card .price,.woocommerce ul.products li.product .fx-card .price{display:block;font-size:16px;font-weight:700;color:var(--fx-ink)!important;margin:0}
-.fx-card .price del{font-weight:400;color:var(--fx-muted)!important;margin-right:6px;opacity:1}
-.fx-card .price ins{text-decoration:none;color:var(--fx-sale)!important;background:none}
-/* Plakietka motywu na zdjęciu. */
-.fx-card__labels{position:absolute;top:10px;left:10px;z-index:2;display:flex;gap:6px;pointer-events:none}
-.fx-card__labels .fx-card__badge{display:inline-flex;padding:4px 9px;border-radius:var(--fx-pill);background:#fff;box-shadow:0 0 0 1px var(--fx-line);font-size:12px;line-height:1.2}
-/* Elementy wtyczek (etykiety „Nowy!”, „Ocieplane”, dane GTM) – pod ceną, jako małe plakietki. */
-.fx-card__hooks{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;font-size:12px}
-.fx-card__hooks:empty{display:none}
-.fx-card__hooks .onsale,.fx-card__hooks .product-label,.fx-card__hooks [class*="badge"]{position:static!important;display:inline-flex!important;align-items:center;min-height:0!important;min-width:0!important;width:auto!important;height:auto!important;margin:0!important;padding:4px 9px!important;border-radius:var(--fx-pill)!important;background:#fff!important;color:var(--fx-ink)!important;font:700 12px/1.2 var(--fx-body)!important;box-shadow:0 0 0 1px var(--fx-line);transform:none!important}
-/* Gdy wtyczka dodaje własne etykiety, plakietka motywu na zdjęciu się chowa (bez dubli). */
-.fx-card-li:has(.fx-card__hooks .onsale,.fx-card__hooks .product-label,.fx-card__hooks [class*="badge"]) .fx-card__labels{display:none}
-.fx-card-li .commercekit-wishlist{position:absolute!important;top:8px;right:8px;z-index:3;margin:0!important}
-.fx-card-li .commercekit-wishlist a{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#fff}
-.fx-card-li .add_to_cart_button,.fx-card-li .fx-card__hooks a.button{display:none!important}
-.fx-card-li .star-rating{display:none}
-.fx-card__hooks .price{display:none!important}
-.fx-promo-tile{grid-column:span 2;position:relative;min-height:340px;display:flex;align-items:flex-end;color:#fff;overflow:hidden}
-.fx-promo-tile .fx-tile__body{position:relative;z-index:1}
-@media (max-width:760px){.fx-promo-tile{grid-column:span 2}}
+/* Podkategorie */
+.fx-chips{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0 8px;width:100%;clear:both}
 
-.woocommerce nav.woocommerce-pagination ul{border:0;display:flex;justify-content:center;gap:6px;margin-top:48px}
+/* Liczba wyników i sortowanie (standardowe elementy Woo) */
+.fx-shop .woocommerce-result-count{font-size:14px;color:var(--fx-muted);margin:12px 0 0;line-height:44px}
+.fx-shop .woocommerce-ordering{margin:12px 0 0}
+.fx-shop .woocommerce-ordering select{height:44px;border:1.5px solid #cfccc5;border-radius:var(--fx-pill);padding:0 36px 0 16px;background-color:#fff;font-weight:500;font-size:14px;color:var(--fx-ink)}
+
+/* Karty produktów w listingu */
+.woocommerce ul.products{margin-top:24px}
+.woocommerce ul.products li.product{text-align:left;margin-bottom:40px}
+.woocommerce ul.products li.product a img{background:var(--fx-pack);aspect-ratio:1/1;object-fit:contain;width:100%;height:auto;margin:0 0 12px}
+.woocommerce ul.products li.product .woocommerce-loop-product__title{font-family:var(--fx-body);font-size:16px!important;font-weight:400;letter-spacing:0;line-height:1.35;padding:0;margin:0 0 6px;color:var(--fx-ink)}
+.woocommerce ul.products li.product .price{display:block;color:var(--fx-ink);font-size:16px;font-weight:700;margin:0}
+.woocommerce ul.products li.product .price del{color:var(--fx-muted);font-weight:400;opacity:1;margin-right:6px}
+.woocommerce ul.products li.product .price ins{color:var(--fx-sale);text-decoration:none;font-weight:700}
+.woocommerce ul.products li.product .star-rating{display:none}
+.woocommerce ul.products li.product .button.add_to_cart_button,.woocommerce ul.products li.product .button.product_type_variable,.woocommerce ul.products li.product .button.product_type_simple{display:none}
+.woocommerce span.onsale,.woocommerce ul.products li.product .onsale{min-height:0;min-width:0;line-height:1.2;padding:5px 10px;border-radius:var(--fx-pill);background:#fff;color:var(--fx-sale);font-size:12px;font-weight:700;box-shadow:0 0 0 1px var(--fx-line);top:10px;left:10px;right:auto;margin:0}
+
+/* Paginacja */
+.woocommerce nav.woocommerce-pagination ul{border:0;display:flex;justify-content:center;gap:6px;margin-top:24px}
 .woocommerce nav.woocommerce-pagination ul li{border:0}
 .woocommerce nav.woocommerce-pagination ul li a,.woocommerce nav.woocommerce-pagination ul li span{min-width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:var(--fx-pill);border:1.5px solid #cfccc5;padding:0 12px}
 .woocommerce nav.woocommerce-pagination ul li span.current{background:var(--fx-ink);color:#fff;border-color:var(--fx-ink)}
 
-/* ---------- Karta produktu ---------- */
-.fx-pdp{display:flex;flex-wrap:wrap;gap:48px;align-items:flex-start;padding-top:20px;padding-bottom:72px;position:relative}
-.fx-pdp__gallery{flex:999 1 560px;min-width:0;max-width:100%;overflow:hidden;position:relative;display:flow-root}
-.fx-pdp__gallery>*{max-width:100%}
-.fx-pdp__summary{flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:22px;position:relative;z-index:1;background:#fff}
-.fx-pdp__summary>*{max-width:100%}
-.single-product .related,.single-product .upsells,.fx-kit{position:relative;z-index:0;clear:both;overflow:hidden}
-.fx-pdp .woocommerce-product-gallery{width:100%!important;float:none!important;margin:0!important}
-.fx-pdp .woocommerce-product-gallery__image{background:var(--fx-pack)}
-.fx-pdp .flex-control-thumbs{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:6px 0 0!important;padding:0}
-.fx-pdp .flex-control-thumbs li{width:auto!important;float:none!important;list-style:none}
-.fx-pdp .flex-control-thumbs img{opacity:.6;background:var(--fx-pack)}
-.fx-pdp .flex-control-thumbs img.flex-active{opacity:1;outline:2px solid var(--fx-ink);outline-offset:-2px}
-.fx-pdp .product_title{font-size:clamp(30px,3vw,42px);line-height:1.1;letter-spacing:-.02em;margin:6px 0 0}
-.fx-pdp .price{font-size:22px;font-weight:700;color:var(--fx-ink);margin:10px 0 0}
-.fx-pdp .price del{font-weight:400;color:var(--fx-muted)}
-.fx-pdp .price ins{text-decoration:none;color:var(--fx-sale)}
-.fx-pdp .woocommerce-product-details__short-description{color:var(--fx-ink-2);font-size:16px;line-height:1.6}
-.fx-pdp .woocommerce-product-details__short-description p:last-child{margin-bottom:0}
-.fx-pdp form.cart{display:flex;flex-direction:column;gap:14px;margin:0}
-.fx-pdp form.cart .quantity{display:none}
-.fx-pdp form.cart.fx-show-qty .quantity{display:block}
-.fx-pdp .single_add_to_cart_button{width:100%;min-height:56px;font-size:16px}
-.fx-pdp table.variations{border:0;margin:0;width:100%}
-.fx-pdp table.variations th,.fx-pdp table.variations td{display:block;padding:0;border:0;text-align:left}
-.fx-pdp table.variations th label{font-weight:700;font-size:15px}
-.fx-pdp table.variations td{margin:8px 0 14px}
-.fx-pdp table.variations select{width:100%;height:48px;border:1.5px solid #cfccc5;border-radius:0;padding:0 14px;background:#fff}
-.fx-pdp .reset_variations{font-size:13px;text-decoration:underline}
-.fx-swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px}
+/* Karta produktu (standardowy układ Woo: zdjęcia po lewej, kolumna z ceną po prawej) */
+.woocommerce div.product{padding-top:12px}
+.woocommerce div.product div.images .woocommerce-product-gallery__image{background:var(--fx-pack)}
+.woocommerce div.product div.images .flex-control-thumbs{margin-top:6px}
+.woocommerce div.product div.images .flex-control-thumbs li img{opacity:.6}
+.woocommerce div.product div.images .flex-control-thumbs li img.flex-active{opacity:1}
+.woocommerce div.product div.summary>*{margin-bottom:20px}
+.woocommerce div.product .product_title{font-size:clamp(28px,3vw,40px);line-height:1.1;letter-spacing:-.02em;margin:0 0 10px}
+.woocommerce div.product p.price,.woocommerce div.product span.price{color:var(--fx-ink);font-size:22px;font-weight:700}
+.woocommerce div.product p.price del,.woocommerce div.product span.price del{color:var(--fx-muted);font-weight:400}
+.woocommerce div.product p.price ins,.woocommerce div.product span.price ins{color:var(--fx-sale);text-decoration:none}
+.woocommerce div.product .woocommerce-product-details__short-description{color:var(--fx-ink-2);font-size:16px;line-height:1.6}
+.woocommerce div.product form.cart .button{min-height:56px;font-size:16px;padding:0 32px}
+.woocommerce button.button.alt,.woocommerce a.button.alt,.woocommerce input.button.alt,.woocommerce #respond input#submit.alt,
+.woocommerce button.button.alt.disabled,.woocommerce button.button.alt:disabled,.woocommerce button.button.alt:disabled[disabled],
+.woocommerce button.button.alt.disabled:hover,.woocommerce button.button.alt:hover{background:var(--fx-ink)!important;border-color:var(--fx-ink)!important;color:#fff!important}
+.woocommerce button.button.alt.disabled,.woocommerce button.button.alt:disabled{opacity:.35!important}
+.woocommerce .button.wc-forward,.woocommerce a.added_to_cart{color:var(--fx-ink)}
+.woocommerce div.product form.cart .quantity .qty{height:56px;width:72px;border:1.5px solid #cfccc5;border-radius:0}
+.woocommerce div.product form.cart table.variations{margin-bottom:12px}
+.woocommerce div.product form.cart table.variations th,.woocommerce div.product form.cart table.variations td{display:block;padding:0;text-align:left;line-height:1.4}
+.woocommerce div.product form.cart table.variations th label{font-weight:700;font-size:15px}
+.woocommerce div.product form.cart table.variations td{margin:8px 0 14px}
+.woocommerce div.product form.cart table.variations select{min-width:220px;height:48px;border:1.5px solid #cfccc5;padding:0 14px;background-color:#fff}
+.woocommerce div.product .product_meta{font-size:13px;color:var(--fx-muted)}
+.woocommerce div.product .product_meta>span{display:block}
+.woocommerce div.product .stock{font-size:14px;font-weight:500;color:var(--fx-ink)}
+.woocommerce div.product .stock.out-of-stock{color:var(--fx-sale)}
+.woocommerce div.product .related,.woocommerce div.product .upsells{clear:both;padding-top:56px;margin-top:24px;border-top:1px solid var(--fx-line)}
+.woocommerce div.product .related>h2,.woocommerce div.product .upsells>h2{font-size:30px;margin:0 0 8px}
+
+/* Rozmiary jako przyciski (tylko gdy nie robi tego wtyczka) */
+.fx-swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px;max-width:460px}
 .fx-swatches button{min-height:46px;background:#fff;border:1.5px solid #cfccc5;cursor:pointer;font-weight:500;font-size:15px;padding:0 8px}
 .fx-swatches button.is-active{background:var(--fx-ink);border-color:var(--fx-ink);color:#fff}
 .fx-swatches button:disabled{opacity:.35;text-decoration:line-through;cursor:not-allowed}
@@ -324,23 +310,12 @@ ul.products>li.product,.woocommerce ul.products li.product,.woocommerce-page ul.
 .fx-acc__body{padding:0 0 18px;color:var(--fx-ink-2);font-size:15px;line-height:1.65}
 .fx-acc__body h2,.fx-acc__body h3{color:var(--fx-ink);font-size:18px;margin:.8em 0 .4em}
 .fx-acc__body a{text-decoration:underline}
+.fx-acc__body img{max-width:100%;height:auto}
 .fx-acc__body table{width:100%;border-collapse:collapse}
 .fx-acc__body th,.fx-acc__body td{text-align:left;padding:8px 0;border-bottom:1px solid var(--fx-line)}
-.fx-pdp .product_meta{font-size:13px;color:var(--fx-muted)}
-.fx-pdp .product_meta>span{display:block}
-.fx-pdp .stock{font-size:14px;font-weight:500}
-.fx-pdp .out-of-stock{color:var(--fx-sale)}
-.fx-pdp .onsale{display:none}
-
-/* przyklejony przycisk na telefonie */
-.fx-sticky-atc{position:fixed;left:0;right:0;bottom:0;z-index:40;background:#fff;border-top:1px solid var(--fx-line);padding:10px 16px calc(10px + env(safe-area-inset-bottom));display:none;align-items:center;gap:12px}
-.fx-sticky-atc.is-visible{display:flex}
-.fx-sticky-atc__name{flex:1;min-width:0;font-size:14px;line-height:1.3}
-.fx-sticky-atc__name strong{display:block;font-size:15px}
-@media (min-width:1025px){.fx-sticky-atc{display:none!important}}
 
 /* ---------- Zbuduj komplet ---------- */
-.fx-kit{background:var(--fx-soft);padding-top:72px;padding-bottom:72px}
+.fx-kit{clear:both;background:var(--fx-soft);padding:48px clamp(16px,3vw,40px);margin:24px 0 0}
 .fx-kit__head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:32px}
 .fx-kit__head h2{font-size:clamp(30px,4vw,48px);line-height:1.05;letter-spacing:-.02em;margin:8px 0 0}
 .fx-kit__head p{margin:0;max-width:380px;color:var(--fx-ink-2);font-size:15px}
@@ -362,10 +337,6 @@ ul.products>li.product,.woocommerce ul.products li.product,.woocommerce-page ul.
 .fx-kit__summary{font-size:14px;color:var(--fx-ink-2)}
 .fx-kit__msg{font-size:14px;font-weight:500;min-height:20px}
 .fx-kit__msg.is-error{color:var(--fx-sale)}
-
-/* ---------- Powiązane ---------- */
-.related.products>h2,.upsells.products>h2,.cross-sells>h2{font-size:34px;margin:0}
-.related.products,.upsells.products{padding-top:72px;padding-bottom:72px;border-top:1px solid var(--fx-line)}
 
 /* ---------- Ogólne strony, blog, koszyk ---------- */
 .fx-page{padding-top:40px;padding-bottom:80px}
