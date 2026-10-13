@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.8.5
+- Import tabel rozmiarów: przy tabelach bez rozpoznanych przypisań „Brak przypisań – szczegóły” (pola tabeli i wpisy w ustawieniach CommerceKit), żeby dopasować import.
+- Wtyczka podglądu 1.2.0: zaimportowane tabele widać w Produkty → „Tabele rozmiarów (nowy motyw)” także przed włączeniem motywu (wcześniej „Nieprawidłowy typ treści”).
+
 ## 3.8.4
 - Import tabel rozmiarów dostępny także przed włączeniem motywu – we wtyczce „FOX – podgląd motywu” 1.1.0 (Narzędzia → Import tabel rozmiarów). Motyw nie dubluje narzędzia, gdy wtyczka jest włączona.
 

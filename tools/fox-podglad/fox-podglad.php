@@ -2,7 +2,7 @@
 /**
  * Plugin Name: FOX – podgląd motywu i porównanie SEO
  * Description: Pokazuje nowy motyw FOX.SKLEP.PL na działającym sklepie tylko osobom z kluczem podglądu (klienci i Google dalej widzą obecny motyw) i porównuje SEO obu wersji: Narzędzia → Porównanie SEO. Po przełączeniu motywu wtyczkę można usunąć.
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author: FOX.SKLEP.PL
  * Requires PHP: 7.4
  *
@@ -102,6 +102,51 @@ if ( is_admin() && ! function_exists( 'fx_seo_cmp_page' ) ) {
 if ( is_admin() && ! function_exists( 'fx_sg_import_page' ) && ( class_exists( 'WooCommerce' ) || in_array( 'woocommerce/woocommerce.php', (array) get_option( 'active_plugins', array() ), true ) ) ) {
 	require_once __DIR__ . '/size-guides-import.php';
 }
+
+/*
+ * Zaimportowane tabele rozmiarów widoczne w Produkty → Tabele rozmiarów także przed włączeniem motywu
+ * (pełne ustawienia przypisań pojawią się po włączeniu motywu).
+ */
+add_action( 'init', function () {
+	if ( post_type_exists( 'fx_size_guide' ) ) {
+		return;
+	}
+	register_post_type(
+		'fx_size_guide',
+		array(
+			'labels'       => array(
+				'name'          => 'Tabele rozmiarów (nowy motyw)',
+				'singular_name' => 'Tabela rozmiarów',
+				'edit_item'     => 'Edytuj tabelę rozmiarów',
+				'menu_name'     => 'Tabele rozmiarów (nowy motyw)',
+			),
+			'public'       => false,
+			'show_ui'      => true,
+			'show_in_menu' => 'edit.php?post_type=product',
+			'supports'     => array( 'title', 'editor' ),
+		)
+	);
+}, 30 );
+add_filter( 'manage_fx_size_guide_posts_columns', function ( $c ) {
+	$c['fx_cats']  = 'Kategorie';
+	$c['fx_prods'] = 'Produkty';
+	return $c;
+}, 20 );
+add_action( 'manage_fx_size_guide_posts_custom_column', function ( $col, $id ) {
+	if ( 'fx_cats' === $col ) {
+		$n = array();
+		foreach ( (array) get_post_meta( $id, '_fx_cats', true ) as $cid ) {
+			$t = get_term( (int) $cid, 'product_cat' );
+			if ( $t instanceof WP_Term ) {
+				$n[] = $t->name;
+			}
+		}
+		echo esc_html( $n ? implode( ', ', $n ) : '—' );
+	} elseif ( 'fx_prods' === $col ) {
+		$p = array_filter( (array) get_post_meta( $id, '_fx_products', true ) );
+		echo $p ? (int) count( $p ) . ' prod.' : '—';
+	}
+}, 10, 2 );
 
 /* Adresy z największym ruchem w Google (Search Console, 3 miesiące do 13.10.2026). */
 add_filter( 'fx_seo_cmp_sample', function () {

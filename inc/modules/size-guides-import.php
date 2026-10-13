@@ -46,6 +46,29 @@ function fx_sg_ints( $value ) {
 	return array_values( array_unique( array_filter( $out ) ) );
 }
 
+/** Wpisy w ustawieniach wtyczek (np. CommerceKit), które wskazują tę tabelę – do diagnostyki. */
+function fx_sg_option_refs( $id ) {
+	static $opts = null;
+	if ( null === $opts ) {
+		global $wpdb;
+		$opts = $wpdb->get_results( "SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE '%commercekit%' OR option_name LIKE '%ckit%' OR option_name LIKE '%size_guide%'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+	}
+	$out  = array();
+	$walk = function ( $val, $path ) use ( &$walk, &$out, $id ) {
+		if ( is_array( $val ) ) {
+			foreach ( $val as $k => $v ) {
+				$walk( $v, $path . '[' . $k . ']' );
+			}
+		} elseif ( is_scalar( $val ) && preg_match( '/(^|[^0-9])' . (int) $id . '([^0-9]|$)/', (string) $val ) && preg_match( '/size|guide|sg/i', $path ) ) {
+			$out[] = 'opcja ' . $path . ' = ' . mb_substr( (string) $val, 0, 160 );
+		}
+	};
+	foreach ( (array) $opts as $o ) {
+		$walk( maybe_unserialize( $o->option_value ), $o->option_name );
+	}
+	return array_slice( $out, 0, 8 );
+}
+
 /**
  * Plan importu: [ [ 'src' => WP_Post, 'cats' => [], 'products' => [], 'existing' => id|0 ], … ].
  */
@@ -153,7 +176,7 @@ function fx_sg_import_page() {
 	$plan = fx_sg_import_plan();
 	echo '<div class="wrap"><h1>Import tabel rozmiarów</h1>';
 	if ( null !== $done ) {
-		echo '<div class="notice notice-success"><p>Zaimportowano tabel: ' . (int) $done . '. Sprawdź je w <a href="' . esc_url( admin_url( 'edit.php?post_type=fx_size_guide' ) ) . '">Produkty → Tabele rozmiarów</a>, a potem możesz wyłączyć CommerceKit.</p></div>';
+		echo '<div class="notice notice-success"><p>Zaimportowano tabel: ' . (int) $done . '. Lista: <a href="' . esc_url( admin_url( 'edit.php?post_type=fx_size_guide' ) ) . '">Produkty → Tabele rozmiarów' . ( post_type_exists( 'fx_size_guide' ) && ! function_exists( 'fx_size_guide_for' ) ? ' (nowy motyw)' : '' ) . '</a>. CommerceKit wyłącz dopiero po włączeniu nowego motywu.</p></div>';
 	}
 	echo '<p>Narzędzie przenosi tabele rozmiarów z CommerceKit do motywu: treść tabeli, przypisane kategorie i produkty. Oryginały zostają nietknięte. Możesz importować wielokrotnie – wcześniej zaimportowane tabele zostaną zaktualizowane.</p>';
 	if ( ! $plan ) {
@@ -174,7 +197,22 @@ function fx_sg_import_page() {
 			$pn[] = get_the_title( $pid );
 		}
 		$more = count( $row['products'] ) > 6 ? ' … (+' . ( count( $row['products'] ) - 6 ) . ')' : '';
-		echo '<tr><td><strong>' . esc_html( $row['src']->post_title ) . '</strong></td><td><code>' . esc_html( $row['src']->post_type ) . '</code></td><td>' . esc_html( $cn ? implode( ', ', $cn ) : '—' ) . '</td><td>' . esc_html( $pn ? implode( ', ', $pn ) . $more : '—' ) . '</td><td>' . ( $row['existing'] ? 'zaimportowana – zostanie zaktualizowana' : 'nowa' ) . '</td></tr>';
+		// Brak przypisań: pokazujemy, gdzie wtyczka mogła je zapisać (pola tabeli i wpisy w ustawieniach wtyczki).
+		$diag = '';
+		if ( ! $row['cats'] && ! $row['products'] ) {
+			$lines = array();
+			foreach ( get_post_meta( $row['src']->ID ) as $mk => $mv ) {
+				if ( 0 === strpos( $mk, '_edit' ) ) {
+					continue;
+				}
+				$lines[] = $mk . ' = ' . mb_substr( (string) ( isset( $mv[0] ) ? $mv[0] : '' ), 0, 160 );
+			}
+			foreach ( fx_sg_option_refs( $row['src']->ID ) as $ref ) {
+				$lines[] = $ref;
+			}
+			$diag = '<details><summary>Brak przypisań – szczegóły</summary><code style="white-space:pre-wrap;font-size:11px">' . esc_html( $lines ? implode( "\n", $lines ) : 'brak pól' ) . '</code></details>';
+		}
+		echo '<tr><td><strong>' . esc_html( $row['src']->post_title ) . '</strong>' . $diag . '</td><td><code>' . esc_html( $row['src']->post_type ) . '</code></td><td>' . esc_html( $cn ? implode( ', ', $cn ) : '—' ) . '</td><td>' . esc_html( $pn ? implode( ', ', $pn ) . $more : '—' ) . '</td><td>' . ( $row['existing'] ? 'zaimportowana – zostanie zaktualizowana' : 'nowa' ) . '</td></tr>';
 	}
 	echo '</tbody></table><form method="post" style="margin-top:16px">';
 	wp_nonce_field( 'fx_sg_import' );
