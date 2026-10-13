@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.9.5
+Version: 3.9.6
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -1361,3 +1361,15 @@ html.fx-added-open{overflow:hidden}
 .woocommerce-checkout .fx-invoice__nip.fx-req label::after{content:" *";color:#c62828;font-weight:700}
 .fx-invoice__hint{margin:8px 0 0;font-size:13px;color:var(--fx-muted)}
 .fx-order-nip{margin:-16px 0 32px;padding:14px 18px;border:1px solid var(--fx-line);border-radius:14px}
+
+/* Komunikat o wysyłce na karcie produktu – 3.9.6 */
+.fx-ship{width:100%;flex:1 1 100%;display:flex;align-items:flex-start;gap:12px;box-sizing:border-box;margin:16px 0 4px;padding:14px 16px;background:var(--fx-soft);border:1px solid var(--fx-line-2);border-left:4px solid var(--fx-ink-2);border-radius:12px;color:var(--fx-ink);clear:both}
+.fx-ship[hidden]{display:none!important}
+.fx-ship.is-today{background:#f1f8f2;border-color:#bcdcc2;border-left-color:#1a7f37}
+.fx-ship__icon{flex:0 0 auto;color:var(--fx-ink-2);margin-top:1px}
+.fx-ship.is-today .fx-ship__icon{color:#1a7f37}
+.fx-ship__body{flex:1;min-width:0}
+.fx-ship__title{margin:0 0 3px;font-size:15px;font-weight:700;line-height:1.35}
+.fx-ship__desc{margin:0;font-size:13.5px;line-height:1.5;color:var(--fx-ink-2)}
+.fx-ship__count{display:inline-block;margin:8px 0 0;padding:4px 10px;border-radius:var(--fx-pill);background:rgba(26,127,55,.12);color:#16692e;font-size:12.5px;font-weight:700}
+.fx-ship__count[hidden]{display:none}

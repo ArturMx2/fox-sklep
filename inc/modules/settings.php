@@ -19,6 +19,8 @@ function fx_tool_defaults() {
 		'filter_color_attr' => '',
 		'kit_discount'     => 5,
 		'free_ship'        => 300,
+		'ship_cta'         => true,
+		'ship_cutoff'      => 15,
 		'per_page'         => 12,
 		'size_names'       => "OS = Uniwersalny\nYOS = Junior",
 		'stock_alerts'     => true,
@@ -48,6 +50,8 @@ add_action( 'customize_register', function ( $wp ) {
 		'per_page'         => array( 'number', 'Kategorie: produktów na stronę (12 = jak w obecnym sklepie, te same strony /page/2/; 0 = wiersze × kolumny z ustawień WooCommerce)', 'absint' ),
 		'free_ship'        => array( 'number', 'Koszyk: próg darmowej dostawy w zł (pasek „Brakuje Ci … do darmowej dostawy”; 0 = ukryty)', 'absint' ),
 		'kit_discount'     => array( 'number', 'Rabat za komplet w % (gdy w koszyku są wszystkie części; 0 = bez rabatu)', 'absint' ),
+		'ship_cta'         => array( 'checkbox', 'Karta produktu: komunikat o wysyłce („Zamów do 15:00 – wysyłamy jeszcze dziś” z licznikiem)', 'fx_sanitize_bool' ),
+		'ship_cutoff'      => array( 'number', 'Godzina graniczna wysyłki tego samego dnia (np. 15)', 'absint' ),
 		'stock_alerts'     => array( 'checkbox', 'Formularz „Powiadom mnie o dostępności” przy niedostępnych rozmiarach', 'fx_sanitize_bool' ),
 		'stock_alert_text' => array( 'textarea', 'Informacja pod formularzem powiadomienia (RODO)', 'sanitize_textarea_field' ),
 	);

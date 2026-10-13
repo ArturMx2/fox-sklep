@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.9.6 – komunikat o wysyłce na karcie produktu
+- Pod „Dodaj do koszyka” (jak na enduro.sklep.pl): w dzień roboczy przed 15:00 zielone „Zamów do 15:00 — większość produktów wysyłamy jeszcze dziś” z licznikiem; po 15:00, w weekend i w święta neutralne „Sprawdź dokładny termin wysyłki przed zakupem”. Czas polski, polskie święta ustawowe liczone automatycznie (także Wielkanoc, Boże Ciało, Wigilia).
+- Ukrywa się przy niedostępnym wariancie. Godzina graniczna i włączanie w Dostosuj → Narzędzia sklepu.
+
 ## 3.9.5 – faktura i NIP
 - W zamówieniu „Chcę otrzymać fakturę na firmę” – po zaznaczeniu pole „Numer NIP” (wymagane). Jak na enduro.sklep.pl: te same nazwy pól i to samo pole zamówienia `_vat_number`.
 - Sprawdzanie NIP: puste → „NIP jest wymagany”, zła suma kontrolna → „NIP jest niepoprawny”. Akceptuje spacje, myślniki i prefiks PL (zapisuje same cyfry); numery UE z prefiksem kraju przepuszcza.
