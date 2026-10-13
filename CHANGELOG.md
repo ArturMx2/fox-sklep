@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.8.0 – porównanie SEO przed startem
+- Narzędzia → „Porównanie SEO”: dla listy adresów pobiera tę samą podstronę ze starego sklepu i ze strony z nowym motywem i porównuje kod HTTP, tytuł, opis, canonical, robots, H1, nagłówki H2/H3 (które zniknęły, które doszły), ile zdań tekstu ze starej strony jest na nowej, dane strukturalne, okruszki, produkty linkowane z listy, linki w treści i obrazki bez alt. Wynik w tabeli + raport CSV. Nic nie zmienia w sklepie.
+- Produktów na stronę w kategoriach tyle co w starym motywie (wiersze × kolumny z ustawień WooCommerce), mimo 3 kolumn w nowym układzie – /page/2/, /page/3/ pokazują te same produkty co dotąd. Można zmienić w Dostosuj → Narzędzia sklepu.
+- Kropki kolorów na liście produktów mają opis (alt) „Nazwa produktu – kolor”.
+
 ## 3.7.0 – zarządzanie stroną główną w Dostosuj
 - Każda sekcja strony głównej ma „Pokaż sekcję”: baner (pojedynczy), Moto / Rower, H1 i wstęp, kategorie Moto / Rower / Casual (osobno), produkty, Odkrywaj, duże kafle, dyscypliny, zawodnik, poradniki, najczęstsze pytania, sklep stacjonarny, „O sklepie”.
 - Liczba kafli do ustawienia: Odkrywaj 1–12, duże kafle 1–8, dyscypliny 1–8. Po zmianie liczby od razu pojawiają się pola kolejnych kafli (zbędne są ukryte). Nieparzysty ostatni duży kafel rozciąga się na całą szerokość.

@@ -219,7 +219,7 @@ function fx_cf_loop_swatches() {
 	);
 	foreach ( array_slice( $data, 0, $max ) as $d ) {
 		$on = $d['id'] === $cur;
-		echo '<a class="fx-cf__sw' . ( $on ? ' is-on' : '' ) . ( $d['stock'] ? '' : ' is-out' ) . '" href="' . esc_url( $d['url'] ) . '" data-id="' . (int) $d['id'] . '" title="' . esc_attr( $d['label'] ) . '" aria-label="' . esc_attr( 'Kolor: ' . $d['label'] ) . '"' . ( $on ? ' aria-current="true"' : '' ) . '><img src="' . esc_url( $d['thumb'] ) . '" alt="" width="40" height="40" loading="lazy" decoding="async"></a>';
+		echo '<a class="fx-cf__sw' . ( $on ? ' is-on' : '' ) . ( $d['stock'] ? '' : ' is-out' ) . '" href="' . esc_url( $d['url'] ) . '" data-id="' . (int) $d['id'] . '" title="' . esc_attr( $d['label'] ) . '" aria-label="' . esc_attr( 'Kolor: ' . $d['label'] ) . '"' . ( $on ? ' aria-current="true"' : '' ) . '><img src="' . esc_url( $d['thumb'] ) . '" alt="' . esc_attr( $product->get_name() . ' – ' . $d['label'] ) . '" width="40" height="40" loading="lazy" decoding="async"></a>';
 	}
 	if ( count( $data ) > $max ) {
 		echo '<a class="fx-cf__more" href="' . esc_url( $product->get_permalink() ) . '#fx-colors" aria-label="Więcej kolorów">+' . ( count( $data ) - $max ) . '</a>';

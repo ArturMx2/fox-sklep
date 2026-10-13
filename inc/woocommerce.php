@@ -35,6 +35,18 @@ add_filter( 'loop_shop_columns', function () {
 	return 3;
 }, 99 );
 
+/*
+ * Produktów na stronę: tyle samo co w starym motywie (wiersze × kolumny z ustawień WooCommerce),
+ * mimo że nowy układ ma 3 kolumny – dzięki temu /page/2/, /page/3/ pokazują to samo co dotąd.
+ */
+add_filter( 'loop_shop_per_page', function () {
+	$n = function_exists( 'fx_tool' ) ? (int) fx_tool( 'per_page' ) : 0;
+	if ( $n > 0 ) {
+		return $n;
+	}
+	return max( 1, (int) get_option( 'woocommerce_catalog_rows', 4 ) ) * max( 1, (int) get_option( 'woocommerce_catalog_columns', 4 ) );
+}, 20 );
+
 /* Losowe „Podobne produkty” WooCommerce zastępuje sekcja „Z tej serii” (inc/modules/series.php). */
 remove_action( 'woocommerce_after_single_product_summary', 'woocommerce_output_related_products', 20 );
 
