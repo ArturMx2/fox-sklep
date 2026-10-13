@@ -35,11 +35,8 @@ add_filter( 'loop_shop_columns', function () {
 	return 3;
 }, 99 );
 
-add_filter( 'woocommerce_output_related_products_args', function ( $args ) {
-	$args['posts_per_page'] = 3;
-	$args['columns']        = 3;
-	return $args;
-}, 99 );
+/* Losowe „Podobne produkty” WooCommerce zastępuje sekcja „Z tej serii” (inc/modules/series.php). */
+remove_action( 'woocommerce_after_single_product_summary', 'woocommerce_output_related_products', 20 );
 
 add_filter( 'woocommerce_upsell_display_args', function ( $args ) {
 	$args['posts_per_page'] = 3;
@@ -322,18 +319,6 @@ function fx_product_accordion() {
 		echo '</div></details>';
 	}
 
-	$fit = get_post_meta( $product->get_id(), '_fx_fit', true );
-	if ( $fit || fx_mod( 'size_chart_url' ) ) {
-		echo '<details><summary>Rozmiar i krój</summary><div class="fx-acc__body">';
-		if ( $fit ) {
-			echo fx_rich( $fit ); // phpcs:ignore
-		}
-		if ( fx_mod( 'size_chart_url' ) ) {
-			echo '<p><a href="' . esc_url( fx_mod( 'size_chart_url' ) ) . '">Pełna tabela rozmiarów</a></p>';
-		}
-		echo '</div></details>';
-	}
-
 	if ( fx_mod( 'delivery_text' ) ) {
 		echo '<details><summary>Dostawa i zwroty</summary><div class="fx-acc__body">' . fx_rich( fx_mod( 'delivery_text' ) ) . '</div></details>'; // phpcs:ignore
 	}
@@ -347,7 +332,7 @@ function fx_product_accordion() {
 	echo '</div></div></section>';
 }
 
-/* Pola produktu: „Technologia i materiały” oraz „Rozmiar i krój”. */
+/* Pole produktu: „Technologia i materiały”. */
 add_action( 'woocommerce_product_options_general_product_data', function () {
 	echo '<div class="options_group">';
 	woocommerce_wp_textarea_input(
@@ -359,20 +344,11 @@ add_action( 'woocommerce_product_options_general_product_data', function () {
 			'rows'        => 4,
 		)
 	);
-	woocommerce_wp_textarea_input(
-		array(
-			'id'          => '_fx_fit',
-			'label'       => 'Rozmiar i krój',
-			'description' => 'Np. „Model ma 182 cm i nosi M. Krój sportowy.”',
-			'desc_tip'    => true,
-			'rows'        => 3,
-		)
-	);
 	echo '</div>';
 } );
 
 add_action( 'woocommerce_admin_process_product_object', function ( $product ) {
-	foreach ( array( '_fx_tech', '_fx_fit' ) as $key ) {
+	foreach ( array( '_fx_tech' ) as $key ) {
 		if ( isset( $_POST[ $key ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 			$product->update_meta_data( $key, wp_kses_post( wp_unslash( $_POST[ $key ] ) ) ); // phpcs:ignore WordPress.Security.NonceVerification
 		}

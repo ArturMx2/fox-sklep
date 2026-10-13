@@ -223,6 +223,48 @@
 	$(document).on('click', '[data-fx-dialog-close]', function () { var d = this.closest('dialog'); if (d) { d.close(); } });
 	$(document).on('click', 'dialog.fx-dialog', function (e) { if (e.target === this) { this.close(); } });
 
+	/* ---------- Kategorie: kolejne strony doładowywane przy przewijaniu ---------- */
+	(function () {
+		var list = document.querySelector('.fx-shop ul.products');
+		var pager = document.querySelector('.fx-shop nav.woocommerce-pagination');
+		if (!list || !pager || !('IntersectionObserver' in window) || !window.fetch) { return; }
+		var next = pager.querySelector('a.next');
+		if (!next) { return; }
+		document.body.classList.add('fx-infinite');
+		var loader = document.createElement('div');
+		loader.className = 'fx-loader';
+		loader.setAttribute('role', 'status');
+		loader.innerHTML = '<span class="fx-loader__dot"></span><span class="screen-reader-text">Wczytuję kolejne produkty</span>';
+		pager.parentNode.insertBefore(loader, pager);
+		var busy = false;
+		var io = new IntersectionObserver(function (entries) {
+			if (!entries[0].isIntersecting || busy || !next) { return; }
+			busy = true;
+			loader.classList.add('is-loading');
+			var url = next.href;
+			fetch(url, { credentials: 'same-origin' }).then(function (r) { return r.text(); }).then(function (html) {
+				var doc = new DOMParser().parseFromString(html, 'text/html');
+				var items = doc.querySelectorAll('.fx-shop ul.products > li.product');
+				items.forEach(function (li) { list.appendChild(document.importNode(li, true)); });
+				var newPager = doc.querySelector('.fx-shop nav.woocommerce-pagination');
+				next = newPager ? newPager.querySelector('a.next') : null;
+				if (newPager) { pager.innerHTML = newPager.innerHTML; }
+				try { history.replaceState(null, '', url); } catch (e) {}
+				$(document.body).trigger('post-load');
+				if (!next) { io.disconnect(); loader.remove(); }
+			}).catch(function () {
+				// Błąd sieci: zostawiamy zwykłą paginację jako zapas.
+				document.body.classList.remove('fx-infinite');
+				io.disconnect(); loader.remove();
+			}).finally(function () {
+				busy = false; loader.classList.remove('is-loading');
+				// Ponowna obserwacja: jeśli znacznik nadal jest blisko ekranu, wczytaj kolejną stronę.
+				if (next && loader.isConnected) { io.unobserve(loader); io.observe(loader); }
+			});
+		}, { rootMargin: '800px 0px' });
+		io.observe(loader);
+	})();
+
 	/* ---------- Przyklejony przycisk na telefonie ---------- */
 	var sticky = document.querySelector('.fx-sticky-atc');
 	var atcForm = document.querySelector('.fx-pdp form.cart');

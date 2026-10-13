@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 2.1.1
+Version: 2.2.0
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -402,6 +402,26 @@ button,input,select,textarea{font:inherit;color:inherit}
 /* Obwód głowy w zamówieniu */
 .fx-helmet-info{margin-bottom:24px}
 #fx_head_cm_field .description{font-size:13px;color:var(--fx-muted)}
+
+
+/* Dostępne rozmiary po najechaniu (tylko urządzenia z kursorem) */
+.fx-sizes{position:relative;display:block;height:0;pointer-events:none;opacity:0;transition:opacity .15s;z-index:2}
+.fx-sizes__bar{position:absolute;left:0;right:0;bottom:12px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:12px;background:none;font-size:13px;transform:translateY(6px);transition:transform .15s}
+.fx-sizes__label{background:var(--fx-ink);color:#fff;padding:4px 9px;font-weight:500}
+.fx-sizes__item{min-width:32px;padding:4px 8px;background:#fff;box-shadow:0 0 0 1px var(--fx-line-2);text-align:center;font-weight:500;color:var(--fx-ink)}
+@media (hover:hover){.woocommerce ul.products li.product:hover .fx-sizes,.woocommerce ul.products li.product:focus-within .fx-sizes{opacity:1}.woocommerce ul.products li.product:hover .fx-sizes__bar{transform:none}}
+@media (hover:none){.fx-sizes{display:none}}
+
+/* Z tej serii */
+.fx-series{clear:both}
+.fx-series .fx-row-head h2{font-size:30px;margin:0}
+
+/* Doładowywanie kolejnych stron */
+.fx-infinite .fx-shop nav.woocommerce-pagination{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(1px,1px,1px,1px)}
+.fx-loader{clear:both;display:flex;justify-content:center;padding:24px 0;min-height:60px}
+.fx-loader__dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--fx-line-2);border-top-color:var(--fx-ink);opacity:0}
+.fx-loader.is-loading .fx-loader__dot{opacity:1;animation:fx-spin .8s linear infinite}
+@keyframes fx-spin{to{transform:rotate(360deg)}}
 
 /* ---------- Ogólne strony, blog, koszyk ---------- */
 .fx-page{padding-top:40px;padding-bottom:80px}

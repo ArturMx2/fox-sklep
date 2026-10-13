@@ -1,5 +1,14 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 2.2.0
+- Karta produktu: zamiast losowych „Podobnych produktów” sekcja „Z tej serii” – produkty z tej samej
+  najgłębszej kategorii (np. V1), najpierw dostępne i o najbardziej podobnej nazwie, z linkiem do całej serii.
+- Listing: po najechaniu na produkt widać dostępne rozmiary (tylko te na stanie, w kolejności z atrybutu).
+- Kategorie: kolejne strony doładowują się same przy przewijaniu; adres zmienia się na /page/N/,
+  a zwykła paginacja zostaje w kodzie dla Google.
+- Usunięta sekcja i pole „Rozmiar i krój”.
+- Domyślnie 3 kolumny × 4 rzędy na stronę.
+
 ## 2.1.1
 - Karta produktu: opis przeniesiony pod część zakupową, na całą szerokość – pełny opis po lewej,
   szczegóły (informacje dodatkowe, rozmiar i krój, dostawa, opinie) w akordeonie po prawej.

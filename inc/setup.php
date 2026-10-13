@@ -24,8 +24,8 @@ function fx_setup() {
 			'thumbnail_image_width' => 600,
 			'single_image_width'    => 1200,
 			'product_grid'          => array(
-				'default_columns' => 4,
-				'default_rows'    => 3,
+				'default_columns' => 3,
+				'default_rows'    => 4,
 				'min_columns'     => 2,
 				'max_columns'     => 4,
 			),
