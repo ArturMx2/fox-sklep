@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.4.0
+Version: 3.5.0
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -1053,4 +1053,46 @@ html,body{max-width:100%;overflow-x:clip}
   .woocommerce-cart table.cart td.product-subtotal{grid-column:3;grid-row:3;align-self:center}
   .woocommerce-cart table.cart thead{display:none}
   .woocommerce-cart table.cart td.actions .coupon .input-text{flex:1;width:auto!important}
+}
+
+/* =====================================================================
+   Filtry w kolumnie po lewej
+   ===================================================================== */
+.fx-shop-layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:0 40px;align-items:start;margin-top:16px;clear:both}
+.fx-sidebar{position:sticky;top:var(--fx-sticky-top,150px);max-height:calc(100vh - 170px);overflow:auto;padding-right:6px;scrollbar-width:thin}
+.fx-sidebar__head{display:none}
+.fx-fgroup{border-top:1px solid var(--fx-line);padding:14px 0}
+.fx-fgroup:first-child{border-top:0;padding-top:0}
+.fx-fgroup summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:.04em;min-height:32px}
+.fx-fgroup summary::-webkit-details-marker{display:none}
+.fx-fgroup summary svg{transition:transform .15s}
+.fx-fgroup[open] summary svg{transform:rotate(180deg)}
+.fx-fgroup__n{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;border-radius:10px;background:var(--fx-ink);color:#fff;font-size:11px;margin-left:6px;margin-right:auto;padding:0 6px}
+.fx-fgroup__opts{display:flex;flex-wrap:wrap;gap:6px;padding-top:10px}
+.fx-fgroup .fx-filter__opt{min-height:38px;min-width:46px;padding:0 10px;font-size:14px}
+.fx-fgroup--color .fx-fgroup__opts{flex-direction:column;gap:2px}
+.fx-fgroup .fx-filter__opt.is-color{justify-content:flex-start;border:0;min-height:34px;padding:0 6px;width:100%;gap:10px}
+.fx-fgroup .fx-filter__opt.is-color:not(.has-swatch)::before{content:"";width:16px;height:16px;border:1.5px solid #cfccc5;flex:none}
+.fx-fgroup .fx-filter__opt.is-color.is-on{background:var(--fx-soft);color:var(--fx-ink);font-weight:700}
+.fx-fgroup .fx-filter__opt.is-color.is-on:not(.has-swatch)::before{background:var(--fx-ink);border-color:var(--fx-ink)}
+.fx-fgroup .fx-filter__opt.has-swatch.is-on::before{box-shadow:0 0 0 2px #fff,0 0 0 3.5px var(--fx-ink)}
+.fx-switch--side{padding:0;display:flex;align-items:center;gap:10px;font-weight:600;font-size:14.5px;color:var(--fx-ink);min-height:36px}
+.fx-switch--side.is-on{color:var(--fx-sale)}
+.fx-sidebar__clear{display:block;margin-top:14px;font-size:14px;text-decoration:underline;text-underline-offset:3px}
+.fx-fbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 4px}
+.fx-fbar:has(> :only-child){display:none}
+.fx-fbar__open{display:none;gap:8px;cursor:pointer;background:#fff}
+.fx-sidebar__bg{display:none}
+.fx-shop-main .woocommerce-result-count{margin-top:10px}
+@media (max-width:1024px){
+  .fx-shop-layout{display:block}
+  .fx-fbar,.fx-fbar:has(> :only-child){display:flex}
+  .fx-fbar__open{display:inline-flex}
+  .fx-sidebar{position:fixed;top:0;bottom:0;left:0;z-index:210;width:min(380px,88vw);max-height:none;background:#fff;padding:0;transform:translateX(-105%);transition:transform .25s;box-shadow:0 0 40px rgba(12,10,8,.2)}
+  .fx-filters-open .fx-sidebar{transform:none}
+  .fx-sidebar__head{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid var(--fx-line);position:sticky;top:0;background:#fff;z-index:1}
+  .fx-sidebar__title{font-family:var(--fx-display);font-size:22px;font-weight:500}
+  .fx-sidebar__body{padding:16px 20px 40px}
+  .fx-filters-open .fx-sidebar__bg{display:block;position:fixed;inset:0;z-index:205;background:rgba(12,10,8,.45)}
+  .fx-filters-open{overflow:hidden}
 }

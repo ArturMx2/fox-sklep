@@ -1,5 +1,12 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.5.0 – filtry w kolumnie po lewej
+- Filtry (Tylko promocje, Rozmiar, Kolor) w kolumnie po lewej stronie listy produktów, przyklejone przy przewijaniu; produkty nadal w 3 kolumnach. Kafelki podkategorii zostają na górze.
+- Rozmiary jako przyciski, kolory jako lista z próbką koloru i nazwą. Liczba wybranych przy nagłówku grupy, „Wyczyść wszystkie filtry”.
+- Nad produktami wybrane filtry do szybkiego usunięcia (×).
+- Telefon i tablet: przycisk „Filtry (2)” otwiera panel z lewej.
+- Gdy filtr nic nie znajdzie, kolumna filtrów zostaje (można zmienić wybór).
+
 ## 3.4.0 – nowy koszyk
 - Kroki zamówienia: Koszyk → Dane, dostawa i płatność → Potwierdzenie (koszyk, zamówienie, strona podziękowania).
 - Układ: lista produktów po lewej, podsumowanie po prawej (przyklejone przy przewijaniu); na telefonie pozycje jako karty.

@@ -674,4 +674,9 @@
 			if (last && last.url) { document.querySelectorAll('[data-fx-continue]').forEach(function (a) { a.href = last.url; }); }
 		} catch (e) {}
 	})();
+
+	/* Filtry w kolumnie: na telefonie panel otwierany przyciskiem „Filtry” */
+	$(document).on('click', '[data-fx-filters-open]', function () { document.body.classList.add('fx-filters-open'); });
+	$(document).on('click', '[data-fx-filters-close]', function () { document.body.classList.remove('fx-filters-open'); });
+	document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { document.body.classList.remove('fx-filters-open'); } });
 })(jQuery);

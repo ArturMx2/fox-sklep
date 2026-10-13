@@ -240,11 +240,17 @@ add_action( 'woocommerce_product_query', function ( $q ) {
 	$q->set( 'post__in', $ids ? $ids : array( 0 ) );
 }, 20 );
 
-/* ---------- Pasek filtrów ---------- */
-add_action( 'woocommerce_before_shop_loop', 'fx_filters_bar', 16 );
-function fx_filters_bar() {
+/* ---------- Filtry w kolumnie po lewej (telefon: panel „Filtry”) ---------- */
+
+/** Dane filtrów dla bieżącej kategorii albo null, gdy nie ma czego filtrować. */
+function fx_filters_data() {
+	static $data = false;
+	if ( false !== $data ) {
+		return $data;
+	}
+	$data = null;
 	if ( ! is_product_category() ) {
-		return;
+		return $data;
 	}
 	$term   = get_queried_object();
 	$groups = array();
@@ -260,17 +266,36 @@ function fx_filters_bar() {
 	$sale_on   = fx_filter_sale_on();
 	$sale_have = $sale_on || fx_filter_sale_in_cat( $term );
 	if ( ! $groups && ! $sale_have ) {
-		return;
+		return $data;
 	}
 	$active = array();
-	echo '<div class="fx-filters" role="group" aria-label="Filtry">';
-	if ( $sale_have ) {
-		echo '<a rel="nofollow" class="fx-chip fx-switch' . ( $sale_on ? ' is-on' : '' ) . '" role="switch" aria-checked="' . ( $sale_on ? 'true' : 'false' ) . '" href="' . esc_url( fx_filter_sale_url() ) . '"><span class="fx-switch__ui" aria-hidden="true"></span>Promocje</a>';
-	}
 	foreach ( $groups as $g ) {
+		foreach ( $g[2] as $t ) {
+			if ( in_array( $t['slug'], fx_filter_selected( $g[0] ), true ) ) {
+				$active[] = array( $t['name'], fx_filter_toggle_url( $g[0], $t['slug'] ) );
+			}
+		}
+	}
+	if ( $sale_on ) {
+		$active[] = array( 'Promocje', fx_filter_sale_url() );
+	}
+	$data = array( 'term' => $term, 'groups' => $groups, 'sale_have' => $sale_have, 'sale_on' => $sale_on, 'active' => $active );
+	return $data;
+}
+
+function fx_filters_sidebar() {
+	$d = fx_filters_data();
+	if ( ! $d ) {
+		return;
+	}
+	echo '<aside class="fx-sidebar" id="fx-filters" aria-label="Filtry"><div class="fx-sidebar__head"><span class="fx-sidebar__title">Filtry</span><button type="button" class="fx-icon-btn fx-sidebar__close" data-fx-filters-close aria-label="Zamknij filtry">' . fx_icon( 'close' ) . '</button></div><div class="fx-sidebar__body">'; // phpcs:ignore
+	if ( $d['sale_have'] ) {
+		echo '<div class="fx-fgroup fx-fgroup--sale"><a rel="nofollow" class="fx-switch fx-switch--side' . ( $d['sale_on'] ? ' is-on' : '' ) . '" role="switch" aria-checked="' . ( $d['sale_on'] ? 'true' : 'false' ) . '" href="' . esc_url( fx_filter_sale_url() ) . '"><span class="fx-switch__ui" aria-hidden="true"></span>Tylko promocje</a></div>';
+	}
+	foreach ( $d['groups'] as $g ) {
 		list( $role, $label, $opts ) = $g;
 		$sel = fx_filter_selected( $role );
-		echo '<details class="fx-filter fx-filter--' . esc_attr( $role ) . '"><summary class="fx-chip' . ( $sel ? ' is-active' : '' ) . '">' . esc_html( $label ) . ( $sel ? ' (' . count( $sel ) . ')' : '' ) . fx_icon( 'chevron', 16 ) . '</summary><div class="fx-filter__panel">'; // phpcs:ignore
+		echo '<details class="fx-fgroup fx-fgroup--' . esc_attr( $role ) . '" open><summary>' . esc_html( $label ) . ( $sel ? ' <span class="fx-fgroup__n">' . count( $sel ) . '</span>' : '' ) . fx_icon( 'chevron', 16 ) . '</summary><div class="fx-fgroup__opts">'; // phpcs:ignore
 		foreach ( $opts as $t ) {
 			$on    = in_array( $t['slug'], $sel, true );
 			$color = 'color' === $role ? get_term_meta( $t['id'], 'fx_color', true ) : '';
@@ -279,22 +304,69 @@ function fx_filters_bar() {
 				$c     = explode( ',', $color );
 				$style = ' style="--fx-sw:' . esc_attr( count( $c ) > 1 ? 'linear-gradient(135deg,' . $c[0] . ' 50%,' . $c[1] . ' 50%)' : $c[0] ) . '"';
 			}
-			echo '<a rel="nofollow" class="fx-filter__opt' . ( $on ? ' is-on' : '' ) . ( $color ? ' has-swatch' : '' ) . '" href="' . esc_url( fx_filter_toggle_url( $role, $t['slug'] ) ) . '" aria-pressed="' . ( $on ? 'true' : 'false' ) . '"' . $style . '>' . esc_html( $t['name'] ) . '</a>'; // phpcs:ignore
-			if ( $on ) {
-				$active[] = array( $t['name'], fx_filter_toggle_url( $role, $t['slug'] ) );
-			}
+			echo '<a rel="nofollow" class="fx-filter__opt' . ( $on ? ' is-on' : '' ) . ( 'color' === $role ? ' is-color' : '' ) . ( $color ? ' has-swatch' : '' ) . '" href="' . esc_url( fx_filter_toggle_url( $role, $t['slug'] ) ) . '" aria-pressed="' . ( $on ? 'true' : 'false' ) . '"' . $style . '>' . esc_html( $t['name'] ) . '</a>'; // phpcs:ignore
 		}
 		echo '</div></details>';
 	}
-	if ( $active || $sale_on ) {
-		echo '<div class="fx-filter__active">';
-		foreach ( $active as $a ) {
-			echo '<a rel="nofollow" class="fx-chip is-active" href="' . esc_url( $a[1] ) . '" aria-label="Usuń filtr ' . esc_attr( $a[0] ) . '">' . esc_html( $a[0] ) . ' ×</a>';
-		}
-		echo '<a rel="nofollow" class="fx-filter__clear" href="' . esc_url( get_term_link( $term ) ) . '">Wyczyść filtry</a></div>';
+	if ( $d['active'] ) {
+		echo '<a rel="nofollow" class="fx-sidebar__clear" href="' . esc_url( get_term_link( $d['term'] ) ) . '">Wyczyść wszystkie filtry</a>';
+	}
+	echo '</div></aside><div class="fx-sidebar__bg" data-fx-filters-close></div>';
+}
+
+/** Nad produktami: przycisk „Filtry” (telefon) i wybrane filtry do szybkiego usunięcia. */
+function fx_filters_topbar() {
+	$d = fx_filters_data();
+	if ( ! $d ) {
+		return;
+	}
+	echo '<div class="fx-fbar"><button type="button" class="fx-chip fx-fbar__open" data-fx-filters-open aria-controls="fx-filters">' . fx_icon( 'menu', 16 ) . 'Filtry' . ( $d['active'] ? ' (' . count( $d['active'] ) . ')' : '' ) . '</button>'; // phpcs:ignore
+	foreach ( $d['active'] as $a ) {
+		echo '<a rel="nofollow" class="fx-chip is-active" href="' . esc_url( $a[1] ) . '" aria-label="Usuń filtr ' . esc_attr( $a[0] ) . '">' . esc_html( $a[0] ) . ' ×</a>';
+	}
+	if ( $d['active'] ) {
+		echo '<a rel="nofollow" class="fx-filter__clear" href="' . esc_url( get_term_link( $d['term'] ) ) . '">Wyczyść</a>';
 	}
 	echo '</div>';
 }
+
+/* Układ: [filtry | produkty]. Otwarcie po kafelkach podkategorii, zamknięcie po paginacji. */
+add_action( 'woocommerce_before_shop_loop', 'fx_shop_layout_open', 17 );
+add_action( 'woocommerce_after_shop_loop', 'fx_shop_layout_close', 99 );
+/* Gdy filtr nic nie znalazł – też z kolumną filtrów (żeby dało się je zmienić). */
+add_action( 'woocommerce_no_products_found', function () {
+	if ( fx_filters_data() ) {
+		fx_shop_layout_open();
+	}
+}, 5 );
+add_action( 'woocommerce_no_products_found', function () {
+	if ( fx_filters_data() ) {
+		fx_shop_layout_close();
+	}
+}, 99 );
+
+function fx_shop_layout_open() {
+	if ( ! fx_filters_data() ) {
+		return;
+	}
+	$GLOBALS['fx_layout_open'] = true;
+	echo '<div class="fx-shop-layout">';
+	fx_filters_sidebar();
+	echo '<div class="fx-shop-main">';
+	fx_filters_topbar();
+}
+function fx_shop_layout_close() {
+	if ( empty( $GLOBALS['fx_layout_open'] ) ) {
+		return;
+	}
+	$GLOBALS['fx_layout_open'] = false;
+	echo '</div></div>';
+}
+
+/* Kolumna filtrów zostawia na produkty 3 kolumny. */
+add_filter( 'loop_shop_columns', function ( $c ) {
+	return 3;
+}, 30 );
 
 /* ---------- Włącznik „Promocje” (?promocja=1) ---------- */
 function fx_filter_sale_on() {
