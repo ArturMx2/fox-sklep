@@ -298,7 +298,7 @@ function fx_filters_sidebar() {
 		echo '<details class="fx-fgroup fx-fgroup--' . esc_attr( $role ) . '" open><summary>' . esc_html( $label ) . ( $sel ? ' <span class="fx-fgroup__n">' . count( $sel ) . '</span>' : '' ) . fx_icon( 'chevron', 16 ) . '</summary><div class="fx-fgroup__opts">'; // phpcs:ignore
 		foreach ( $opts as $t ) {
 			$on    = in_array( $t['slug'], $sel, true );
-			$color = 'color' === $role ? get_term_meta( $t['id'], 'fx_color', true ) : '';
+			$color = 'color' === $role ? fx_term_color( get_term( $t['id'] ) ) : '';
 			$style = '';
 			if ( $color ) {
 				$c     = explode( ',', $color );

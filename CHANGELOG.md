@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.5.1 – kolory rozpoznawane z nazwy
+- Próbka koloru ustawia się sama z nazwy wartości atrybutu koloru (polskie i angielskie nazwy, odcienie: granatowy/navy, grafitowy, fluo yellow/orange/red, khaki, oliwkowy, bordowy, camo…).
+- Dwa kolory jako próbka pół na pół: „Czarno-biały”, „Black/White”, „Red & Black”, „Grey Yellow”.
+- Działa w filtrze koloru i w przyciskach wariantów na karcie produktu. Ręcznie wpisany kolor ma pierwszeństwo; w panelu atrybutu widać, jaki kolor został rozpoznany.
+
 ## 3.5.0 – filtry w kolumnie po lewej
 - Filtry (Tylko promocje, Rozmiar, Kolor) w kolumnie po lewej stronie listy produktów, przyklejone przy przewijaniu; produkty nadal w 3 kolumnach. Kafelki podkategorii zostają na górze.
 - Rozmiary jako przyciski, kolory jako lista z próbką koloru i nazwą. Liczba wybranych przy nagłówku grupy, „Wyczyść wszystkie filtry”.
