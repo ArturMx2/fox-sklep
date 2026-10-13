@@ -191,3 +191,16 @@ function fx_clean_html( $html ) {
 function fx_bc_sep() {
 	return '<span class="fx-bc__sep" aria-hidden="true"></span>';
 }
+
+/**
+ * Polska odmiana liczebników: 1 kolor, 2–4 kolory, 5+ kolorów (12–14 → kolorów, 22–24 → kolory).
+ */
+function fx_pl( $n, $one, $few, $many ) {
+	$n = abs( (int) $n );
+	if ( 1 === $n ) {
+		return $one;
+	}
+	$d = $n % 10;
+	$h = $n % 100;
+	return ( $d >= 2 && $d <= 4 && ( $h < 12 || $h > 14 ) ) ? $few : $many;
+}

@@ -125,7 +125,7 @@ $fx_hub = function ( $key, $world ) use ( $fx_w ) {
 						<span class="fx-hub__img"><?php echo fx_media( $it['img'], 'woocommerce_thumbnail', 'fx-cover', '' ); // phpcs:ignore ?></span>
 						<span class="fx-hub__name"><?php echo esc_html( $it['label'] ); ?></span>
 						<?php if ( $it['count'] ) : ?>
-							<span class="fx-hub__count"><?php echo (int) $it['count']; ?> <?php echo esc_html( _n( 'produkt', 'produktów', $it['count'], 'foxsklep' ) ); ?></span>
+							<span class="fx-hub__count"><?php echo (int) $it['count']; ?> <?php echo esc_html( fx_pl( $it['count'], 'produkt', 'produkty', 'produktów' ) ); ?></span>
 						<?php endif; ?>
 					</a>
 				</li>

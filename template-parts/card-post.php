@@ -33,6 +33,6 @@ $fx_com  = (int) get_comments_number();
 	<footer class="fx-bcard__meta">
 		<time datetime="<?php echo esc_attr( get_the_date( 'c' ) ); ?>"><?php echo esc_html( get_the_date( 'd/m/Y' ) ); ?></time>
 		<span aria-hidden="true">•</span>
-		<span><?php echo $fx_com ? esc_html( sprintf( _n( '%d komentarz', '%d komentarze', $fx_com, 'foxsklep' ), $fx_com ) ) : 'Brak komentarzy'; ?></span>
+		<span><?php echo $fx_com ? esc_html( $fx_com . ' ' . fx_pl( $fx_com, 'komentarz', 'komentarze', 'komentarzy' ) ) : 'Brak komentarzy'; ?></span>
 	</footer>
 </article>

@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.3.2
+Version: 3.3.3
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -954,3 +954,14 @@ html[data-world="moto"] .fx-world--moto .fx-world__chosen,html[data-world="rower
 .fx-store address{font-style:normal;line-height:1.7;color:#e6e4df;margin-bottom:10px}
 .fx-store address a{color:#fff;text-decoration:underline}
 .fx-about .fx-about__body{max-width:900px;margin-top:18px}
+
+/* Telefon: nic nie może wychodzić poza szerokość ekranu */
+html,body{max-width:100%;overflow-x:clip}
+.woocommerce div.product form.cart table.variations,.woocommerce div.product form.cart table.variations tbody,.woocommerce div.product form.cart table.variations tr{display:block;width:100%;max-width:100%}
+.fx-swatches{flex-wrap:wrap;max-width:100%}
+.woocommerce div.product form.cart table.variations select{max-width:100%}
+.woocommerce div.product .product_title,.fx-kit__name,.woocommerce-loop-product__title{overflow-wrap:anywhere}
+.woocommerce div.product form.cart{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch}
+.woocommerce div.product form.cart.variations_form{display:block}
+.woocommerce div.product form.cart .woocommerce-variation-add-to-cart{display:flex;flex-wrap:wrap;gap:10px}
+@media (max-width:600px){.woocommerce div.product form.cart .button{flex:1 1 auto;padding:0 20px}}

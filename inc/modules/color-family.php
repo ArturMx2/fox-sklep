@@ -244,7 +244,7 @@ function fx_cf_single() {
 			$label = $d['label'];
 		}
 	}
-	echo '<div class="fx-colors" id="fx-colors"><div class="fx-colors__label">Kolor: <strong>' . esc_html( $label ) . '</strong> <span>(' . count( $data ) . ' ' . esc_html( _n( 'kolor', 'kolory', count( $data ), 'foxsklep' ) ) . ')</span></div><div class="fx-colors__list">';
+	echo '<div class="fx-colors" id="fx-colors"><div class="fx-colors__label">Kolor: <strong>' . esc_html( $label ) . '</strong> <span>(' . count( $data ) . ' ' . esc_html( fx_pl( count( $data ), 'kolor', 'kolory', 'kolorów' ) ) . ')</span></div><div class="fx-colors__list">';
 	foreach ( $data as $d ) {
 		$on = $d['id'] === $product->get_id();
 		echo '<a class="fx-colors__sw' . ( $on ? ' is-on' : '' ) . ( $d['stock'] ? '' : ' is-out' ) . '" href="' . esc_url( $d['url'] ) . '" title="' . esc_attr( $d['label'] . ( $d['stock'] ? '' : ' – niedostępny' ) ) . '"' . ( $on ? ' aria-current="page"' : '' ) . '><img src="' . esc_url( $d['thumb'] ) . '" alt="' . esc_attr( $d['name'] ) . '" width="64" height="64" loading="lazy" decoding="async"></a>';
