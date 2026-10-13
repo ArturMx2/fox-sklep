@@ -393,6 +393,7 @@ function fx_kit_options( $p ) {
 				'id'    => $vid,
 				'label' => implode( ' / ', $labels ),
 				'price' => (float) wc_get_price_to_display( $v ),
+				'reg'   => (float) wc_get_price_to_display( $v, array( 'price' => $v->get_regular_price() ? $v->get_regular_price() : $v->get_price() ) ),
 				'sku'   => $v->get_sku(),
 			);
 		}
@@ -401,6 +402,7 @@ function fx_kit_options( $p ) {
 			'id'    => 0,
 			'label' => '',
 			'price' => (float) wc_get_price_to_display( $p ),
+			'reg'   => (float) wc_get_price_to_display( $p, array( 'price' => $p->get_regular_price() ? $p->get_regular_price() : $p->get_price() ) ),
 			'sku'   => $p->get_sku(),
 		);
 	}
@@ -409,7 +411,24 @@ function fx_kit_options( $p ) {
 
 /* ---------- Sekcja na karcie produktu ---------- */
 
+/** Typ części do etykiety nad nazwą: „Koszulka”, „Spodnie”, „Gogle”… */
+function fx_kit_part_label( $p ) {
+	list( $type ) = fx_kit_parse_name( $p->get_name() );
+	$labels       = array( 'koszulka' => 'Koszulka', 'spodnie' => 'Spodnie', 'rekawice' => 'Rękawice' );
+	if ( isset( $labels[ $type ] ) ) {
+		return $labels[ $type ];
+	}
+	if ( preg_match( '/^(.*?)\bfox\b/iu', $p->get_name(), $m ) && trim( $m[1] ) ) {
+		$w = preg_split( '/\s+/u', trim( $m[1] ) );
+		return mb_convert_case( mb_strtolower( $w[0] ), MB_CASE_TITLE, 'UTF-8' );
+	}
+	$cats = wc_get_product_terms( $p->get_id(), 'product_cat', array( 'fields' => 'names' ) );
+	return $cats ? $cats[0] : '';
+}
+
 /**
+ * Sekcja kompletu: duże kafle części (jak Fox UK) + wybór rozmiaru i dodanie całości do koszyka.
+ *
  * @param WC_Product $product Produkt strony.
  * @param bool       $inline  Wersja w kolumnie zakupowej (strona kompletu) – bez dużego zdjęcia.
  */
@@ -424,31 +443,42 @@ function fx_kit_section( $product, $inline = false ) {
 	$items = array();
 	foreach ( $kit['parts'] as $id ) {
 		$p = wc_get_product( $id );
-		if ( ! $p ) {
-			continue;
+		if ( $p ) {
+			$items[] = array( $p, fx_kit_options( $p ) );
 		}
-		$items[] = array( $p, fx_kit_options( $p ) );
 	}
 	if ( count( $items ) < 2 ) {
 		return;
 	}
-	$page  = $kit['page'] ? wc_get_product( $kit['page'] ) : null;
-	$title = $kit['title'] ? $kit['title'] : ( $page && $page->get_id() !== $product->get_id() ? $page->get_name() : 'Cała grafika jednym kliknięciem' );
-	$pct   = fx_kit_discount();
+	$page     = $kit['page'] ? wc_get_product( $kit['page'] ) : null;
+	$title    = $kit['title'] ? $kit['title'] : ( $page && $page->get_id() !== $product->get_id() ? $page->get_name() : 'Cała grafika jednym kliknięciem' );
+	$pct      = fx_kit_discount();
 	$photo_id = $page && $page->get_image_id() ? $page->get_image_id() : $items[0][0]->get_image_id();
 	$custom   = get_post_meta( $kit['page'] ? $kit['page'] : $items[0][0]->get_id(), '_fx_kit_img', true );
+	// Największa możliwa oszczędność (promocje części + rabat za komplet) do etykiety „do −X%”.
+	$reg = 0;
+	$now = 0;
+	foreach ( $items as $row ) {
+		if ( $row[1] ) {
+			$reg += max( wp_list_pluck( $row[1], 'reg' ) );
+			$now += min( wp_list_pluck( $row[1], 'price' ) );
+		}
+	}
+	$deal  = $now * ( 1 - $pct / 100 );
+	$upto  = $reg > 0 ? (int) floor( ( 1 - $deal / $reg ) * 100 ) : 0;
 	?>
 	<section class="fx-kit<?php echo $inline ? ' fx-kit--inline' : ''; ?>" id="fx-kit" data-fx-kit data-parts="<?php echo count( $items ); ?>" data-pct="<?php echo esc_attr( $pct ); ?>">
-		<?php if ( ! $inline ) : ?>
 		<div class="fx-kit__head">
 			<div>
-				<div class="fx-kicker">Zbuduj komplet<?php echo $pct ? ' · −' . esc_html( wc_format_localized_decimal( $pct ) ) . '%' : ''; ?></div>
-				<h2><?php echo esc_html( $title ); ?></h2>
+				<?php if ( ! $inline ) : ?><div class="fx-kicker">Zbuduj komplet</div><?php endif; ?>
+				<h2><?php echo $inline ? 'Co jest w zestawie?' : esc_html( $title ); ?></h2>
 			</div>
-			<p><?php echo $pct ? 'Kup wszystkie części razem i zapłać ' . esc_html( wc_format_localized_decimal( $pct ) ) . '% mniej. ' : ''; ?>Odznacz części, których nie potrzebujesz, i wybierz rozmiar każdej z osobna.<?php if ( $page && $page->get_id() !== $product->get_id() ) : ?> <a href="<?php echo esc_url( $page->get_permalink() ); ?>">Zobacz cały komplet</a><?php endif; ?></p>
+			<?php if ( $upto >= 5 ) : ?>
+				<span class="fx-kit__badge">Do −<?php echo (int) $upto; ?>% w zestawie</span>
+			<?php endif; ?>
 		</div>
-		<?php elseif ( $pct ) : ?>
-		<p class="fx-kit__deal">Kupując wszystkie <?php echo count( $items ); ?> części razem, płacisz <strong><?php echo esc_html( wc_format_localized_decimal( $pct ) ); ?>% mniej</strong>.</p>
+		<?php if ( ! $inline && $page && $page->get_id() !== $product->get_id() ) : ?>
+			<p class="fx-kit__lead">Wybierz rozmiary i dodaj całość do koszyka<?php echo $pct ? ' – w zestawie płacisz ' . esc_html( wc_format_localized_decimal( $pct ) ) . '% mniej' : ''; ?>. <a href="<?php echo esc_url( $page->get_permalink() ); ?>">Zobacz cały komplet</a></p>
 		<?php endif; ?>
 		<div class="fx-kit__grid">
 			<?php if ( ! $inline ) : ?>
@@ -457,12 +487,13 @@ function fx_kit_section( $product, $inline = false ) {
 				if ( $custom ) {
 					echo '<img class="fx-cover" src="' . esc_url( $custom ) . '" alt="' . esc_attr( $title ) . '" loading="lazy">';
 				} elseif ( $photo_id ) {
-					echo wp_get_attachment_image( $photo_id, 'large', false, array( 'class' => 'fx-cover', 'style' => 'object-fit:contain', 'loading' => 'lazy' ) );
+					echo wp_get_attachment_image( $photo_id, 'large', false, array( 'class' => 'fx-cover', 'loading' => 'lazy' ) );
 				}
 				?>
 			</div>
 			<?php endif; ?>
 			<div class="fx-kit__list">
+				<div class="fx-kit__tiles">
 				<?php foreach ( $items as $row ) : ?>
 					<?php
 					list( $p, $opts ) = $row;
@@ -470,39 +501,43 @@ function fx_kit_section( $product, $inline = false ) {
 					$fid              = 'fx-kit-' . $p->get_id();
 					$cats             = wc_get_product_terms( $p->get_id(), 'product_cat', array( 'fields' => 'names' ) );
 					$avail            = (bool) $opts;
+					$variable         = $p->is_type( 'variable' );
+					$single           = $avail && 1 === count( $opts );
 					?>
 					<div class="fx-kit__item<?php echo $avail ? '' : ' is-out'; ?>" data-product-id="<?php echo (int) $p->get_id(); ?>" data-name="<?php echo esc_attr( $p->get_name() ); ?>" data-category="<?php echo esc_attr( $cats ? $cats[0] : '' ); ?>">
-						<label class="fx-kit__pick" for="<?php echo esc_attr( $fid ); ?>-on">
+						<label class="fx-kit__check" title="Dodaj do zestawu">
 							<input type="checkbox" id="<?php echo esc_attr( $fid ); ?>-on" <?php checked( $avail ); ?> <?php disabled( ! $avail ); ?>>
-							<span class="fx-kit__thumb"><?php echo $p->get_image( 'woocommerce_gallery_thumbnail' ); // phpcs:ignore ?></span>
-							<span>
-								<span class="fx-kit__name"><?php echo esc_html( $p->get_name() ); ?><?php echo $is_current ? ' <small style="color:var(--fx-muted)">(ten produkt)</small>' : ''; ?></span>
-								<span class="fx-kit__price"><?php echo $avail ? wp_kses_post( $p->get_price_html() ) : 'Chwilowo niedostępne'; ?></span>
-								<?php if ( ! $is_current ) : ?><a class="fx-kit__link" href="<?php echo esc_url( $p->get_permalink() ); ?>">Szczegóły</a><?php endif; ?>
-							</span>
+							<span class="screen-reader-text">W zestawie: <?php echo esc_html( $p->get_name() ); ?></span>
 						</label>
-						<?php if ( $avail && $p->is_type( 'variable' ) ) : ?>
-							<div class="fx-kit__size">
-								<label for="<?php echo esc_attr( $fid ); ?>-size">Rozmiar</label>
-								<select id="<?php echo esc_attr( $fid ); ?>-size" data-fx-kit-size>
-									<option value="" data-price="0">Wybierz</option>
-									<?php foreach ( $opts as $o ) : ?>
-										<option value="<?php echo (int) $o['id']; ?>" data-price="<?php echo esc_attr( $o['price'] ); ?>" data-sku="<?php echo esc_attr( $o['sku'] ); ?>"><?php echo esc_html( $o['label'] ); ?></option>
-									<?php endforeach; ?>
-								</select>
-							</div>
-						<?php elseif ( $avail ) : ?>
-							<input type="hidden" data-fx-kit-size value="0" data-price="<?php echo esc_attr( $opts[0]['price'] ); ?>" data-sku="<?php echo esc_attr( $opts[0]['sku'] ); ?>">
-						<?php endif; ?>
+						<a class="fx-kit__img" href="<?php echo esc_url( $p->get_permalink() ); ?>"<?php echo $is_current ? ' aria-current="page"' : ''; ?>><?php echo $p->get_image( 'woocommerce_thumbnail' ); // phpcs:ignore ?></a>
+						<div class="fx-kit__body">
+							<span class="fx-kit__type"><?php echo esc_html( fx_kit_part_label( $p ) ); ?><?php echo $is_current ? ' · ten produkt' : ''; ?></span>
+							<a class="fx-kit__name" href="<?php echo esc_url( $p->get_permalink() ); ?>"><?php echo esc_html( $p->get_name() ); ?></a>
+							<span class="fx-kit__price"><?php echo $avail ? wp_kses_post( $p->get_price_html() ) : 'Chwilowo niedostępne'; ?></span>
+							<?php if ( $avail ) : ?>
+								<input type="hidden" data-fx-kit-size data-variable="<?php echo $variable ? 1 : 0; ?>" value="<?php echo $single ? (int) $opts[0]['id'] : ( $variable ? '' : '0' ); ?>" data-price="<?php echo esc_attr( $single || ! $variable ? $opts[0]['price'] : 0 ); ?>" data-reg="<?php echo esc_attr( $single || ! $variable ? $opts[0]['reg'] : 0 ); ?>">
+								<?php if ( $variable && ! $single ) : ?>
+									<div class="fx-kit__sizes" role="group" aria-label="Rozmiar: <?php echo esc_attr( $p->get_name() ); ?>">
+										<?php foreach ( $opts as $o ) : ?>
+											<button type="button" class="fx-kit__sz" data-vid="<?php echo (int) $o['id']; ?>" data-price="<?php echo esc_attr( $o['price'] ); ?>" data-reg="<?php echo esc_attr( $o['reg'] ); ?>" aria-pressed="false"><?php echo esc_html( $o['label'] ); ?></button>
+										<?php endforeach; ?>
+									</div>
+								<?php elseif ( $variable && $single ) : ?>
+									<span class="fx-kit__one">Rozmiar: <?php echo esc_html( $opts[0]['label'] ); ?></span>
+								<?php endif; ?>
+							<?php endif; ?>
+						</div>
 					</div>
 				<?php endforeach; ?>
+				</div>
 
 				<div class="fx-kit__foot">
-					<div>
-						<div class="fx-kit__summary" data-fx-kit-summary></div>
+					<div class="fx-kit__sum">
+						<span class="fx-kit__sumlabel">Razem</span>
 						<div class="fx-kit__total" data-fx-kit-total aria-live="polite"></div>
+						<div class="fx-kit__summary" data-fx-kit-summary></div>
 					</div>
-					<button type="button" class="fx-btn fx-btn--block" style="width:auto;padding:0 32px" data-fx-kit-add>Dodaj komplet</button>
+					<button type="button" class="fx-btn fx-kit__add" data-fx-kit-add>Dodaj zestaw do koszyka</button>
 				</div>
 				<div class="fx-kit__msg" data-fx-kit-msg role="status" aria-live="polite"></div>
 			</div>
@@ -744,3 +779,11 @@ function fx_kit_add() {
 		)
 	);
 }
+
+/* Klasa strony kompletu (szersza kolumna z kaflami). */
+add_filter( 'body_class', function ( $c ) {
+	if ( function_exists( 'is_product' ) && is_product() && fx_kit_is_page( get_queried_object_id() ) ) {
+		$c[] = 'fx-kit-page';
+	}
+	return $c;
+} );

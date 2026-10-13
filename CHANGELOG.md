@@ -1,5 +1,11 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.6.0 – komplety jak Fox UK, ale z koszykiem
+- „Co jest w zestawie?”: duże kafle części (zdjęcie, typ części – Koszulka/Spodnie/Kask…, nazwa, cena z przekreśloną regularną), 3 w rzędzie na stronie kompletu, 2 na telefonie. Etykieta „Do −X% w zestawie”.
+- Rozmiar wybierany przyciskami prosto w kaflu (tylko dostępne rozmiary); produkty w jednym rozmiarze bez wyboru. Kółko ✓ na zdjęciu dodaje/odejmuje część.
+- Dół: „Razem” z przekreśloną ceną, „Oszczędzasz X zł · w tym −5% za zestaw” (albo podpowiedź, że rabat jest za wszystkie części), przycisk „Dodaj zestaw do koszyka”. Brak rozmiaru → „Wybierz rozmiar: Kask”, przewinięcie do kafla.
+- Na telefonie pasek z sumą i przyciskiem przyklejony do dołu ekranu. Strona kompletu ma szerszą kolumnę z kaflami. To samo na kartach części (sekcja „Zbuduj komplet”).
+
 ## 3.5.3 – pole „Komplet (zestaw)” w edycji produktu
 - Osobne pole „Komplet (zestaw)” pod opisem produktu (zamiast ukrytego w zakładce „Produkty podlinkowane”): przełącznik „To jest strona kompletu”, wybór części (wyszukiwarka po nazwie i SKU, kolejność = kolejność wyświetlania), podgląd „Teraz w komplecie”, tytuł sekcji, zdjęcie całego kompletu.
 - Strona kompletu może mieć dowolną nazwę (przełącznik); stare komplety ze Smart Composite są zaznaczone automatycznie – wystarczy wybrać części na nowo i zapisać.

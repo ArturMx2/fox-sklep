@@ -312,42 +312,68 @@
 
 		var rows = function () { return Array.prototype.slice.call(kit.querySelectorAll('.fx-kit__item')); };
 
+		/* Rozmiar w kafelku: przyciski zapisują wariant i cenę do ukrytego pola */
+		kit.addEventListener('click', function (e) {
+			var b = e.target.closest('.fx-kit__sz');
+			if (!b) { return; }
+			var item = b.closest('.fx-kit__item');
+			var input = item.querySelector('[data-fx-kit-size]');
+			item.querySelectorAll('.fx-kit__sz').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+			input.value = b.getAttribute('data-vid');
+			input.setAttribute('data-price', b.getAttribute('data-price'));
+			input.setAttribute('data-reg', b.getAttribute('data-reg'));
+			var cb = item.querySelector('input[type=checkbox]');
+			if (cb && !cb.checked) { cb.checked = true; }
+			item.classList.remove('is-missing');
+			render();
+		});
+
 		var state = function () {
-			var chosen = 0, missing = 0, total = 0, items = [];
+			var chosen = 0, missing = [], total = 0, reg = 0, items = [], est = 0;
 			rows().forEach(function (row) {
-				var on = row.querySelector('input[type=checkbox]').checked;
+				var cb = row.querySelector('input[type=checkbox]');
+				var on = cb && cb.checked;
 				row.classList.toggle('is-off', !on);
 				if (!on) { return; }
 				chosen++;
 				var size = row.querySelector('[data-fx-kit-size]');
-				var isSelect = size.tagName === 'SELECT';
-				var opt = isSelect ? size.options[size.selectedIndex] : size;
-				var vid = isSelect ? size.value : '0';
-				if (isSelect && !vid) { missing++; return; }
-				var price = parseFloat(opt.getAttribute('data-price')) || 0;
-				total += price;
-				items.push({
-					product_id: parseInt(row.getAttribute('data-product-id'), 10),
-					variation_id: parseInt(vid, 10) || 0
-				});
+				if (!size) { return; }
+				var variable = size.getAttribute('data-variable') === '1';
+				var vid = size.value;
+				if (variable && !vid) {
+					missing.push(row);
+					var low = Infinity;
+					row.querySelectorAll('.fx-kit__sz').forEach(function (x) { low = Math.min(low, parseFloat(x.getAttribute('data-price')) || Infinity); });
+					if (isFinite(low)) { est += low; }
+					return;
+				}
+				total += parseFloat(size.getAttribute('data-price')) || 0;
+				reg += parseFloat(size.getAttribute('data-reg')) || parseFloat(size.getAttribute('data-price')) || 0;
+				items.push({ product_id: parseInt(row.getAttribute('data-product-id'), 10), variation_id: parseInt(vid, 10) || 0 });
 			});
-			return { chosen: chosen, missing: missing, total: total, items: items };
+			return { chosen: chosen, missing: missing, total: total, reg: reg, est: est, items: items };
 		};
 
 		var render = function () {
 			var s = state();
-			var n = rows().length;
-			var word = s.chosen === 1 ? 'część' : 'części';
-			kit.querySelector('[data-fx-kit-summary]').textContent = 'Wybrano ' + s.chosen + ' ' + word + ' z ' + n + (s.missing ? ' · wybierz rozmiar: ' + s.missing : '');
 			var pct = parseFloat(kit.getAttribute('data-pct')) || 0;
 			var full = rows().filter(function (r) { return !r.classList.contains('is-out'); }).length;
-			var deal = pct > 0 && s.chosen === parseInt(kit.getAttribute('data-parts'), 10) && s.chosen === full && !s.missing;
+			var allIn = s.chosen === full && s.chosen === parseInt(kit.getAttribute('data-parts'), 10);
+			var sub = s.total + s.est;
+			var pay = allIn && pct > 0 ? sub * (1 - pct / 100) : sub;
+			var before = s.reg + s.est;
 			var totalEl = kit.querySelector('[data-fx-kit-total]');
-			if (!s.total) { totalEl.textContent = ''; }
-			else if (deal) { totalEl.innerHTML = '<del>' + fmt(s.total) + '</del> <span>' + fmt(s.total * (1 - pct / 100)) + '</span> <small>−' + String(pct).replace('.', ',') + '% za komplet</small>'; }
-			else { totalEl.textContent = fmt(s.total) + (pct > 0 && s.chosen < full ? '' : ''); }
+			if (!s.chosen) { totalEl.textContent = ''; }
+			else {
+				totalEl.innerHTML = (before > pay + 0.5 ? '<del>' + fmt(before) + '</del> ' : '') + '<strong>' + (s.missing.length ? 'od ' : '') + fmt(pay) + '</strong>';
+			}
+			var note = [];
+			if (before > pay + 0.5) { note.push('Oszczędzasz ' + fmt(before - pay)); }
+			if (pct > 0 && !allIn && s.chosen) { note.push('zaznacz wszystkie części, żeby dostać −' + String(pct).replace('.', ',') + '%'); }
+			if (pct > 0 && allIn) { note.push('w tym −' + String(pct).replace('.', ',') + '% za zestaw'); }
+			kit.querySelector('[data-fx-kit-summary]').textContent = note.join(' · ');
 			var btn = kit.querySelector('[data-fx-kit-add]');
-			btn.textContent = s.chosen ? 'Dodaj komplet (' + s.chosen + ')' : 'Wybierz części';
+			btn.textContent = !s.chosen ? 'Zaznacz części' : (allIn ? 'Dodaj zestaw do koszyka' : 'Dodaj do koszyka (' + s.chosen + ')');
 			btn.disabled = !s.chosen;
 		};
 
@@ -358,14 +384,12 @@
 		kit.querySelector('[data-fx-kit-add]').addEventListener('click', function () {
 			var s = state();
 			msg.classList.remove('is-error');
-			if (s.missing) {
-				msg.textContent = 'Wybierz rozmiar dla każdej zaznaczonej części.';
+			if (s.missing.length) {
+				var names = s.missing.map(function (r) { r.classList.add('is-missing'); return (r.querySelector('.fx-kit__type') || {}).textContent || ''; });
+				msg.textContent = 'Wybierz rozmiar: ' + names.join(', ').replace(/ · ten produkt/g, '') + '.';
 				msg.classList.add('is-error');
-				var first = rows().filter(function (r) {
-					var sel = r.querySelector('select[data-fx-kit-size]');
-					return r.querySelector('input[type=checkbox]').checked && sel && !sel.value;
-				})[0];
-				if (first) { first.querySelector('select').focus(); }
+				var first = s.missing[0].querySelector('.fx-kit__sz');
+				if (first) { first.focus(); s.missing[0].scrollIntoView({ behavior: 'smooth', block: 'center' }); }
 				return;
 			}
 			var btn = this;
