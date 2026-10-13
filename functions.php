@@ -7,7 +7,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FX_VERSION', '3.8.1' );
+define( 'FX_VERSION', '3.8.2' );
 define( 'FX_DIR', get_template_directory() );
 define( 'FX_URI', get_template_directory_uri() );
 
@@ -28,6 +28,8 @@ if ( class_exists( 'WooCommerce' ) ) {
 	}
 	if ( is_admin() ) {
 		require_once FX_DIR . '/inc/modules/size-guides-import.php';
-		require_once FX_DIR . '/inc/seo-compare.php';
+		if ( ! function_exists( 'fx_seo_cmp_page' ) ) { // wtyczka „FOX – podgląd motywu” ma własną kopię
+			require_once FX_DIR . '/inc/seo-compare.php';
+		}
 	}
 }

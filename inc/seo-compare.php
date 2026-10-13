@@ -40,15 +40,27 @@ function fx_seo_cmp_sample() {
 	return array_values( array_unique( $urls ) );
 }
 
+/** Tryb „ten sam sklep”: wtyczka FOX – podgląd motywu pokazuje nowy motyw pod tym samym adresem (?fx_podglad=klucz). */
+function fx_seo_cmp_same_shop() {
+	return function_exists( 'fxp_preview_url' );
+}
+
 function fx_seo_cmp_page() {
-	$ref = get_option( 'fx_seo_cmp_ref', 'https://fox.sklep.pl' );
+	$ref  = get_option( 'fx_seo_cmp_ref', 'https://fox.sklep.pl' );
+	$same = fx_seo_cmp_same_shop();
 	?>
 	<div class="wrap">
-		<h1>Porównanie SEO: stary motyw ↔ nowy motyw</h1>
-		<p>Uruchom na <strong>stronie testowej z nowym motywem</strong> (kopia sklepu). Dla każdego adresu narzędzie pobiera tę samą podstronę z działającego sklepu (stary motyw) i z tej strony (nowy motyw), i porównuje to, co widzi Google. Nic nie zmienia – tylko czyta strony.</p>
+		<h1>Porównanie SEO: obecny motyw ↔ nowy motyw</h1>
+		<?php if ( $same ) : ?>
+			<p>Dla każdego adresu narzędzie pobiera tę samą stronę <strong>tego sklepu</strong> dwa razy, jako zwykły gość: raz tak, jak widzą ją dziś klienci i Google (obecny motyw), i raz w podglądzie nowego motywu (widocznym tylko z kluczem podglądu). Potem porównuje to, co widzi Google. Nic nie zmienia w sklepie – tylko czyta strony.</p>
+		<?php else : ?>
+			<p>Dla każdego adresu narzędzie pobiera tę samą podstronę z działającego sklepu (stary motyw) i z tej strony (nowy motyw), i porównuje to, co widzi Google. Nic nie zmienia – tylko czyta strony.</p>
+		<?php endif; ?>
 		<table class="form-table" role="presentation">
+			<?php if ( ! $same ) : ?>
 			<tr><th><label for="fx-ref">Działający sklep (stary motyw)</label></th><td><input type="url" id="fx-ref" class="regular-text" value="<?php echo esc_attr( $ref ); ?>"></td></tr>
-			<tr><th><label for="fx-urls">Adresy do sprawdzenia</label></th><td><textarea id="fx-urls" rows="10" class="large-text code"><?php echo esc_textarea( implode( "\n", fx_seo_cmp_sample() ) ); ?></textarea><p class="description">Jeden adres w linii (sama ścieżka, np. /kategoria-produktu/off-road/kaski/). Na start: strona główna, 12 największych kategorii, 12 losowych produktów, komplety, 3 wpisy.</p></td></tr>
+			<?php endif; ?>
+			<tr><th><label for="fx-urls">Adresy do sprawdzenia</label></th><td><textarea id="fx-urls" rows="10" class="large-text code"><?php echo esc_textarea( implode( "\n", apply_filters( 'fx_seo_cmp_sample', fx_seo_cmp_sample() ) ) ); ?></textarea><p class="description">Jeden adres w linii (sama ścieżka, np. /kategoria-produktu/off-road/kaski/).</p></td></tr>
 		</table>
 		<p><button class="button button-primary" id="fx-run">Porównaj</button> <span id="fx-prog"></span></p>
 		<div id="fx-sum"></div>
@@ -72,7 +84,7 @@ function fx_seo_cmp_page() {
 		function list(a) { return a && a.length ? '<code>' + a.map(esc).join('\n') + '</code>' : '<em>brak</em>'; }
 		$('#fx-run').on('click', function () {
 			var urls = $('#fx-urls').val().split(/\n+/).map(function (u) { return u.trim(); }).filter(Boolean);
-			var ref = $('#fx-ref').val().trim();
+			var ref = $('#fx-ref').length ? $('#fx-ref').val().trim() : '';
 			rows = []; $('#fx-res').show().find('tbody').empty(); $('#fx-sum').empty(); $('#fx-csv').hide();
 			var i = 0, stats = { ok: 0, warn: 0, bad: 0 };
 			(function next() {
@@ -257,14 +269,25 @@ add_action( 'wp_ajax_fx_seo_cmp', function () {
 	$ref  = untrailingslashit( esc_url_raw( wp_unslash( isset( $_POST['ref'] ) ? $_POST['ref'] : '' ) ) ); // phpcs:ignore
 	$path = '/' . ltrim( (string) wp_parse_url( sanitize_text_field( wp_unslash( isset( $_POST['path'] ) ? $_POST['path'] : '/' ) ), PHP_URL_PATH ), '/' ); // phpcs:ignore
 	$q    = (string) wp_parse_url( sanitize_text_field( wp_unslash( isset( $_POST['path'] ) ? $_POST['path'] : '' ) ), PHP_URL_QUERY ); // phpcs:ignore
-	if ( ! $ref ) {
-		wp_send_json_error( 'Podaj adres działającego sklepu.' );
+	if ( fx_seo_cmp_same_shop() ) {
+		// Ten sam sklep: obie wersje pobierane jako gość (bez ciasteczek admina) – dokładnie to, co widzi Google.
+		$url_old = home_url( $path ) . ( $q ? '?' . $q : '' );
+		$url_new = fxp_preview_url( $url_old );
+		$old     = fx_seo_cmp_fetch( $url_old );
+		$new     = fx_seo_cmp_fetch( $url_new );
+		if ( ! is_wp_error( $new ) && function_exists( 'fxp_theme' ) && false === strpos( $new['html'], '/themes/' . fxp_theme() . '/' ) ) {
+			wp_send_json_error( 'Podgląd nowego motywu nie zadziałał – serwer oddał obecny motyw. Najczęściej to pamięć podręczna (cache) strony: wyczyść ją albo wyklucz parametr fx_podglad z cache.' );
+		}
+	} else {
+		if ( ! $ref ) {
+			wp_send_json_error( 'Podaj adres działającego sklepu.' );
+		}
+		update_option( 'fx_seo_cmp_ref', $ref, false );
+		$url_old = $ref . $path . ( $q ? '?' . $q : '' );
+		$url_new = home_url( $path ) . ( $q ? '?' . $q : '' );
+		$old     = fx_seo_cmp_fetch( $url_old );
+		$new     = fx_seo_cmp_fetch( $url_new, true );
 	}
-	update_option( 'fx_seo_cmp_ref', $ref, false );
-	$url_old = $ref . $path . ( $q ? '?' . $q : '' );
-	$url_new = home_url( $path ) . ( $q ? '?' . $q : '' );
-	$old     = fx_seo_cmp_fetch( $url_old );
-	$new     = fx_seo_cmp_fetch( $url_new, true );
 	if ( is_wp_error( $old ) ) {
 		wp_send_json_error( 'Nie udało się pobrać starej strony: ' . $old->get_error_message() );
 	}

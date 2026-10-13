@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.8.2 – porównanie SEO na działającym sklepie
+- Nowa wtyczka „FOX – podgląd motywu i porównanie SEO” (tools/fox-podglad, osobny zip): nowy motyw widoczny na fox.sklep.pl tylko z kluczem podglądu (klienci i Google widzą obecny motyw, podgląd ma noindex i omija cache), a Narzędzia → Porównanie SEO porównuje obie wersje tych samych adresów jako gość. Lista adresów: 71 stron z największym ruchem w Search Console.
+- Porównanie SEO w motywie korzysta z trybu „ten sam sklep”, gdy wtyczka jest włączona; sprawdza też, czy podgląd nie został podany z cache.
+
 ## 3.8.1 – SEO 1:1 ze sklepem fox.sklep.pl
 - Tabele rozmiarów mają własne strony pod starymi adresami CommerceKit: /ckit_size_guide/nazwa/ (40 adresów z ruchem w Google). Import tabel zachowuje adres oraz tytuł i opis SEO z Yoast. Gdy CommerceKit jest włączony, adresy dalej obsługuje on. Stary adres tabeli, której nie ma w motywie → 301 do strony „Tabela rozmiarów”.
 - Opis kategorii bez dolnego opisu zostaje w całości nad produktami (jak w obecnym sklepie) – motyw nie przenosi już części tekstu pod listę.
