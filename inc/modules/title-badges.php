@@ -31,6 +31,17 @@ function fx_tb_rules() {
 				$rules['rules'][] = array( 'pattern' => $r['pattern_raw'], 'label' => $r['label'], 'color' => ! empty( $r['color'] ) ? $r['color'] : '#111111', 'on' => ! empty( $r['enabled'] ) );
 			}
 		}
+		if ( ! $rules['rules'] ) {
+			// Start: najważniejsze dla klientów – damskie, juniorskie, dziecięce.
+			$rules = array(
+				'mode'  => 'first',
+				'rules' => array(
+					array( 'pattern' => 'kids|dziecięc|dzieciec|dla dzieci|toddler', 'label' => 'Dziecięce', 'color' => '#2E7D4F', 'on' => true ),
+					array( 'pattern' => 'junior|youth|młodzież|mlodziez', 'label' => 'Juniorskie', 'color' => '#1E5BD8', 'on' => true ),
+					array( 'pattern' => 'lady|ladies|women|womens|wmn|damsk', 'label' => 'Damskie', 'color' => '#B8326E', 'on' => true ),
+				),
+			);
+		}
 		update_option( FX_TB_OPTION, $rules, false );
 	}
 	if ( ! is_array( $rules ) || ! isset( $rules['rules'] ) ) {

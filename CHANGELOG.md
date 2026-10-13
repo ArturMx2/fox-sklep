@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.6.2
+- Etykiety z nazwy – reguły startowe: Dziecięce (kids, dziecięce), Juniorskie (junior, youth, młodzieżowe), Damskie (lady, women, wmn, damskie). Do zmiany lub wyłączenia w WooCommerce → Etykiety z nazwy.
+
 ## 3.6.1 – etykiety z nazwy produktu
 - WooCommerce → Etykiety z nazwy: reguły „nazwa zawiera: lady|women|damsk → etykieta Damskie, kolor” (jak „Dynamiczne naklejki” z enduro.sklep.pl). Nic nie zapisuje się w produktach.
 - Etykiety w stylu motywu (pigułki na zdjęciu, obok promocji i nowości), na listingu i karcie produktu; kolor tekstu (biały/czarny) dobierany automatycznie do tła. Tryb: pierwsza pasująca albo wszystkie (razem najwyżej 4 etykiety).
