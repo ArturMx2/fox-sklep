@@ -134,6 +134,9 @@ function fx_defaults() {
 		$d[ "disc_{$n}_url" ]   = $home . $e[1];
 	}
 
+	if ( function_exists( 'fx_home_seo_defaults' ) ) {
+		$d = array_merge( $d, fx_home_seo_defaults( $home ) );
+	}
 	return $d;
 }
 

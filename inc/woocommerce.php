@@ -429,3 +429,10 @@ add_action( 'woocommerce_before_main_content', function () {
 	}
 	echo '<a class="fx-back" data-fx-back href="' . esc_url( get_term_link( $t ) ) . '"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg><span>Wróć do: <strong>' . esc_html( $t->name ) . '</strong></span></a>';
 }, 19 );
+
+/* Nazwy produktów na kartach jako H3 (zamiast H2 WooCommerce): na stronie głównej i w kategoriach
+   nagłówki H2 zostają dla sekcji, a dziesiątki nazw produktów nie rozmywają struktury strony. */
+remove_action( 'woocommerce_shop_loop_item_title', 'woocommerce_template_loop_product_title', 10 );
+add_action( 'woocommerce_shop_loop_item_title', function () {
+	echo '<h3 class="' . esc_attr( apply_filters( 'woocommerce_product_loop_title_classes', 'woocommerce-loop-product__title' ) ) . '">' . get_the_title() . '</h3>'; // phpcs:ignore
+}, 10 );

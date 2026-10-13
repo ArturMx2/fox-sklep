@@ -1,5 +1,15 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.3.0 – strona główna pod SEO (dane z Search Console)
+- H1 na górze strony („Sklep FOX Racing – sprzęt na crossa, enduro i MTB”) + wstęp z frazami „sklep crossowy, enduro i rowerowy”, „odzież MTB”, atuty (wysyłka 48 h, darmowa dostawa, zwroty, sklep pod Wrocławiem).
+- Kafle kategorii z nazwami-frazami: „Sklep crossowy i enduro” (kaski Fox na crossa i enduro, stroje na crossa Fox, buty crossowe, zbroje…), „Odzież rowerowa i kaski MTB”, „Odzież FOX na co dzień”. Zdjęcie z kategorii albo z jej najnowszego produktu, liczba produktów, kategorie nieistniejące pomijane.
+- Produkty: „Nowości na crossa i enduro” / „Nowości rowerowe Fox MTB”. Nazwy produktów na kartach jako H3 (sekcje H2).
+- Najczęstsze pytania (7, z linkami do kategorii) + dane strukturalne FAQPage.
+- Sklep stacjonarny: adres, godziny, telefon + dane strukturalne SportingGoodsStore (lokalne wyniki, Mapy).
+- Tekst „O sklepie” na dole (H2 + H3, linki do kategorii, zwinięty pod „Czytaj więcej”).
+- Tytuł i opis strony głównej w Google z Dostosuj (nadpisują Yoast/Rank Math tylko na stronie głównej; puste = jak dotąd).
+- Wszystkie teksty edytowalne: Dostosuj → FOX.SKLEP.PL → Strona główna – H1 i tekst SEO / kategorie / najczęstsze pytania / sklep stacjonarny.
+
 ## 3.2.0 – przełącznik Moto / Rower
 - Strona główna: baner podzielony na MOTO i ROWER (na telefonie obok siebie, cała połowa klikalna) + przełącznik „Pokazuję sprzęt: Moto | Rower”.
 - Wybór przestawia sekcje bez przeładowania: produkty (z kategorii moto albo rowerowej), kafle „Odkrywaj” i duże kafle (ustawienie „pokazuj dla” przy każdym), poradniki (osobna kategoria wpisów dla każdego świata).

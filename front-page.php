@@ -41,7 +41,7 @@ $fx_w = function ( $w ) {
 			<?php echo fx_media( fx_mod( "world_{$w}_img" ), 'full', 'fx-cover', fx_mod( "world_{$w}_title" ) ); // phpcs:ignore ?>
 			<div class="fx-world__body">
 				<span class="fx-world__chosen" aria-hidden="true">Wybrane</span>
-				<h2 class="fx-world__title"><?php echo esc_html( fx_mod( "world_{$w}_title" ) ); ?></h2>
+				<p class="fx-world__title"><?php echo esc_html( fx_mod( "world_{$w}_title" ) ); ?></p>
 				<?php if ( fx_mod( "world_{$w}_sub" ) ) : ?>
 					<p class="fx-world__sub"><?php echo esc_html( fx_mod( "world_{$w}_sub" ) ); ?></p>
 				<?php endif; ?>
@@ -84,6 +84,111 @@ $fx_w = function ( $w ) {
 </section>
 
 <?php endif; ?>
+
+<?php /* ---------- H1, wstęp i atuty (SEO) ---------- */ ?>
+<section class="fx-intro fx-wrap">
+	<h1 class="fx-intro__h1"><?php echo esc_html( fx_mod( 'seo_h1' ) ? fx_mod( 'seo_h1' ) : get_bloginfo( 'name' ) ); ?></h1>
+	<?php if ( fx_mod( 'seo_lead' ) ) : ?>
+		<p class="fx-intro__lead"><?php echo wp_kses_post( fx_mod( 'seo_lead' ) ); ?></p>
+	<?php endif; ?>
+	<?php $points = array_filter( array_map( 'trim', preg_split( '/\r\n|\r|\n/', (string) fx_mod( 'seo_points' ) ) ) ); ?>
+	<?php if ( $points ) : ?>
+		<ul class="fx-intro__points">
+			<?php foreach ( $points as $pt ) : ?>
+				<li><?php echo esc_html( $pt ); ?></li>
+			<?php endforeach; ?>
+		</ul>
+	<?php endif; ?>
+</section>
+
+<?php
+/* ---------- Kategorie (linki SEO) ---------- */
+$fx_hub = function ( $key, $world ) use ( $fx_w ) {
+	$items = fx_home_hub_items( fx_mod( "hub_{$key}_links" ) );
+	if ( ! $items ) {
+		return;
+	}
+	?>
+	<section class="fx-hub fx-wrap"<?php echo $fx_w( $world ); // phpcs:ignore ?>>
+		<div class="fx-row-head">
+			<div>
+				<h2 class="fx-h-section"><?php echo esc_html( fx_mod( "hub_{$key}_title" ) ); ?></h2>
+				<?php if ( fx_mod( "hub_{$key}_sub" ) ) : ?>
+					<p class="fx-hub__sub"><?php echo esc_html( fx_mod( "hub_{$key}_sub" ) ); ?></p>
+				<?php endif; ?>
+			</div>
+		</div>
+		<ul class="fx-hub__grid">
+			<?php foreach ( $items as $it ) : ?>
+				<li>
+					<a class="fx-hub__item" href="<?php echo esc_url( $it['url'] ); ?>">
+						<span class="fx-hub__img"><?php echo fx_media( $it['img'], 'woocommerce_thumbnail', 'fx-cover', '' ); // phpcs:ignore ?></span>
+						<span class="fx-hub__name"><?php echo esc_html( $it['label'] ); ?></span>
+						<?php if ( $it['count'] ) : ?>
+							<span class="fx-hub__count"><?php echo (int) $it['count']; ?> <?php echo esc_html( _n( 'produkt', 'produktów', $it['count'], 'foxsklep' ) ); ?></span>
+						<?php endif; ?>
+					</a>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+	</section>
+	<?php
+};
+if ( $fx_worlds ) {
+	$fx_hub( 'moto', 'moto' );
+	$fx_hub( 'rower', 'rower' );
+} else {
+	$fx_hub( 'moto', '' );
+	$fx_hub( 'rower', '' );
+}
+?>
+
+<?php /* ---------- Produkty ---------- */ ?>
+<?php
+if ( class_exists( 'WooCommerce' ) ) :
+	$count  = max( 3, min( 12, (int) fx_mod( 'new_count' ) ) );
+	$source = fx_mod( 'new_source' );
+	$atts   = 'limit="' . $count . '" columns="3"';
+	if ( 'tag' === $source && fx_mod( 'new_tag' ) ) {
+		$atts .= ' visibility="visible" tag="' . esc_attr( sanitize_title( fx_mod( 'new_tag' ) ) ) . '" orderby="date" order="DESC"';
+	} elseif ( 'sale' === $source ) {
+		$atts .= ' visibility="visible" on_sale="true"';
+	} elseif ( 'featured' === $source ) {
+		$atts .= ' visibility="featured"';
+	} else {
+		$atts .= ' visibility="visible" orderby="date" order="DESC"';
+	}
+	$rows = array( array( '', '', '' ) );
+	if ( $fx_worlds && fx_mod( 'new_split' ) ) {
+		$rows = array();
+		foreach ( array( 'moto', 'rower' ) as $w ) {
+			$t = get_term( fx_world_cat( $w ), 'product_cat' );
+			if ( $t instanceof WP_Term ) {
+				$rows[] = array( $w, $t->slug, get_term_link( $t ) );
+			}
+		}
+		if ( ! $rows ) {
+			$rows = array( array( '', '', '' ) );
+		}
+	}
+	foreach ( $rows as $row ) :
+		list( $w, $slug, $link ) = $row;
+		?>
+<section class="fx-wrap" style="padding-bottom:80px"<?php echo $fx_w( $w ); // phpcs:ignore ?>>
+	<div class="fx-row-head">
+		<h2 class="fx-h-section"><?php echo esc_html( ( $w && fx_mod( "new_title_{$w}" ) ) ? fx_mod( "new_title_{$w}" ) : fx_mod( 'new_title' ) ); ?></h2>
+		<?php if ( $w && $link ) : ?>
+			<a class="fx-btn fx-btn--outline fx-btn--sm" href="<?php echo esc_url( $link ); ?>">Wszystko: <?php echo esc_html( fx_mod( "world_{$w}_title" ) ); ?></a>
+		<?php elseif ( fx_mod( 'new_btn_label' ) && fx_mod( 'new_btn_url' ) ) : ?>
+			<a class="fx-btn fx-btn--outline fx-btn--sm" href="<?php echo esc_url( fx_mod( 'new_btn_url' ) ); ?>"><?php echo esc_html( fx_mod( 'new_btn_label' ) ); ?></a>
+		<?php endif; ?>
+	</div>
+	<?php echo do_shortcode( '[products ' . $atts . ( $slug ? ' category="' . esc_attr( $slug ) . '"' : '' ) . ']' ); ?>
+</section>
+		<?php
+	endforeach;
+endif;
+?>
 
 <?php /* ---------- Odkrywaj ---------- */ ?>
 <section style="padding:48px 0 64px">
@@ -128,7 +233,9 @@ $fx_w = function ( $w ) {
 	<?php endfor; ?>
 </section>
 
-<?php /* ---------- Dyscypliny ---------- */ ?>
+<?php /* ---------- Dyscypliny (gdy przełącznik Moto / Rower wyłączony) ---------- */ ?>
+<?php $fx_hub( 'casual', '' ); ?>
+<?php if ( ! $fx_worlds ) : ?>
 <section class="fx-section fx-wrap">
 	<h2 class="fx-h-label"><?php echo esc_html( fx_mod( 'disc_title' ) ); ?></h2>
 	<div class="fx-disc">
@@ -146,53 +253,7 @@ $fx_w = function ( $w ) {
 		<?php endfor; ?>
 	</div>
 </section>
-
-<?php /* ---------- Produkty ---------- */ ?>
-<?php
-if ( class_exists( 'WooCommerce' ) ) :
-	$count  = max( 3, min( 12, (int) fx_mod( 'new_count' ) ) );
-	$source = fx_mod( 'new_source' );
-	$atts   = 'limit="' . $count . '" columns="3"';
-	if ( 'tag' === $source && fx_mod( 'new_tag' ) ) {
-		$atts .= ' visibility="visible" tag="' . esc_attr( sanitize_title( fx_mod( 'new_tag' ) ) ) . '" orderby="date" order="DESC"';
-	} elseif ( 'sale' === $source ) {
-		$atts .= ' visibility="visible" on_sale="true"';
-	} elseif ( 'featured' === $source ) {
-		$atts .= ' visibility="featured"';
-	} else {
-		$atts .= ' visibility="visible" orderby="date" order="DESC"';
-	}
-	$rows = array( array( '', '', '' ) );
-	if ( $fx_worlds && fx_mod( 'new_split' ) ) {
-		$rows = array();
-		foreach ( array( 'moto', 'rower' ) as $w ) {
-			$t = get_term( fx_world_cat( $w ), 'product_cat' );
-			if ( $t instanceof WP_Term ) {
-				$rows[] = array( $w, $t->slug, get_term_link( $t ) );
-			}
-		}
-		if ( ! $rows ) {
-			$rows = array( array( '', '', '' ) );
-		}
-	}
-	foreach ( $rows as $row ) :
-		list( $w, $slug, $link ) = $row;
-		?>
-<section class="fx-wrap" style="padding-bottom:80px"<?php echo $fx_w( $w ); // phpcs:ignore ?>>
-	<div class="fx-row-head">
-		<h2 class="fx-h-section"><?php echo esc_html( fx_mod( 'new_title' ) ); ?></h2>
-		<?php if ( $w && $link ) : ?>
-			<a class="fx-btn fx-btn--outline fx-btn--sm" href="<?php echo esc_url( $link ); ?>">Wszystko: <?php echo esc_html( fx_mod( "world_{$w}_title" ) ); ?></a>
-		<?php elseif ( fx_mod( 'new_btn_label' ) && fx_mod( 'new_btn_url' ) ) : ?>
-			<a class="fx-btn fx-btn--outline fx-btn--sm" href="<?php echo esc_url( fx_mod( 'new_btn_url' ) ); ?>"><?php echo esc_html( fx_mod( 'new_btn_label' ) ); ?></a>
-		<?php endif; ?>
-	</div>
-	<?php echo do_shortcode( '[products ' . $atts . ( $slug ? ' category="' . esc_attr( $slug ) . '"' : '' ) . ']' ); ?>
-</section>
-		<?php
-	endforeach;
-endif;
-?>
+<?php endif; ?>
 
 <?php /* ---------- Zawodnik ---------- */ ?>
 <?php if ( fx_mod( 'rider_on' ) ) : ?>
@@ -268,20 +329,52 @@ if ( fx_mod( 'guides_on' ) ) :
 endif;
 ?>
 
-<?php /* ---------- H1 i tekst SEO ---------- */ ?>
+<?php /* ---------- Najczęstsze pytania ---------- */ ?>
+<?php $faq = fx_home_faq_items(); ?>
+<?php if ( fx_mod( 'faq_on' ) && $faq ) : ?>
+<section class="fx-section fx-wrap fx-faq" id="faq">
+	<h2 class="fx-h-section"><?php echo esc_html( fx_mod( 'faq_title' ) ); ?></h2>
+	<div class="fx-faq__list">
+		<?php foreach ( $faq as $i => $qa ) : ?>
+			<details class="fx-faq__item"<?php echo 0 === $i ? ' open' : ''; ?>>
+				<summary><h3><?php echo esc_html( $qa[0] ); ?></h3></summary>
+				<div class="fx-faq__a"><?php echo wp_kses_post( wpautop( $qa[1] ) ); ?></div>
+			</details>
+		<?php endforeach; ?>
+	</div>
+</section>
+<?php endif; ?>
+
+<?php /* ---------- Sklep stacjonarny (lokalne SEO) ---------- */ ?>
+<?php if ( fx_mod( 'store_on' ) ) : ?>
+<section id="salon" class="fx-store fx-wrap">
+	<div class="fx-store__title"><?php echo nl2br( esc_html( fx_mod( 'store_title' ) ) ); ?></div>
+	<div class="fx-store__info">
+		<h2 class="fx-store__h">Sklep stacjonarny FOX pod Wrocławiem</h2>
+		<address>
+			<?php echo esc_html( trim( fx_mod( 'store_street' ) . ', ' . trim( fx_mod( 'store_postcode' ) . ' ' . fx_mod( 'store_city' ) ), ', ' ) ); ?><br>
+			<?php if ( fx_mod( 'store_hours_text' ) ) : ?><?php echo esc_html( fx_mod( 'store_hours_text' ) ); ?><br><?php endif; ?>
+			<?php if ( fx_mod( 'store_phone' ) ) : ?><a href="tel:<?php echo esc_attr( preg_replace( '/[^0-9+]/', '', fx_mod( 'store_phone' ) ) ); ?>"><?php echo esc_html( fx_mod( 'store_phone' ) ); ?></a><?php endif; ?>
+		</address>
+		<?php if ( fx_mod( 'store_text' ) ) : ?>
+			<p><?php echo wp_kses_post( fx_mod( 'store_text' ) ); ?></p>
+		<?php endif; ?>
+	</div>
+	<?php if ( fx_mod( 'store_btn_label' ) && fx_mod( 'store_btn_url' ) ) : ?>
+		<a class="fx-btn fx-btn--white" href="<?php echo esc_url( fx_mod( 'store_btn_url' ) ); ?>"><?php echo esc_html( fx_mod( 'store_btn_label' ) ); ?></a>
+	<?php endif; ?>
+</section>
+<?php endif; ?>
+
+<?php /* ---------- O sklepie (tekst SEO) ---------- */ ?>
 <?php
-$seo_h1   = fx_mod( 'seo_h1' );
 $seo_text = fx_mod( 'seo_text' );
-if ( $seo_h1 || $seo_text ) :
+if ( $seo_text ) :
 	$parts = explode( '<!--more-->', $seo_text, 2 );
 	?>
-	<section class="fx-section fx-wrap fx-seo">
-		<div class="fx-seo__head">
-			<?php if ( $seo_h1 ) : ?>
-				<h1><?php echo esc_html( $seo_h1 ); ?></h1>
-			<?php endif; ?>
-		</div>
-		<div class="fx-seo__body">
+	<section class="fx-section fx-wrap fx-about">
+		<h2 class="fx-h-section"><?php echo esc_html( fx_mod( 'about_title' ) ); ?></h2>
+		<div class="fx-about__body fx-prose">
 			<?php echo fx_rich( $parts[0] ); // phpcs:ignore ?>
 			<?php if ( isset( $parts[1] ) && trim( $parts[1] ) ) : ?>
 				<details class="fx-more">
@@ -291,19 +384,6 @@ if ( $seo_h1 || $seo_text ) :
 			<?php endif; ?>
 		</div>
 	</section>
-<?php else : ?>
-	<h1 class="screen-reader-text"><?php echo esc_html( get_bloginfo( 'name' ) ); ?></h1>
-<?php endif; ?>
-
-<?php /* ---------- Sklep stacjonarny ---------- */ ?>
-<?php if ( fx_mod( 'store_on' ) ) : ?>
-<section id="salon" class="fx-store fx-wrap">
-	<div class="fx-store__title"><?php echo nl2br( esc_html( fx_mod( 'store_title' ) ) ); ?></div>
-	<p><?php echo wp_kses_post( fx_mod( 'store_text' ) ); ?></p>
-	<?php if ( fx_mod( 'store_btn_label' ) && fx_mod( 'store_btn_url' ) ) : ?>
-		<a class="fx-btn fx-btn--white" href="<?php echo esc_url( fx_mod( 'store_btn_url' ) ); ?>"><?php echo esc_html( fx_mod( 'store_btn_label' ) ); ?></a>
-	<?php endif; ?>
-</section>
 <?php endif; ?>
 
 <?php
