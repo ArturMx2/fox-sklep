@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 2.4.1
+- Komunikat o oszczędności pod ceną – logika i teksty 1:1 z dotychczasowego kodu fox.sklep.pl
+  („Kupujesz taniej o…”, przy wariantach „Oszczędzasz nawet…”). Warianty liczone szybszą metodą,
+  wygląd w kolorach motywu.
+
 ## 2.4.0
 - „Produkty z tej samej serii” – logika 1:1 z dotychczasowego kodu fox.sklep.pl (fox_produkty_z_serii_v13):
   4 słowa od „FOX” w nazwie (bez JUNIOR/LADY/KIDS), produkty z tą frazą w nazwie, najnowsze, max 4,
