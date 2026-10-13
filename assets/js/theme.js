@@ -339,7 +339,13 @@
 			var n = rows().length;
 			var word = s.chosen === 1 ? 'część' : 'części';
 			kit.querySelector('[data-fx-kit-summary]').textContent = 'Wybrano ' + s.chosen + ' ' + word + ' z ' + n + (s.missing ? ' · wybierz rozmiar: ' + s.missing : '');
-			kit.querySelector('[data-fx-kit-total]').textContent = s.total ? fmt(s.total) : '';
+			var pct = parseFloat(kit.getAttribute('data-pct')) || 0;
+			var full = rows().filter(function (r) { return !r.classList.contains('is-out'); }).length;
+			var deal = pct > 0 && s.chosen === parseInt(kit.getAttribute('data-parts'), 10) && s.chosen === full && !s.missing;
+			var totalEl = kit.querySelector('[data-fx-kit-total]');
+			if (!s.total) { totalEl.textContent = ''; }
+			else if (deal) { totalEl.innerHTML = '<del>' + fmt(s.total) + '</del> <span>' + fmt(s.total * (1 - pct / 100)) + '</span> <small>−' + String(pct).replace('.', ',') + '% za komplet</small>'; }
+			else { totalEl.textContent = fmt(s.total) + (pct > 0 && s.chosen < full ? '' : ''); }
 			var btn = kit.querySelector('[data-fx-kit-add]');
 			btn.textContent = s.chosen ? 'Dodaj komplet (' + s.chosen + ')' : 'Wybierz części';
 			btn.disabled = !s.chosen;

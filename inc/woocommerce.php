@@ -360,7 +360,7 @@ add_action( 'woocommerce_admin_process_product_object', function ( $product ) {
 /* Moduł „Zbuduj komplet” – pod kolumnami zdjęć i ceny, przed produktami powiązanymi. */
 add_action( 'woocommerce_after_single_product_summary', function () {
 	global $product;
-	if ( function_exists( 'fx_kit_section' ) ) {
+	if ( function_exists( 'fx_kit_section' ) && ! fx_kit_is_page( $product ) ) {
 		fx_kit_section( $product );
 	}
 }, 5 );

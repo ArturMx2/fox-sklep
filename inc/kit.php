@@ -33,6 +33,14 @@ add_action( 'woocommerce_product_options_related', function () {
 			<?php echo wc_help_tip( 'Produkty, które razem z tym tworzą komplet (np. spodnie i rękawice w tej samej grafice). Ten produkt jest dodawany automatycznie jako pierwszy. Moduł pokaże się też na kartach tych części.' ); // phpcs:ignore ?>
 		</p>
 		<?php
+		$auto = function_exists( 'fx_kit_resolve' ) ? fx_kit_resolve( $post->ID ) : array( 'parts' => array() );
+		if ( $auto['parts'] && 'manual' !== $auto['source'] ) {
+			$names = array();
+			foreach ( $auto['parts'] as $aid ) {
+				$names[] = get_the_title( $aid );
+			}
+			echo '<p class="form-field"><label>Komplet – wykryty automatycznie</label><span>' . esc_html( implode( ' + ', $names ) ) . ( 'wooco' === $auto['source'] ? ' (ze starej wtyczki kompletów)' : '' ) . '<br><em>Pole wyżej zostaw puste, jeśli to się zgadza.</em></span></p>';
+		}
 		woocommerce_wp_text_input(
 			array(
 				'id'          => '_fx_kit_title',
@@ -81,8 +89,228 @@ function fx_kit_get_ids( $product_id ) {
 	return array_values( array_filter( array_map( 'absint', explode( ',', trim( $raw, ',' ) ) ) ) );
 }
 
+/* =====================================================================
+ * AUTOMATYCZNE KOMPLETY PO NAZWIE
+ * „KOSZULKA MOTOCYKLOWA FOX 180 FRAME RED”, „SPODNIE … FOX 180 FRAME RED”, „RĘKAWICE FOX 180 FRAME RED”
+ * → wspólny klucz „180 frame red”. Strona „Strój na crossa FOX 180 Frame Red” ma ten sam klucz.
+ * Rok (2026), ukośniki i wielkość liter nie mają znaczenia. JUNIOR/KIDS/LADY tworzą osobne komplety.
+ * ===================================================================== */
+
+/** Części kompletu w kolejności wyświetlania: typ => początki słów w nazwie przed „FOX”. */
+function fx_kit_part_types() {
+	return apply_filters(
+		'fx_kit_part_types',
+		array(
+			'koszulka' => array( 'koszul', 'jersey' ),
+			'spodnie'  => array( 'spodn', 'pant' ),
+			'rekawice' => array( 'rękaw', 'rekaw', 'glove' ),
+		)
+	);
+}
+
+/** Słowa oznaczające stronę kompletu. */
+function fx_kit_page_words() {
+	return apply_filters( 'fx_kit_page_words', array( 'strój', 'stroj', 'komplet', 'zestaw' ) );
+}
+
 /**
- * Produkt-„gospodarz” kompletu: sam produkt albo pierwszy produkt, którego komplet zawiera ten produkt.
+ * [ typ, klucz ] z nazwy produktu; typ = slug części, 'kit' dla strony kompletu albo ''.
+ */
+function fx_kit_parse_name( $name ) {
+	$name = mb_strtolower( wp_strip_all_tags( (string) $name ), 'UTF-8' );
+	if ( ! preg_match( '/^(.*?)\bfox\b(.*)$/u', $name, $m ) ) {
+		return array( '', '' );
+	}
+	$prefix = preg_split( '/\s+/u', trim( $m[1] ), -1, PREG_SPLIT_NO_EMPTY );
+	$type   = '';
+	$mods   = array();
+	foreach ( $prefix as $w ) {
+		if ( preg_match( '/^(junior|kids|kid|youth|lady|ladies|women|damsk|dziec)/u', $w, $mm ) ) {
+			$mods[] = in_array( $mm[1], array( 'kid', 'kids', 'youth', 'dziec' ), true ) ? 'kids' : ( 'junior' === $mm[1] ? 'junior' : 'lady' );
+		}
+		if ( '' !== $type ) {
+			continue;
+		}
+		foreach ( fx_kit_page_words() as $kw ) {
+			if ( 0 === mb_strpos( $w, $kw ) ) {
+				$type = 'kit';
+				continue 2;
+			}
+		}
+		foreach ( fx_kit_part_types() as $slug => $stems ) {
+			foreach ( $stems as $st ) {
+				if ( 0 === mb_strpos( $w, $st ) ) {
+					$type = $slug;
+					continue 3;
+				}
+			}
+		}
+	}
+	$rest   = preg_replace( '/[^\p{L}\p{N}]+/u', ' ', $m[2] );
+	$tokens = array();
+	foreach ( preg_split( '/\s+/u', trim( $rest ), -1, PREG_SPLIT_NO_EMPTY ) as $t ) {
+		if ( preg_match( '/^20\d\d$/', $t ) ) {
+			continue;
+		}
+		if ( preg_match( '/^(junior|kids|youth|lady|women)$/u', $t, $mm ) ) {
+			$mods[] = in_array( $t, array( 'kids', 'youth' ), true ) ? 'kids' : ( 'junior' === $t ? 'junior' : 'lady' );
+			continue;
+		}
+		$tokens[] = $t;
+	}
+	if ( count( $tokens ) < 2 ) {
+		return array( $type, '' ); // samo „FOX V1” to za mało, żeby łączyć
+	}
+	$mods = array_unique( $mods );
+	sort( $mods );
+	return array( $type, trim( implode( ' ', $mods ) . ' ' . implode( ' ', $tokens ) ) );
+}
+
+/** Indeks: klucz => [ 'parts' => [ typ => [id…] ], 'kits' => [id…] ]. */
+function fx_kit_index() {
+	static $idx = null;
+	if ( null !== $idx ) {
+		return $idx;
+	}
+	$idx = get_transient( 'fx_kit_index' );
+	if ( is_array( $idx ) ) {
+		return $idx;
+	}
+	global $wpdb;
+	$rows = $wpdb->get_results( "SELECT ID, post_title FROM {$wpdb->posts} WHERE post_type = 'product' AND post_status = 'publish' ORDER BY ID DESC" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+	$idx  = array();
+	foreach ( (array) $rows as $r ) {
+		list( $type, $key ) = fx_kit_parse_name( $r->post_title );
+		if ( '' === $type || '' === $key ) {
+			continue;
+		}
+		if ( 'kit' === $type ) {
+			$idx[ $key ]['kits'][] = (int) $r->ID;
+		} else {
+			$idx[ $key ]['parts'][ $type ][] = (int) $r->ID;
+		}
+	}
+	set_transient( 'fx_kit_index', $idx, DAY_IN_SECONDS );
+	return $idx;
+}
+foreach ( array( 'woocommerce_update_product', 'woocommerce_new_product', 'trashed_post', 'deleted_post', 'untrashed_post' ) as $fx_hook ) {
+	add_action( $fx_hook, function () {
+		delete_transient( 'fx_kit_index' );
+	} );
+}
+
+/** Czy produkt jest stroną kompletu (dawny „Smart Composite” albo nazwa „Strój…/Komplet…”). */
+function fx_kit_is_page( $product ) {
+	$product = $product instanceof WC_Product ? $product : wc_get_product( $product );
+	if ( ! $product ) {
+		return false;
+	}
+	if ( has_term( 'composite', 'product_type', $product->get_id() ) ) {
+		return true;
+	}
+	list( $type ) = fx_kit_parse_name( $product->get_name() );
+	return 'kit' === $type;
+}
+
+/** Części zapisane przez wtyczkę WPC Composite (stare komplety) – domyślny produkt każdego składnika. */
+function fx_kit_wooco_parts( $product_id ) {
+	$comps = get_post_meta( $product_id, 'wooco_components', true );
+	if ( ! is_array( $comps ) ) {
+		return array();
+	}
+	$ids = array();
+	foreach ( $comps as $c ) {
+		if ( ! is_array( $c ) ) {
+			continue;
+		}
+		$id = ! empty( $c['default'] ) ? absint( $c['default'] ) : 0;
+		if ( ! $id && ! empty( $c['products'] ) && ( empty( $c['type'] ) || 'products' === $c['type'] ) ) {
+			$list = is_array( $c['products'] ) ? $c['products'] : explode( ',', (string) $c['products'] );
+			$id   = absint( reset( $list ) );
+		}
+		if ( $id ) {
+			$p = wc_get_product( $id );
+			if ( $p && $p->is_type( 'variation' ) ) {
+				$id = $p->get_parent_id();
+			}
+			$ids[] = $id;
+		}
+	}
+	return array_values( array_unique( array_filter( $ids ) ) );
+}
+
+/** Jedna część danego typu – najpierw dostępna na stanie, potem najnowsza. */
+function fx_kit_pick( $ids ) {
+	foreach ( $ids as $id ) {
+		$p = wc_get_product( $id );
+		if ( $p && $p->is_visible() && $p->is_in_stock() ) {
+			return $id;
+		}
+	}
+	return $ids ? $ids[0] : 0;
+}
+
+/**
+ * Komplet dla produktu: [ 'parts' => [id…], 'page' => id strony kompletu|0, 'title' => '', 'source' => manual|wooco|auto ].
+ * Kolejność: ręcznie wybrane części > części ze starej wtyczki > automatycznie po nazwie.
+ */
+function fx_kit_resolve( $product_id ) {
+	static $cache = array();
+	$product_id = (int) $product_id;
+	if ( isset( $cache[ $product_id ] ) ) {
+		return $cache[ $product_id ];
+	}
+	$p     = wc_get_product( $product_id );
+	$empty = array( 'parts' => array(), 'page' => 0, 'title' => '', 'source' => '' );
+	if ( ! $p ) {
+		return $cache[ $product_id ] = $empty;
+	}
+	$is_page = fx_kit_is_page( $p );
+	list( , $key ) = fx_kit_parse_name( $p->get_name() );
+	$idx   = fx_kit_index();
+	$out   = $empty;
+
+	// 1. Ręcznie: ten produkt ma listę części albo jest częścią czyjejś listy.
+	$host = fx_kit_get_ids( $product_id ) ? $product_id : fx_kit_host( $product_id );
+	if ( $host ) {
+		$parts = fx_kit_get_ids( $host );
+		if ( ! fx_kit_is_page( $host ) ) {
+			array_unshift( $parts, $host );
+		}
+		$out = array( 'parts' => $parts, 'page' => fx_kit_is_page( $host ) ? $host : 0, 'title' => (string) get_post_meta( $host, '_fx_kit_title', true ), 'source' => 'manual' );
+	} elseif ( $is_page && ( $w = fx_kit_wooco_parts( $product_id ) ) ) {
+		// 2. Stara wtyczka kompletów.
+		$out = array( 'parts' => $w, 'page' => $product_id, 'title' => '', 'source' => 'wooco' );
+	} elseif ( '' !== $key && isset( $idx[ $key ]['parts'] ) ) {
+		// 3. Automatycznie po nazwie.
+		$parts = array();
+		foreach ( array_keys( fx_kit_part_types() ) as $type ) {
+			if ( ! empty( $idx[ $key ]['parts'][ $type ] ) ) {
+				$ids = $idx[ $key ]['parts'][ $type ];
+				// Bieżący produkt zawsze jako część swojego typu.
+				$parts[] = in_array( $product_id, $ids, true ) ? $product_id : fx_kit_pick( $ids );
+			}
+		}
+		$page = $is_page ? $product_id : ( ! empty( $idx[ $key ]['kits'] ) ? (int) $idx[ $key ]['kits'][0] : 0 );
+		$out  = array( 'parts' => $parts, 'page' => $page, 'title' => '', 'source' => 'auto' );
+	}
+	$out['parts'] = array_values(
+		array_filter(
+			array_unique( array_map( 'intval', $out['parts'] ) ),
+			function ( $id ) {
+				$x = wc_get_product( $id );
+				return $x && 'publish' === $x->get_status() && ! fx_kit_is_page( $x );
+			}
+		)
+	);
+	if ( count( $out['parts'] ) < 2 ) {
+		$out = $empty;
+	}
+	return $cache[ $product_id ] = $out;
+}
+
+/**
+ * Produkt-„gospodarz” ręcznego kompletu: sam produkt albo pierwszy produkt, którego komplet zawiera ten produkt.
  */
 function fx_kit_host( $product_id ) {
 	if ( fx_kit_get_ids( $product_id ) ) {
@@ -105,6 +333,11 @@ function fx_kit_host( $product_id ) {
 		)
 	);
 	return $found ? (int) $found[0] : 0;
+}
+
+/** Rabat za komplet w procentach (0 = brak). */
+function fx_kit_discount() {
+	return max( 0, min( 50, (float) fx_tool( 'kit_discount' ) ) );
 }
 
 /**
@@ -156,72 +389,79 @@ function fx_kit_options( $p ) {
 
 /* ---------- Sekcja na karcie produktu ---------- */
 
-function fx_kit_section( $product ) {
+/**
+ * @param WC_Product $product Produkt strony.
+ * @param bool       $inline  Wersja w kolumnie zakupowej (strona kompletu) – bez dużego zdjęcia.
+ */
+function fx_kit_section( $product, $inline = false ) {
 	if ( ! $product ) {
 		return;
 	}
-	$host_id = fx_kit_host( $product->get_id() );
-	if ( ! $host_id ) {
+	$kit = fx_kit_resolve( $product->get_id() );
+	if ( ! $kit['parts'] ) {
 		return;
 	}
-	$ids   = array_merge( array( $host_id ), fx_kit_get_ids( $host_id ) );
 	$items = array();
-	foreach ( array_unique( $ids ) as $id ) {
+	foreach ( $kit['parts'] as $id ) {
 		$p = wc_get_product( $id );
-		if ( ! $p || 'publish' !== $p->get_status() ) {
+		if ( ! $p ) {
 			continue;
 		}
-		$opts = fx_kit_options( $p );
-		if ( ! $opts ) {
-			continue;
-		}
-		$items[] = array( $p, $opts );
+		$items[] = array( $p, fx_kit_options( $p ) );
 	}
 	if ( count( $items ) < 2 ) {
 		return;
 	}
-
-	$title = get_post_meta( $host_id, '_fx_kit_title', true );
-	$title = $title ? $title : 'Cała grafika jednym kliknięciem';
-	$img   = get_post_meta( $host_id, '_fx_kit_img', true );
-	$host  = wc_get_product( $host_id );
+	$page  = $kit['page'] ? wc_get_product( $kit['page'] ) : null;
+	$title = $kit['title'] ? $kit['title'] : ( $page && $page->get_id() !== $product->get_id() ? $page->get_name() : 'Cała grafika jednym kliknięciem' );
+	$pct   = fx_kit_discount();
+	$photo_id = $page && $page->get_image_id() ? $page->get_image_id() : $items[0][0]->get_image_id();
+	$custom   = get_post_meta( $kit['page'] ? $kit['page'] : $items[0][0]->get_id(), '_fx_kit_img', true );
 	?>
-	<section class="fx-kit" id="fx-kit" data-fx-kit>
+	<section class="fx-kit<?php echo $inline ? ' fx-kit--inline' : ''; ?>" id="fx-kit" data-fx-kit data-parts="<?php echo count( $items ); ?>" data-pct="<?php echo esc_attr( $pct ); ?>">
+		<?php if ( ! $inline ) : ?>
 		<div class="fx-kit__head">
 			<div>
-				<div class="fx-kicker">Zbuduj komplet</div>
+				<div class="fx-kicker">Zbuduj komplet<?php echo $pct ? ' · −' . esc_html( wc_format_localized_decimal( $pct ) ) . '%' : ''; ?></div>
 				<h2><?php echo esc_html( $title ); ?></h2>
 			</div>
-			<p>Odznacz części, których nie potrzebujesz, i wybierz rozmiar każdej z osobna.</p>
+			<p><?php echo $pct ? 'Kup wszystkie części razem i zapłać ' . esc_html( wc_format_localized_decimal( $pct ) ) . '% mniej. ' : ''; ?>Odznacz części, których nie potrzebujesz, i wybierz rozmiar każdej z osobna.<?php if ( $page && $page->get_id() !== $product->get_id() ) : ?> <a href="<?php echo esc_url( $page->get_permalink() ); ?>">Zobacz cały komplet</a><?php endif; ?></p>
 		</div>
+		<?php elseif ( $pct ) : ?>
+		<p class="fx-kit__deal">Kupując wszystkie <?php echo count( $items ); ?> części razem, płacisz <strong><?php echo esc_html( wc_format_localized_decimal( $pct ) ); ?>% mniej</strong>.</p>
+		<?php endif; ?>
 		<div class="fx-kit__grid">
+			<?php if ( ! $inline ) : ?>
 			<div class="fx-kit__photo">
 				<?php
-				if ( $img ) {
-					echo '<img class="fx-cover" src="' . esc_url( $img ) . '" alt="' . esc_attr( $title ) . '" loading="lazy">';
-				} elseif ( $host && $host->get_image_id() ) {
-					echo wp_get_attachment_image( $host->get_image_id(), 'large', false, array( 'class' => 'fx-cover', 'style' => 'object-fit:contain', 'loading' => 'lazy' ) );
+				if ( $custom ) {
+					echo '<img class="fx-cover" src="' . esc_url( $custom ) . '" alt="' . esc_attr( $title ) . '" loading="lazy">';
+				} elseif ( $photo_id ) {
+					echo wp_get_attachment_image( $photo_id, 'large', false, array( 'class' => 'fx-cover', 'style' => 'object-fit:contain', 'loading' => 'lazy' ) );
 				}
 				?>
 			</div>
+			<?php endif; ?>
 			<div class="fx-kit__list">
-				<?php foreach ( $items as $i => $row ) : ?>
+				<?php foreach ( $items as $row ) : ?>
 					<?php
 					list( $p, $opts ) = $row;
 					$is_current       = ( $p->get_id() === $product->get_id() );
 					$fid              = 'fx-kit-' . $p->get_id();
 					$cats             = wc_get_product_terms( $p->get_id(), 'product_cat', array( 'fields' => 'names' ) );
+					$avail            = (bool) $opts;
 					?>
-					<div class="fx-kit__item" data-product-id="<?php echo (int) $p->get_id(); ?>" data-name="<?php echo esc_attr( $p->get_name() ); ?>" data-category="<?php echo esc_attr( $cats ? $cats[0] : '' ); ?>">
+					<div class="fx-kit__item<?php echo $avail ? '' : ' is-out'; ?>" data-product-id="<?php echo (int) $p->get_id(); ?>" data-name="<?php echo esc_attr( $p->get_name() ); ?>" data-category="<?php echo esc_attr( $cats ? $cats[0] : '' ); ?>">
 						<label class="fx-kit__pick" for="<?php echo esc_attr( $fid ); ?>-on">
-							<input type="checkbox" id="<?php echo esc_attr( $fid ); ?>-on" checked>
+							<input type="checkbox" id="<?php echo esc_attr( $fid ); ?>-on" <?php checked( $avail ); ?> <?php disabled( ! $avail ); ?>>
 							<span class="fx-kit__thumb"><?php echo $p->get_image( 'woocommerce_gallery_thumbnail' ); // phpcs:ignore ?></span>
 							<span>
 								<span class="fx-kit__name"><?php echo esc_html( $p->get_name() ); ?><?php echo $is_current ? ' <small style="color:var(--fx-muted)">(ten produkt)</small>' : ''; ?></span>
-								<span class="fx-kit__price"><?php echo wp_kses_post( $p->get_price_html() ); ?></span>
+								<span class="fx-kit__price"><?php echo $avail ? wp_kses_post( $p->get_price_html() ) : 'Chwilowo niedostępne'; ?></span>
+								<?php if ( ! $is_current ) : ?><a class="fx-kit__link" href="<?php echo esc_url( $p->get_permalink() ); ?>">Szczegóły</a><?php endif; ?>
 							</span>
 						</label>
-						<?php if ( $p->is_type( 'variable' ) ) : ?>
+						<?php if ( $avail && $p->is_type( 'variable' ) ) : ?>
 							<div class="fx-kit__size">
 								<label for="<?php echo esc_attr( $fid ); ?>-size">Rozmiar</label>
 								<select id="<?php echo esc_attr( $fid ); ?>-size" data-fx-kit-size>
@@ -231,7 +471,7 @@ function fx_kit_section( $product ) {
 									<?php endforeach; ?>
 								</select>
 							</div>
-						<?php else : ?>
+						<?php elseif ( $avail ) : ?>
 							<input type="hidden" data-fx-kit-size value="0" data-price="<?php echo esc_attr( $opts[0]['price'] ); ?>" data-sku="<?php echo esc_attr( $opts[0]['sku'] ); ?>">
 						<?php endif; ?>
 					</div>
@@ -251,6 +491,142 @@ function fx_kit_section( $product ) {
 	<?php
 }
 
+/* ---------- Strona kompletu („Strój na crossa …”) ---------- */
+
+/* Zamiast zwykłego „Dodaj do koszyka”: wybór części i rozmiarów w kolumnie zakupowej. */
+add_action( 'woocommerce_single_product_summary', function () {
+	global $product;
+	if ( ! $product instanceof WC_Product || ! fx_kit_is_page( $product ) ) {
+		return;
+	}
+	remove_action( 'woocommerce_single_product_summary', 'woocommerce_template_single_add_to_cart', 30 );
+	if ( fx_kit_resolve( $product->get_id() )['parts'] ) {
+		fx_kit_section( $product, true );
+	}
+}, 29 );
+
+/* Strony kompletu nie trafiają do koszyka jako osobny produkt – kupuje się części. */
+add_filter( 'woocommerce_is_purchasable', function ( $ok, $product ) {
+	return ( $product instanceof WC_Product && ! $product->is_type( 'variation' ) && fx_kit_is_page( $product ) ) ? false : $ok;
+}, 20, 2 );
+
+/** Cena kompletu: suma najniższych cen części (z rabatem za komplet). [ pełna, po rabacie ] */
+function fx_kit_page_prices( $product_id ) {
+	$kit = fx_kit_resolve( $product_id );
+	if ( ! $kit['parts'] ) {
+		return array( 0, 0 );
+	}
+	$sum = 0;
+	foreach ( $kit['parts'] as $id ) {
+		$p = wc_get_product( $id );
+		if ( ! $p ) {
+			continue;
+		}
+		$sum += (float) ( $p->is_type( 'variable' ) ? $p->get_variation_price( 'min', true ) : wc_get_price_to_display( $p ) );
+	}
+	return array( $sum, $sum * ( 1 - fx_kit_discount() / 100 ) );
+}
+
+add_filter( 'woocommerce_get_price_html', function ( $html, $product ) {
+	if ( ! $product instanceof WC_Product || $product->is_type( 'variation' ) || ! fx_kit_is_page( $product ) ) {
+		return $html;
+	}
+	list( $full, $deal ) = fx_kit_page_prices( $product->get_id() );
+	if ( $full <= 0 ) {
+		return $html;
+	}
+	$out = '<span class="fx-kit-from">Komplet od</span> ';
+	if ( $deal < $full ) {
+		$out .= '<del aria-hidden="true">' . wc_price( $full ) . '</del> <ins>' . wc_price( $deal ) . '</ins>';
+	} else {
+		$out .= wc_price( $full );
+	}
+	return $out;
+}, 30, 2 );
+
+/* =====================================================================
+ * RABAT ZA KOMPLET W KOSZYKU
+ * Gdy w koszyku są wszystkie części kompletu, ich ceny spadają o ustawiony procent
+ * (tyle sztuk, ile pełnych kompletów). Ceny pozycji są obniżone – faktura i BaseLinker widzą prawdziwe kwoty.
+ * ===================================================================== */
+add_action( 'woocommerce_before_calculate_totals', 'fx_kit_cart_discount', 20 );
+function fx_kit_cart_discount( $cart ) {
+	if ( ( is_admin() && ! wp_doing_ajax() ) || ! $cart ) {
+		return;
+	}
+	$GLOBALS['fx_kit_saved'] = 0;
+	$pct = fx_kit_discount();
+	if ( $pct <= 0 ) {
+		return;
+	}
+	$qty = array();
+	foreach ( $cart->get_cart() as $k => $item ) {
+		$pid         = (int) $item['product_id'];
+		$qty[ $pid ] = ( isset( $qty[ $pid ] ) ? $qty[ $pid ] : 0 ) + (int) $item['quantity'];
+	}
+	// Pełne komplety w koszyku: ile sztuk każdej części objąć rabatem.
+	$units = array();
+	$seen  = array();
+	foreach ( array_keys( $qty ) as $pid ) {
+		$parts = fx_kit_resolve( $pid )['parts'];
+		if ( count( $parts ) < 2 ) {
+			continue;
+		}
+		$sig = implode( ',', $parts );
+		if ( isset( $seen[ $sig ] ) ) {
+			continue;
+		}
+		$seen[ $sig ] = true;
+		$n            = PHP_INT_MAX;
+		foreach ( $parts as $part ) {
+			$left = ( isset( $qty[ $part ] ) ? $qty[ $part ] : 0 ) - ( isset( $units[ $part ] ) ? $units[ $part ] : 0 );
+			$n    = min( $n, $left );
+		}
+		if ( $n > 0 && PHP_INT_MAX !== $n ) {
+			foreach ( $parts as $part ) {
+				$units[ $part ] = ( isset( $units[ $part ] ) ? $units[ $part ] : 0 ) + $n;
+			}
+		}
+	}
+	foreach ( $cart->get_cart() as $k => $item ) {
+		$pid  = (int) $item['product_id'];
+		$line = wc_get_product( $item['variation_id'] ? $item['variation_id'] : $pid );
+		if ( ! $line ) {
+			continue;
+		}
+		$orig = (float) $line->get_price();
+		$cart->cart_contents[ $k ]['fx_kit_orig'] = $orig;
+		$cart->cart_contents[ $k ]['fx_kit_units'] = 0;
+		if ( empty( $units[ $pid ] ) || $orig <= 0 ) {
+			$item['data']->set_price( $orig );
+			continue;
+		}
+		$du = min( $units[ $pid ], (int) $item['quantity'] );
+		$units[ $pid ] -= $du;
+		$new = $orig * ( 1 - ( $pct / 100 ) * $du / max( 1, (int) $item['quantity'] ) );
+		$item['data']->set_price( round( $new, wc_get_price_decimals() ) );
+		$cart->cart_contents[ $k ]['fx_kit_units'] = $du;
+		$GLOBALS['fx_kit_saved'] += ( $orig - $new ) * (int) $item['quantity'];
+	}
+}
+
+add_filter( 'woocommerce_cart_item_price', function ( $price, $item ) {
+	if ( empty( $item['fx_kit_units'] ) || empty( $item['fx_kit_orig'] ) ) {
+		return $price;
+	}
+	return '<del>' . wc_price( $item['fx_kit_orig'] ) . '</del> ' . $price . '<br><small class="fx-kit-badge">w komplecie −' . esc_html( wc_format_localized_decimal( fx_kit_discount() ) ) . '%</small>';
+}, 20, 2 );
+
+add_action( 'woocommerce_cart_totals_before_order_total', 'fx_kit_saved_row' );
+add_action( 'woocommerce_review_order_before_order_total', 'fx_kit_saved_row' );
+function fx_kit_saved_row() {
+	$saved = isset( $GLOBALS['fx_kit_saved'] ) ? (float) $GLOBALS['fx_kit_saved'] : 0;
+	if ( $saved <= 0 ) {
+		return;
+	}
+	echo '<tr class="fx-kit-saved"><th>Rabat za komplet</th><td data-title="Rabat za komplet">−' . wc_price( $saved ) . ' <small>(już w cenach)</small></td></tr>'; // phpcs:ignore
+}
+
 /* ---------- Dane dla skryptu ---------- */
 
 add_action( 'wp_enqueue_scripts', function () {
@@ -267,6 +643,7 @@ add_action( 'wp_enqueue_scripts', function () {
 			'currency'  => get_woocommerce_currency(),
 			'symbol'    => html_entity_decode( get_woocommerce_currency_symbol(), ENT_QUOTES, 'UTF-8' ),
 			'pos'       => get_option( 'woocommerce_currency_pos', 'right_space' ),
+		'pct'       => fx_kit_discount(),
 			'dec'       => wc_get_price_decimals(),
 			'ds'        => wc_get_price_decimal_separator(),
 			'ts'        => wc_get_price_thousand_separator(),

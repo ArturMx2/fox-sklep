@@ -1,5 +1,12 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.0.0 – komplety bez wtyczki
+- Komplety wykrywane automatycznie po nazwie: koszulka, spodnie i rękawice z tą samą grafiką i kolorem (np. „… FOX 180 FRAME RED”) tworzą komplet. Rok, ukośniki i wielkość liter nie mają znaczenia; JUNIOR/KIDS/LADY osobno.
+- Strony kompletów („Strój na crossa FOX …”) zostają pod tymi samymi adresami: zamiast „Dodaj do koszyka” wybór części i rozmiarów, cena „Komplet od …”. Do koszyka trafiają osobne produkty (stany i BaseLinker bez zmian).
+- Stare komplety ze Smart Composite: części odczytywane z zapisanych danych wtyczki (po jej wyłączeniu też).
+- Rabat za komplet (domyślnie 5%, Narzędzia sklepu): gdy w koszyku są wszystkie części, ich ceny spadają; w koszyku przekreślona cena, „w komplecie −5%” i wiersz „Rabat za komplet”.
+- Na kartach części sekcja „Zbuduj komplet” z linkiem „Zobacz cały komplet”. Ręczny wybór części w produkcie nadal działa i ma pierwszeństwo; w panelu widać, co wykryto automatycznie.
+
 ## 2.9.0 – kolory modelu w listingu
 - Rodziny kolorów: produkty jednego modelu w różnych kolorach łączone automatycznie po SKU FOX (31324-170, 31324-002… → model 31324). Każdy kolor zostaje osobnym produktem z własnym adresem.
 - Listing: pod kartą miniatury kolorów. Najechanie (telefon: dotknięcie) podmienia zdjęcie, nazwę, cenę, etykiety, rozmiary i serduszko; kliknięcie prowadzi do produktu w tym kolorze. Kolor niedostępny – przekreślony.

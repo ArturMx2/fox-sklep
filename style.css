@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 2.9.0
+Version: 3.0.0
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -399,7 +399,8 @@ button,input,select,textarea{font:inherit;color:inherit}
   .woocommerce div.product div.summary{width:37%;position:sticky;top:var(--fx-sticky-top,150px);align-self:flex-start}
   .fx-gallery .woocommerce-product-gallery__wrapper{display:grid!important;grid-template-columns:1fr 1fr;gap:8px;transform:none!important;width:auto!important}
   .fx-gallery .woocommerce-product-gallery__image{width:auto!important;float:none!important;margin:0!important;padding:0!important}
-  .fx-gallery .woocommerce-product-gallery__image:first-child{grid-column:1/-1}
+  .fx-gallery .woocommerce-product-gallery__image:first-child,.fx-gallery .woocommerce-product-gallery__image--placeholder{grid-column:1/-1}
+  .fx-gallery .woocommerce-product-gallery__image--placeholder img{width:100%;height:auto}
   .fx-gallery .woocommerce-product-gallery__image:nth-child(n+2):last-child:nth-child(even){grid-column:1/-1}
 }
 .fx-gallery .woocommerce-product-gallery__image a{display:block;cursor:zoom-in}
@@ -490,6 +491,20 @@ button,input,select,textarea{font:inherit;color:inherit}
 .fx-kit__foot{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px;margin-top:8px;padding-top:18px;border-top:1px solid var(--fx-line-2)}
 .fx-kit__total{font-size:24px;font-weight:700}
 .fx-kit__summary{font-size:14px;color:var(--fx-ink-2)}
+.fx-kit__total del{font-size:16px;font-weight:400;color:var(--fx-muted);margin-right:4px}
+.fx-kit__total small{display:block;font-size:13px;font-weight:600;color:var(--fx-sale)}
+.fx-kit__item.is-out{opacity:.5}
+.fx-kit__link{display:inline-block;font-size:13px;color:var(--fx-muted);text-decoration:underline;text-underline-offset:3px;margin-top:2px}
+.fx-kit__deal{background:#fdf3ef;border-left:4px solid var(--fx-sale);padding:12px 14px;font-size:15px;margin:0 0 14px}
+.fx-kit--inline{background:none;padding:0;margin:0 0 20px}
+.fx-kit--inline .fx-kit__grid{display:block}
+.fx-kit--inline .fx-kit__item{background:var(--fx-soft);padding:12px 14px;gap:12px}
+.fx-kit--inline .fx-kit__thumb{width:64px;height:64px}
+.fx-kit--inline .fx-kit__name{font-size:15px}
+.fx-kit--inline .fx-kit__size select{min-width:110px}
+.fx-kit--inline .fx-kit__foot .fx-btn{min-height:56px}
+.fx-kit-from{font-size:.7em;font-weight:500;color:var(--fx-muted);margin-right:2px}
+.fx-kit-badge{color:var(--fx-sale);font-weight:600}
 .fx-kit__msg{font-size:14px;font-weight:500;min-height:20px}
 .fx-kit__msg.is-error{color:var(--fx-sale)}
 
