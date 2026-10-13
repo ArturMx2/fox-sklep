@@ -1,5 +1,12 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.3.1 – filtry rozmiaru, wstęp kategorii bez zwijania
+- Filtry przepisane na własny mechanizm (bez tabeli „lookup” WooCommerce, której import z BaseLinkera nie uzupełnia – stąd pusta lista po wyborze rozmiaru). Rozmiar pasuje, gdy produkt ma wariant w tym rozmiarze NA STANIE; działa też, gdy wariant ma zapisaną nazwę zamiast slugu (np. „M”).
+- Kilka atrybutów rozmiaru naraz (np. „wariant” dla odzieży i osobny dla butów) – wykrywane po nazwie: rozmiar / size / blvariant / wielkość.
+- Rozmiary w filtrze tylko dostępne w kategorii, w kolejności: dziecięce, S–4XL, potem liczbowe rosnąco.
+- Nowe adresy: ?rozmiar=m,l&kolor=czarny&promocja=1 (noindex, także w Yoast).
+- Wstęp kategorii nad produktami pokazywany w całości (bez „Pokaż więcej”).
+
 ## 3.3.0 – strona główna pod SEO (dane z Search Console)
 - H1 na górze strony („Sklep FOX Racing – sprzęt na crossa, enduro i MTB”) + wstęp z frazami „sklep crossowy, enduro i rowerowy”, „odzież MTB”, atuty (wysyłka 48 h, darmowa dostawa, zwroty, sklep pod Wrocławiem).
 - Kafle kategorii z nazwami-frazami: „Sklep crossowy i enduro” (kaski Fox na crossa i enduro, stroje na crossa Fox, buty crossowe, zbroje…), „Odzież rowerowa i kaski MTB”, „Odzież FOX na co dzień”. Zdjęcie z kategorii albo z jej najnowszego produktu, liczba produktów, kategorie nieistniejące pomijane.

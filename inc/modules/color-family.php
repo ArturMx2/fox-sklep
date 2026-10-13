@@ -258,10 +258,8 @@ function fx_cf_collapse_query( $q ) {
 	if ( ! fx_cf_collapse_on() || is_search() || ! ( is_product_category() || is_product_tag() || is_shop() ) ) {
 		return;
 	}
-	foreach ( array_keys( $_GET ) as $k ) { // phpcs:ignore WordPress.Security.NonceVerification
-		if ( 0 === strpos( $k, 'filter_' ) || in_array( $k, array( 'min_price', 'max_price', 'rating_filter' ), true ) ) {
-			return; // przy filtrach pokazujemy każdy pasujący kolor
-		}
+	if ( function_exists( 'fx_filters_active' ) && fx_filters_active() ) {
+		return; // przy filtrach pokazujemy każdy pasujący kolor
 	}
 	$hide = fx_cf_hidden_ids( get_queried_object() );
 	if ( $hide ) {

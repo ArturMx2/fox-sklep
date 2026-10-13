@@ -73,9 +73,8 @@ function fx_archive_intro() {
 	if ( '' === trim( wp_strip_all_tags( $top ) ) ) {
 		return;
 	}
-	echo '<div class="term-description fx-cat-intro" data-fx-clamp><div class="fx-cat-intro__text fx-prose">' . fx_rich( $top ) . '</div>'; // phpcs:ignore
+	echo '<div class="term-description fx-cat-intro"><div class="fx-cat-intro__text fx-prose">' . fx_rich( $top ) . '</div>'; // phpcs:ignore
 	echo '<div class="fx-cat-intro__more">';
-	echo '<button type="button" class="fx-cat-intro__toggle" aria-expanded="false" hidden>Pokaż więcej</button>';
 	if ( '' !== trim( wp_strip_all_tags( $bot ) ) ) {
 		echo '<a href="#fx-opis">Czytaj pełny opis</a>';
 	}

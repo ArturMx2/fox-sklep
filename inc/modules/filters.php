@@ -1,88 +1,155 @@
 <?php
 /**
- * Filtry kategorii: rozmiar i kolor.
+ * Filtry kategorii: rozmiar, kolor, promocje.
  *
- * Korzysta z wbudowanego filtrowania WooCommerce po atrybutach (?filter_rozmiar=m,l),
- * więc nie potrzebuje wtyczki ani dodatkowych zapytań przy wyświetlaniu produktów.
- * Pokazujemy tylko wartości, które występują w danej kategorii (lista w pamięci podręcznej na 12 h).
- * Strony z aktywnymi filtrami dostają noindex, żeby nie mnożyć adresów w Google.
- *
- * Atrybuty: Wygląd → Dostosuj → FOX.SKLEP.PL → Narzędzia sklepu (domyślnie wykrywane po nazwie).
+ * Własny mechanizm motywu (nie wbudowany filtr WooCommerce), bo filtr Woo przy wariantach
+ * zależy od tabeli „lookup” atrybutów, której importy (BaseLinker) często nie uzupełniają –
+ * wtedy wybór rozmiaru dawał pustą listę. Tutaj:
+ * - rozmiar: produkt pasuje, gdy ma DOSTĘPNY NA STANIE wariant w tym rozmiarze
+ *   (wartość wariantu porównywana ze slugiem i nazwą rozmiaru – odporne na różne zapisy),
+ *   a produkty proste – gdy mają ten rozmiar przypisany,
+ * - kolor: atrybut przypisany do produktu (albo wariant w tym kolorze),
+ * - kilka wartości w jednej grupie = LUB (np. M lub L), różne grupy = I (rozmiar M i kolor czarny),
+ * - rozmiar może pochodzić z kilku atrybutów (np. osobny atrybut dla butów) – wszystkie atrybuty
+ *   z „rozmiar / size / blvariant” w nazwie są brane pod uwagę.
+ * Adresy: ?rozmiar=m,l&kolor=czarny&promocja=1 – strony z filtrami mają noindex.
  *
  * @package foxsklep
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/** Parametry w adresie. */
+function fx_filter_params() {
+	return array( 'size' => 'rozmiar', 'color' => 'kolor' );
+}
+
+/** Czy jest włączony jakikolwiek filtr (rozmiar, kolor, promocje, także stare filter_…). */
+function fx_filters_active() {
+	foreach ( array_keys( $_GET ) as $k ) { // phpcs:ignore WordPress.Security.NonceVerification
+		if ( in_array( $k, array( 'rozmiar', 'kolor', 'promocja', 'min_price', 'max_price', 'rating_filter' ), true ) || 0 === strpos( $k, 'filter_' ) ) {
+			return true;
+		}
+	}
+	return false;
+}
+
 /**
- * Taksonomie atrybutów do filtrowania: [ 'size' => 'pa_rozmiar', 'color' => 'pa_kolor' ].
+ * Taksonomie atrybutów: [ 'size' => [ 'pa_blvariant', 'pa_rozmiar-butow' ], 'color' => [ 'pa_kolor' ] ].
  */
 function fx_filter_taxonomies() {
 	static $out = null;
 	if ( null !== $out ) {
 		return $out;
 	}
-	$out = array();
+	$out = array( 'size' => array(), 'color' => array() );
 	$all = function_exists( 'wc_get_attribute_taxonomies' ) ? wc_get_attribute_taxonomies() : array();
 	foreach ( array( 'size' => 'filter_size_attr', 'color' => 'filter_color_attr' ) as $role => $setting ) {
 		$chosen = trim( (string) fx_tool( $setting ) );
 		if ( $chosen && taxonomy_exists( wc_attribute_taxonomy_name( $chosen ) ) ) {
-			$out[ $role ] = wc_attribute_taxonomy_name( $chosen );
-			continue;
+			$out[ $role ][] = wc_attribute_taxonomy_name( $chosen );
 		}
-		$pattern = 'size' === $role ? '/(rozmiar|size|blvariant)/i' : '/(kolor|color|colour)/i';
+		$pattern = 'size' === $role ? '/(rozmiar|size|blvariant|wielko)/i' : '/(kolor|color|colour)/i';
 		foreach ( $all as $a ) {
-			if ( preg_match( $pattern, $a->attribute_name . ' ' . $a->attribute_label ) ) {
-				$out[ $role ] = wc_attribute_taxonomy_name( $a->attribute_name );
-				break;
+			$tax = wc_attribute_taxonomy_name( $a->attribute_name );
+			if ( preg_match( $pattern, $a->attribute_name . ' ' . $a->attribute_label ) && taxonomy_exists( $tax ) && ! in_array( $tax, $out[ $role ], true ) ) {
+				$out[ $role ][] = $tax;
 			}
 		}
 	}
 	return $out;
 }
 
-/**
- * Wartości atrybutu występujące w kategorii (z podkategoriami), w kolejności z atrybutu.
- */
-function fx_filter_terms_in_cat( $tax, $term ) {
-	$key   = 'fx_flt_' . md5( $tax . '|' . $term->term_id );
-	$cache = get_transient( $key );
-	if ( false !== $cache ) {
-		return $cache;
+/** ID produktów w kategorii (z podkategoriami), opublikowanych. */
+function fx_filter_cat_products( $term ) {
+	static $cache = array();
+	if ( isset( $cache[ $term->term_id ] ) ) {
+		return $cache[ $term->term_id ];
 	}
-	$ids = wc_get_products(
-		array(
-			'status'     => 'publish',
-			'visibility' => 'catalog',
-			'limit'      => 2000,
-			'category'   => array( $term->slug ),
-			'return'     => 'ids',
+	return $cache[ $term->term_id ] = array_map(
+		'intval',
+		get_posts(
+			array(
+				'post_type'      => 'product',
+				'post_status'    => 'publish',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+				'tax_query'      => array( array( 'taxonomy' => 'product_cat', 'terms' => $term->term_id, 'include_children' => true ) ), // phpcs:ignore
+			)
 		)
 	);
-	$found = $ids ? wp_get_object_terms( $ids, $tax, array( 'fields' => 'ids' ) ) : array();
-	$terms = array();
-	if ( $found && ! is_wp_error( $found ) ) {
-		$terms = get_terms(
-			array(
-				'taxonomy'   => $tax,
-				'include'    => array_unique( array_map( 'intval', $found ) ),
-				'hide_empty' => false,
-				'orderby'    => 'menu_order',
-			)
-		);
-		$terms = is_wp_error( $terms ) ? array() : array_map(
-			function ( $t ) {
-				return array( 'slug' => $t->slug, 'name' => $t->name, 'id' => $t->term_id );
-			},
-			$terms
-		);
-	}
-	set_transient( $key, $terms, 12 * HOUR_IN_SECONDS );
-	return $terms;
 }
 
-/* Zmiana produktów lub atrybutów czyści listy filtrów. */
-foreach ( array( 'woocommerce_update_product', 'woocommerce_new_product', 'edited_term', 'created_term' ) as $fx_hook ) {
+/** Produkty-rodzice, których warianty używają danego atrybutu (cache na żądanie). */
+function fx_filter_var_parents( $tax ) {
+	static $cache = array();
+	if ( isset( $cache[ $tax ] ) ) {
+		return $cache[ $tax ];
+	}
+	global $wpdb;
+	$ids = $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT v.post_parent FROM {$wpdb->posts} v JOIN {$wpdb->postmeta} a ON a.post_id = v.ID AND a.meta_key = %s WHERE v.post_type = 'product_variation' AND v.post_status = 'publish' AND a.meta_value <> ''", 'attribute_' . $tax ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+	return $cache[ $tax ] = array_flip( array_map( 'intval', $ids ) );
+}
+
+/**
+ * Wartości filtra w kategorii: [ slug => [ 'slug', 'name', 'id' ] ] w kolejności z atrybutu.
+ * Rozmiary: tylko dostępne na stanie warianty. Cache 12 h (czyszczony przy zmianie produktu).
+ */
+function fx_filter_options( $role, $term ) {
+	$key   = 'fx_flt_' . md5( $role . '|' . $term->term_id . '|' . implode( ',', fx_filter_taxonomies()[ $role ] ) );
+	$cache = get_transient( $key );
+	if ( is_array( $cache ) ) {
+		return $cache;
+	}
+	global $wpdb;
+	$prod = fx_filter_cat_products( $term );
+	$out  = array();
+	if ( $prod ) {
+		$in = implode( ',', array_map( 'intval', $prod ) );
+		foreach ( fx_filter_taxonomies()[ $role ] as $tax ) {
+			$found = array();
+			// Wartości z wariantów na stanie.
+			$vals = $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT a.meta_value FROM {$wpdb->posts} v JOIN {$wpdb->postmeta} a ON a.post_id = v.ID AND a.meta_key = %s JOIN {$wpdb->postmeta} st ON st.post_id = v.ID AND st.meta_key = '_stock_status' AND st.meta_value IN ('instock','onbackorder') WHERE v.post_type = 'product_variation' AND v.post_status = 'publish' AND v.post_parent IN ($in) AND a.meta_value <> ''", 'attribute_' . $tax ) ); // phpcs:ignore
+			foreach ( $vals as $v ) {
+				$found[ sanitize_title( $v ) ] = true;
+			}
+			// Produkty bez wariantów tego atrybutu – przypisane wartości.
+			$vp     = fx_filter_var_parents( $tax );
+			$simple = array_values( array_filter( $prod, function ( $id ) use ( $vp ) { return ! isset( $vp[ $id ] ); } ) );
+			if ( $simple ) {
+				foreach ( (array) wp_get_object_terms( $simple, $tax, array( 'fields' => 'slugs' ) ) as $s ) {
+					if ( is_string( $s ) ) {
+						$found[ $s ] = true;
+					}
+				}
+			}
+			if ( ! $found ) {
+				continue;
+			}
+			$terms = get_terms( array( 'taxonomy' => $tax, 'hide_empty' => false, 'orderby' => 'menu_order' ) );
+			foreach ( is_wp_error( $terms ) ? array() : $terms as $t ) {
+				if ( ( isset( $found[ $t->slug ] ) || isset( $found[ sanitize_title( $t->name ) ] ) ) && ! isset( $out[ $t->slug ] ) ) {
+					$out[ $t->slug ] = array( 'slug' => $t->slug, 'name' => $t->name, 'id' => $t->term_id );
+				}
+			}
+		}
+	}
+	$out = array_values( $out );
+	if ( 'size' === $role ) {
+		usort(
+			$out,
+			function ( $a, $b ) {
+				return fx_size_rank( $a['name'] ) <=> fx_size_rank( $b['name'] );
+			}
+		);
+	}
+	set_transient( $key, $out, 12 * HOUR_IN_SECONDS );
+	return $out;
+}
+
+/* Zmiana produktów, stanów lub atrybutów czyści listy filtrów. */
+foreach ( array( 'woocommerce_update_product', 'woocommerce_new_product', 'woocommerce_product_set_stock_status', 'woocommerce_variation_set_stock_status', 'edited_term', 'created_term' ) as $fx_hook ) {
 	add_action( $fx_hook, 'fx_filters_flush' );
 }
 function fx_filters_flush() {
@@ -90,50 +157,104 @@ function fx_filters_flush() {
 	$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_transient\\_fx\\_flt\\_%' OR option_name LIKE '\\_transient\\_timeout\\_fx\\_flt\\_%'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 }
 
-function fx_filter_param( $tax ) {
-	return 'filter_' . wc_attribute_taxonomy_slug( $tax );
+function fx_filter_selected( $role ) {
+	$p = fx_filter_params()[ $role ];
+	return isset( $_GET[ $p ] ) ? array_values( array_filter( array_map( 'sanitize_title', explode( ',', wp_unslash( $_GET[ $p ] ) ) ) ) ) : array(); // phpcs:ignore WordPress.Security.NonceVerification
 }
 
-function fx_filter_selected( $tax ) {
-	$p = fx_filter_param( $tax );
-	return isset( $_GET[ $p ] ) ? array_filter( array_map( 'sanitize_title', explode( ',', wp_unslash( $_GET[ $p ] ) ) ) ) : array(); // phpcs:ignore WordPress.Security.NonceVerification
-}
-
-/**
- * Adres z przełączoną wartością filtra (bez numeru strony).
- */
-function fx_filter_toggle_url( $tax, $slug ) {
-	$sel = fx_filter_selected( $tax );
-	$sel = in_array( $slug, $sel, true ) ? array_values( array_diff( $sel, array( $slug ) ) ) : array_merge( $sel, array( $slug ) );
-	$url = remove_query_arg( array( fx_filter_param( $tax ), 'paged', 'query_type_' . wc_attribute_taxonomy_slug( $tax ) ), fx_filter_base_url() );
-	return $sel ? add_query_arg( fx_filter_param( $tax ), implode( ',', $sel ), $url ) : $url;
-}
-
+/** Adres kategorii z bieżącymi filtrami i sortowaniem (bez numeru strony). */
 function fx_filter_base_url() {
 	$url = get_term_link( get_queried_object() );
-	foreach ( $_GET as $k => $v ) { // phpcs:ignore WordPress.Security.NonceVerification
-		if ( 0 === strpos( $k, 'filter_' ) || 'orderby' === $k ) {
-			$url = add_query_arg( sanitize_key( $k ), rawurlencode( sanitize_text_field( wp_unslash( $v ) ) ), $url );
+	foreach ( array( 'rozmiar', 'kolor', 'promocja', 'orderby' ) as $k ) {
+		if ( isset( $_GET[ $k ] ) && '' !== $_GET[ $k ] ) { // phpcs:ignore WordPress.Security.NonceVerification
+			$url = add_query_arg( $k, rawurlencode( sanitize_text_field( wp_unslash( $_GET[ $k ] ) ) ), $url ); // phpcs:ignore WordPress.Security.NonceVerification
 		}
 	}
 	return $url;
 }
 
+function fx_filter_toggle_url( $role, $slug ) {
+	$sel = fx_filter_selected( $role );
+	$sel = in_array( $slug, $sel, true ) ? array_values( array_diff( $sel, array( $slug ) ) ) : array_merge( $sel, array( $slug ) );
+	$p   = fx_filter_params()[ $role ];
+	$url = remove_query_arg( $p, fx_filter_base_url() );
+	return $sel ? add_query_arg( $p, implode( ',', $sel ), $url ) : $url;
+}
+
+/**
+ * Produkty pasujące do wybranych wartości (dowolnej z nich) w danej grupie.
+ */
+function fx_filter_match_ids( $role, $slugs ) {
+	global $wpdb;
+	$ids = array();
+	foreach ( fx_filter_taxonomies()[ $role ] as $tax ) {
+		$terms = get_terms( array( 'taxonomy' => $tax, 'slug' => $slugs, 'hide_empty' => false ) );
+		$terms = is_wp_error( $terms ) ? array() : $terms;
+		$vals  = $slugs;
+		foreach ( $terms as $t ) {
+			$vals[] = $t->name;
+		}
+		$vals = array_values( array_unique( $vals ) );
+		if ( $vals ) {
+			$ph  = implode( ',', array_fill( 0, count( $vals ), '%s' ) );
+			$sql = "SELECT DISTINCT v.post_parent FROM {$wpdb->posts} v JOIN {$wpdb->postmeta} a ON a.post_id = v.ID AND a.meta_key = %s JOIN {$wpdb->postmeta} st ON st.post_id = v.ID AND st.meta_key = '_stock_status' AND st.meta_value IN ('instock','onbackorder') WHERE v.post_type = 'product_variation' AND v.post_status = 'publish' AND a.meta_value IN ($ph)";
+			$ids = array_merge( $ids, array_map( 'intval', $wpdb->get_col( $wpdb->prepare( $sql, array_merge( array( 'attribute_' . $tax ), $vals ) ) ) ) ); // phpcs:ignore
+		}
+		if ( $terms ) {
+			$vp  = fx_filter_var_parents( $tax );
+			$obj = get_objects_in_term( wp_list_pluck( $terms, 'term_id' ), $tax );
+			foreach ( is_wp_error( $obj ) ? array() : $obj as $id ) {
+				if ( ! isset( $vp[ (int) $id ] ) ) {
+					$ids[] = (int) $id;
+				}
+			}
+		}
+	}
+	return array_values( array_unique( $ids ) );
+}
+
+/* ---------- Zawężenie listy produktów ---------- */
+add_action( 'woocommerce_product_query', function ( $q ) {
+	$sets = array();
+	foreach ( array_keys( fx_filter_params() ) as $role ) {
+		$sel = fx_filter_selected( $role );
+		if ( $sel ) {
+			$sets[] = fx_filter_match_ids( $role, $sel );
+		}
+	}
+	if ( fx_filter_sale_on() ) {
+		$sets[] = array_map( 'intval', wc_get_product_ids_on_sale() );
+	}
+	if ( ! $sets ) {
+		return;
+	}
+	$ids = array_shift( $sets );
+	foreach ( $sets as $s ) {
+		$ids = array_intersect( $ids, $s );
+	}
+	$cur = array_filter( (array) $q->get( 'post__in' ) );
+	if ( $cur ) {
+		$ids = array_intersect( $ids, array_map( 'intval', $cur ) );
+	}
+	$ids = array_values( $ids );
+	$q->set( 'post__in', $ids ? $ids : array( 0 ) );
+}, 20 );
+
+/* ---------- Pasek filtrów ---------- */
 add_action( 'woocommerce_before_shop_loop', 'fx_filters_bar', 16 );
 function fx_filters_bar() {
 	if ( ! is_product_category() ) {
 		return;
 	}
 	$term   = get_queried_object();
-	$taxes  = fx_filter_taxonomies();
 	$groups = array();
 	foreach ( array( 'size' => 'Rozmiar', 'color' => 'Kolor' ) as $role => $label ) {
-		if ( empty( $taxes[ $role ] ) ) {
+		if ( empty( fx_filter_taxonomies()[ $role ] ) ) {
 			continue;
 		}
-		$terms = fx_filter_terms_in_cat( $taxes[ $role ], $term );
-		if ( count( $terms ) > 1 || fx_filter_selected( $taxes[ $role ] ) ) {
-			$groups[] = array( $role, $label, $taxes[ $role ], $terms );
+		$opts = fx_filter_options( $role, $term );
+		if ( count( $opts ) > 1 || fx_filter_selected( $role ) ) {
+			$groups[] = array( $role, $label, $opts );
 		}
 	}
 	$sale_on   = fx_filter_sale_on();
@@ -147,10 +268,10 @@ function fx_filters_bar() {
 		echo '<a rel="nofollow" class="fx-chip fx-switch' . ( $sale_on ? ' is-on' : '' ) . '" role="switch" aria-checked="' . ( $sale_on ? 'true' : 'false' ) . '" href="' . esc_url( fx_filter_sale_url() ) . '"><span class="fx-switch__ui" aria-hidden="true"></span>Promocje</a>';
 	}
 	foreach ( $groups as $g ) {
-		list( $role, $label, $tax, $terms ) = $g;
-		$sel = fx_filter_selected( $tax );
+		list( $role, $label, $opts ) = $g;
+		$sel = fx_filter_selected( $role );
 		echo '<details class="fx-filter fx-filter--' . esc_attr( $role ) . '"><summary class="fx-chip' . ( $sel ? ' is-active' : '' ) . '">' . esc_html( $label ) . ( $sel ? ' (' . count( $sel ) . ')' : '' ) . fx_icon( 'chevron', 16 ) . '</summary><div class="fx-filter__panel">'; // phpcs:ignore
-		foreach ( $terms as $t ) {
+		foreach ( $opts as $t ) {
 			$on    = in_array( $t['slug'], $sel, true );
 			$color = 'color' === $role ? get_term_meta( $t['id'], 'fx_color', true ) : '';
 			$style = '';
@@ -158,9 +279,9 @@ function fx_filters_bar() {
 				$c     = explode( ',', $color );
 				$style = ' style="--fx-sw:' . esc_attr( count( $c ) > 1 ? 'linear-gradient(135deg,' . $c[0] . ' 50%,' . $c[1] . ' 50%)' : $c[0] ) . '"';
 			}
-			echo '<a rel="nofollow" class="fx-filter__opt' . ( $on ? ' is-on' : '' ) . ( $color ? ' has-swatch' : '' ) . '" href="' . esc_url( fx_filter_toggle_url( $tax, $t['slug'] ) ) . '" aria-pressed="' . ( $on ? 'true' : 'false' ) . '"' . $style . '>' . esc_html( $t['name'] ) . '</a>'; // phpcs:ignore
+			echo '<a rel="nofollow" class="fx-filter__opt' . ( $on ? ' is-on' : '' ) . ( $color ? ' has-swatch' : '' ) . '" href="' . esc_url( fx_filter_toggle_url( $role, $t['slug'] ) ) . '" aria-pressed="' . ( $on ? 'true' : 'false' ) . '"' . $style . '>' . esc_html( $t['name'] ) . '</a>'; // phpcs:ignore
 			if ( $on ) {
-				$active[] = array( $t['name'], fx_filter_toggle_url( $tax, $t['slug'] ) );
+				$active[] = array( $t['name'], fx_filter_toggle_url( $role, $t['slug'] ) );
 			}
 		}
 		echo '</div></details>';
@@ -175,68 +296,66 @@ function fx_filters_bar() {
 	echo '</div>';
 }
 
-/* =====================================================================
- * Włącznik „Promocje”: ?filter_promocja=1 – tylko produkty w promocji.
- * Nazwa zaczyna się od filter_, więc działa z resztą filtrów, paginacją, nieskończonym
- * przewijaniem i noindex jak pozostałe filtry.
- * ===================================================================== */
+/* ---------- Włącznik „Promocje” (?promocja=1) ---------- */
 function fx_filter_sale_on() {
-	return ! empty( $_GET['filter_promocja'] ); // phpcs:ignore WordPress.Security.NonceVerification
+	return ! empty( $_GET['promocja'] ) || ! empty( $_GET['filter_promocja'] ); // phpcs:ignore WordPress.Security.NonceVerification
 }
 
 function fx_filter_sale_url() {
-	$url = remove_query_arg( array( 'filter_promocja', 'paged' ), fx_filter_base_url() );
-	return fx_filter_sale_on() ? $url : add_query_arg( 'filter_promocja', '1', $url );
+	$url = remove_query_arg( array( 'promocja', 'filter_promocja', 'paged' ), fx_filter_base_url() );
+	return fx_filter_sale_on() ? $url : add_query_arg( 'promocja', '1', $url );
 }
 
-/** Czy w kategorii (z podkategoriami) jest choć jeden produkt w promocji – żeby nie pokazywać pustego włącznika. */
+/** Czy w kategorii (z podkategoriami) jest choć jeden produkt w promocji. */
 function fx_filter_sale_in_cat( $term ) {
 	$key   = 'fx_flt_sale_' . $term->term_id;
 	$cache = get_transient( $key );
 	if ( false !== $cache ) {
 		return (bool) $cache;
 	}
-	$sale = wc_get_product_ids_on_sale();
+	$sale = array_flip( array_map( 'intval', wc_get_product_ids_on_sale() ) );
 	$has  = 0;
-	if ( $sale ) {
-		$q   = new WP_Query(
-			array(
-				'post_type'      => 'product',
-				'post_status'    => 'publish',
-				'post__in'       => $sale,
-				'posts_per_page' => 1,
-				'fields'         => 'ids',
-				'no_found_rows'  => true,
-				'tax_query'      => array( array( 'taxonomy' => 'product_cat', 'terms' => $term->term_id, 'include_children' => true ) ), // phpcs:ignore
-			)
-		);
-		$has = $q->posts ? 1 : 0;
+	foreach ( fx_filter_cat_products( $term ) as $id ) {
+		if ( isset( $sale[ $id ] ) ) {
+			$has = 1;
+			break;
+		}
 	}
 	set_transient( $key, $has, HOUR_IN_SECONDS );
 	return (bool) $has;
 }
 
-add_action( 'woocommerce_product_query', function ( $q ) {
-	if ( ! fx_filter_sale_on() ) {
-		return;
-	}
-	$ids = array_map( 'intval', wc_get_product_ids_on_sale() );
-	$cur = (array) $q->get( 'post__in' );
-	if ( $cur ) {
-		$ids = array_values( array_intersect( $ids, array_map( 'intval', $cur ) ) );
-	}
-	$q->set( 'post__in', $ids ? $ids : array( 0 ) );
-} );
-
 /* Strony z filtrami nie trafiają do indeksu Google (oryginalna kategoria zostaje bez zmian). */
 add_filter( 'wp_robots', function ( $robots ) {
-	foreach ( array_keys( $_GET ) as $k ) { // phpcs:ignore WordPress.Security.NonceVerification
-		if ( 0 === strpos( $k, 'filter_' ) ) {
-			$robots['noindex'] = true;
-			$robots['follow']  = true;
-			unset( $robots['index'] );
-			break;
-		}
+	if ( fx_filters_active() ) {
+		$robots['noindex'] = true;
+		$robots['follow']  = true;
+		unset( $robots['index'] );
 	}
 	return $robots;
 }, 99 );
+
+/* Yoast SEO: to samo dla jego znacznika robots. */
+add_filter( 'wpseo_robots', function ( $r ) {
+	return fx_filters_active() ? 'noindex, follow' : $r;
+}, 99 );
+
+/** Kolejność rozmiarów: dziecięce, literowe (XS…4XL), potem liczbowe rosnąco (28, 30, 42, 43…). */
+function fx_size_rank( $name ) {
+	$n = strtoupper( trim( (string) $name ) );
+	$n = str_replace( array( ' ', '-' ), '', $n );
+	$letters = array( 'XXXS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', 'XXXL', '3XL', '4XL', '5XL' );
+	$map     = array( '2XL' => 'XXL', 'XXXL' => '3XL' );
+	if ( preg_match( '/^(Y|K|J)(XXS|XS|S|M|L|XL)$/', $n, $m ) ) { // młodzieżowe / dziecięce
+		return 100 + array_search( $m[2], $letters, true );
+	}
+	$k = isset( $map[ $n ] ) ? $map[ $n ] : $n;
+	$i = array_search( $k, $letters, true );
+	if ( false !== $i ) {
+		return 200 + $i;
+	}
+	if ( preg_match( '/^(\d+(?:[.,]\d+)?)/', $n, $m ) ) {
+		return 1000 + (float) str_replace( ',', '.', $m[1] );
+	}
+	return 100000;
+}
