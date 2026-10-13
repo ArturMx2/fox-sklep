@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.10.1 – porządek w filtrze rozmiarów
+- „XL - DOSTAWA 24H”, „XL - DOSTAWA 24H - DOSTAWA 24H” i „XL” to w filtrze jeden przycisk „XL” (wybranie go pokazuje produkty ze wszystkimi tymi wariantami).
+- W filtrze tylko krótkie rozmiary (do 5 znaków) oraz Junior i Uniwersalny; pomijane listy typu „10|11|12”, kody „002” i długie zestawy („XS/SM/MD”, „XXL/3XL”). Limit można zmienić filtrem fx_size_filterable.
+- Stare linki z pełną nazwą („?rozmiar=xl-dostawa-24h”) dalej działają.
+
 ## 3.10.0 – termin wysyłki i dostawy (BaseLinker) w motywie
 - Kod „FOX – Termin wysyłki i dostawy” 1.2.1 przeniesiony do motywu (inc/modules/delivery.php + delivery-core.php): termin całego koszyka z magazynów BaseLinkera, w koszyku, w zamówieniu i w oknie „Produkt został dodany do koszyka”. Te same ustawienia (Ustawienia → Termin wysyłki FOX, token zostaje) i te same pola zamówienia dla BaseLinkera (szacowana_wysylka, szacowana_dostawa, _fox_dispatch_date, _fox_delivery_date).
 - Polskie święta ustawowe doliczane automatycznie do dni bez wysyłki (karta produktu i obliczanie terminu).

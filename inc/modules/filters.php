@@ -129,7 +129,22 @@ function fx_filter_options( $role, $term ) {
 			}
 			$terms = get_terms( array( 'taxonomy' => $tax, 'hide_empty' => false, 'orderby' => 'menu_order' ) );
 			foreach ( is_wp_error( $terms ) ? array() : $terms as $t ) {
-				if ( ( isset( $found[ $t->slug ] ) || isset( $found[ sanitize_title( $t->name ) ] ) ) && ! isset( $out[ $t->slug ] ) ) {
+				if ( ! isset( $found[ $t->slug ] ) && ! isset( $found[ sanitize_title( $t->name ) ] ) ) {
+					continue;
+				}
+				if ( 'size' === $role ) {
+					// „XL - DOSTAWA 24H” i „XL” to ten sam rozmiar w filtrze; długie/techniczne wartości pomijamy.
+					$label = fx_size_label( fx_size_norm( $t->name ) );
+					if ( ! fx_size_filterable( $label ) ) {
+						continue;
+					}
+					$slug = sanitize_title( fx_size_norm( $t->name ) );
+					if ( ! isset( $out[ $slug ] ) ) {
+						$out[ $slug ] = array( 'slug' => $slug, 'name' => $label, 'id' => $t->term_id );
+					}
+					continue;
+				}
+				if ( ! isset( $out[ $t->slug ] ) ) {
 					$out[ $t->slug ] = array( 'slug' => $t->slug, 'name' => fx_size_label( $t->name ), 'id' => $t->term_id );
 				}
 			}
@@ -188,6 +203,17 @@ function fx_filter_match_ids( $role, $slugs ) {
 	global $wpdb;
 	$ids = array();
 	foreach ( fx_filter_taxonomies()[ $role ] as $tax ) {
+		if ( 'size' === $role ) {
+			// Wybrany „xl” obejmuje też „XL - DOSTAWA 24H” itp.
+			$want = array_map( 'fx_size_norm_slug', $slugs );
+			$all  = get_terms( array( 'taxonomy' => $tax, 'hide_empty' => false ) );
+			foreach ( is_wp_error( $all ) ? array() : $all as $t ) {
+				if ( in_array( sanitize_title( fx_size_norm( $t->name ) ), $want, true ) ) {
+					$slugs[] = $t->slug;
+				}
+			}
+			$slugs = array_values( array_unique( $slugs ) );
+		}
 		$terms = get_terms( array( 'taxonomy' => $tax, 'slug' => $slugs, 'hide_empty' => false ) );
 		$terms = is_wp_error( $terms ) ? array() : $terms;
 		$vals  = $slugs;
@@ -413,6 +439,35 @@ add_filter( 'wpseo_robots', function ( $r ) {
 }, 99 );
 
 /** Kolejność rozmiarów: dziecięce, literowe (XS…4XL), potem liczbowe rosnąco (28, 30, 42, 43…). */
+/** Rozmiar bez dopisków magazynowych: „XL - DOSTAWA 24H - DOSTAWA 24H” → „XL”. */
+function fx_size_norm( $name ) {
+	$n = trim( (string) $name );
+	$n = preg_replace( '/(\s*[-–—]\s*dostawa\s*\d+\s*h)+\s*$/iu', '', $n );
+	return trim( $n );
+}
+
+function fx_size_norm_slug( $slug ) {
+	return preg_replace( '/(-dostawa-\d+h)+$/', '', (string) $slug );
+}
+
+/**
+ * Czy rozmiar pokazać w filtrze: krótkie (do 5 znaków) oraz Junior / Uniwersalny.
+ * Pomijamy listy typu „10|11|12”, kody „002” i długie zestawy („XS/SM/MD”).
+ */
+function fx_size_filterable( $label ) {
+	$label = trim( (string) $label );
+	if ( '' === $label ) {
+		return false;
+	}
+	if ( in_array( mb_strtolower( $label ), array( 'junior', 'uniwersalny' ), true ) ) {
+		return true;
+	}
+	if ( false !== strpos( $label, '|' ) || preg_match( '/^0\d+$/', $label ) ) {
+		return false;
+	}
+	return (bool) apply_filters( 'fx_size_filterable', mb_strlen( $label ) <= 5, $label );
+}
+
 function fx_size_rank( $name ) {
 	$n = strtoupper( trim( (string) $name ) );
 	$n = str_replace( array( ' ', '-' ), '', $n );
