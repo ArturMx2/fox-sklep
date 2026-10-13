@@ -35,7 +35,30 @@ add_action( 'init', function () {
 /* ---------- Przypisanie do kategorii ---------- */
 add_action( 'add_meta_boxes_fx_size_guide', function () {
 	add_meta_box( 'fx_sg_cats', 'Kategorie produktów', 'fx_sg_cats_box', 'fx_size_guide', 'side' );
+	add_meta_box( 'fx_sg_products', 'Konkretne produkty', 'fx_sg_products_box', 'fx_size_guide', 'normal', 'high' );
 } );
+
+/* Wyszukiwarka produktów WooCommerce na ekranie tabeli rozmiarów. */
+add_action( 'admin_enqueue_scripts', function () {
+	$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+	if ( $screen && 'fx_size_guide' === $screen->post_type ) {
+		wp_enqueue_script( 'wc-enhanced-select' );
+		wp_enqueue_style( 'woocommerce_admin_styles' );
+	}
+} );
+
+function fx_sg_products_box( $post ) {
+	$ids = array_filter( array_map( 'absint', (array) get_post_meta( $post->ID, '_fx_products', true ) ) );
+	echo '<p class="description">Tabela pokaże się przy tych produktach niezależnie od kategorii (ma pierwszeństwo przed tabelą kategorii).</p>';
+	echo '<select class="wc-product-search" multiple="multiple" style="width:100%" name="fx_products[]" data-placeholder="Wyszukaj produkt…" data-action="woocommerce_json_search_products">';
+	foreach ( $ids as $id ) {
+		$p = wc_get_product( $id );
+		if ( $p ) {
+			echo '<option value="' . (int) $id . '" selected="selected">' . esc_html( wp_strip_all_tags( $p->get_formatted_name() ) ) . '</option>';
+		}
+	}
+	echo '</select>';
+}
 
 function fx_sg_cats_box( $post ) {
 	wp_nonce_field( 'fx_sg_save', 'fx_sg_nonce' );
@@ -70,6 +93,8 @@ add_action( 'save_post_fx_size_guide', function ( $post_id ) {
 	}
 	$cats = isset( $_POST['fx_cats'] ) ? array_map( 'absint', (array) wp_unslash( $_POST['fx_cats'] ) ) : array();
 	update_post_meta( $post_id, '_fx_cats', $cats );
+	$prods = isset( $_POST['fx_products'] ) ? array_values( array_filter( array_map( 'absint', (array) wp_unslash( $_POST['fx_products'] ) ) ) ) : array();
+	update_post_meta( $post_id, '_fx_products', $prods );
 	delete_transient( 'fx_sg_map' );
 } );
 
@@ -117,16 +142,23 @@ function fx_size_guide_for( $product ) {
 		return (int) $own;
 	}
 
-	$map = get_transient( 'fx_sg_map' );
-	if ( false === $map ) {
-		$map = array();
+	$all = get_transient( 'fx_sg_map' );
+	if ( ! is_array( $all ) || ! isset( $all['cats'] ) ) {
+		$all = array( 'cats' => array(), 'products' => array() );
 		foreach ( get_posts( array( 'post_type' => 'fx_size_guide', 'numberposts' => 500, 'fields' => 'ids' ) ) as $gid ) {
 			foreach ( (array) get_post_meta( $gid, '_fx_cats', true ) as $cid ) {
-				$map[ (int) $cid ] = (int) $gid;
+				$all['cats'][ (int) $cid ] = (int) $gid;
+			}
+			foreach ( (array) get_post_meta( $gid, '_fx_products', true ) as $pid ) {
+				$all['products'][ (int) $pid ] = (int) $gid;
 			}
 		}
-		set_transient( 'fx_sg_map', $map, DAY_IN_SECONDS );
+		set_transient( 'fx_sg_map', $all, DAY_IN_SECONDS );
 	}
+	if ( isset( $all['products'][ $product->get_id() ] ) ) {
+		return $all['products'][ $product->get_id() ];
+	}
+	$map = $all['cats'];
 	if ( ! $map ) {
 		return 0;
 	}

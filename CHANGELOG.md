@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.1.0 – tabele rozmiarów: produkty + import z CommerceKit
+- Tabela rozmiarów przypisywana do kategorii (z podkategoriami) i teraz także do konkretnych produktów – pole „Konkretne produkty” na ekranie tabeli (wyszukiwarka produktów). Kolejność: ustawienie w produkcie → tabela przypisana do produktu → najbliższa kategoria.
+- Narzędzia → Import tabel rozmiarów: przenosi tabele z CommerceKit (treść, kategorie, produkty). Podgląd przed importem, oryginały nietknięte, ponowny import aktualizuje bez duplikatów. Działa też po wyłączeniu CommerceKit.
+
 ## 3.0.0 – komplety bez wtyczki
 - Komplety wykrywane automatycznie po nazwie: koszulka, spodnie i rękawice z tą samą grafiką i kolorem (np. „… FOX 180 FRAME RED”) tworzą komplet. Rok, ukośniki i wielkość liter nie mają znaczenia; JUNIOR/KIDS/LADY osobno.
 - Strony kompletów („Strój na crossa FOX …”) zostają pod tymi samymi adresami: zamiast „Dodaj do koszyka” wybór części i rozmiarów, cena „Komplet od …”. Do koszyka trafiają osobne produkty (stany i BaseLinker bez zmian).
