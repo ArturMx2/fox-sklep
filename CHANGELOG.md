@@ -1,5 +1,13 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 2.9.0 – kolory modelu w listingu
+- Rodziny kolorów: produkty jednego modelu w różnych kolorach łączone automatycznie po SKU FOX (31324-170, 31324-002… → model 31324). Każdy kolor zostaje osobnym produktem z własnym adresem.
+- Listing: pod kartą miniatury kolorów. Najechanie (telefon: dotknięcie) podmienia zdjęcie, nazwę, cenę, etykiety, rozmiary i serduszko; kliknięcie prowadzi do produktu w tym kolorze. Kolor niedostępny – przekreślony.
+- Jedna karta na model w kategorii (Wygląd → Dostosuj → FOX.SKLEP.PL → Narzędzia sklepu, domyślnie włączone): widać kolor dostępny na stanie, najnowszy. Przy filtrach i w wyszukiwarce – każdy pasujący kolor osobno.
+- Karta produktu: „Kolor: Pink (4 kolory)” z miniaturami pozostałych kolorów.
+- Produkt → Dane produktu → pole „Rodzina kolorów” (obok SKU): ręczne łączenie (ten sam tekst w kilku produktach) albo „-”, żeby nie łączyć.
+- Filtr rozmiaru wykrywa też atrybut BaseLinkera „wariant” (pa_blvariant).
+
 ## 2.8.0 – włącznik „Promocje”
 - W pasku filtrów kategorii włącznik „Promocje” – pokazuje tylko produkty w promocji (także warianty). Działa razem z rozmiarem, kolorem, sortowaniem i nieskończonym przewijaniem.
 - Widoczny tylko w kategoriach, w których jest choć jedna promocja. Strony z włączonym filtrem mają noindex (adres ?filter_promocja=1).

@@ -30,7 +30,7 @@ function fx_filter_taxonomies() {
 			$out[ $role ] = wc_attribute_taxonomy_name( $chosen );
 			continue;
 		}
-		$pattern = 'size' === $role ? '/(rozmiar|size)/i' : '/(kolor|color|colour)/i';
+		$pattern = 'size' === $role ? '/(rozmiar|size|blvariant)/i' : '/(kolor|color|colour)/i';
 		foreach ( $all as $a ) {
 			if ( preg_match( $pattern, $a->attribute_name . ' ' . $a->attribute_label ) ) {
 				$out[ $role ] = wc_attribute_taxonomy_name( $a->attribute_name );

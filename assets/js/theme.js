@@ -154,6 +154,7 @@
 			});
 			$('.fx-wish-count').attr('data-count', wish.length).text(wish.length || '');
 		};
+		$(document.body).on('fx_wish_refresh', paintWish);
 		var renderWishPage = function () {
 			var box = document.querySelector('[data-fx-wishlist]');
 			if (!box) { return; }
@@ -529,6 +530,63 @@
 		if (last.title) { back.querySelector('strong').textContent = last.title; }
 		back.addEventListener('click', function (e) {
 			if (window.history.length > 1) { e.preventDefault(); window.history.back(); }
+		});
+	})();
+
+	/* Rodziny kolorów w listingu: najechanie (telefon: dotknięcie) podmienia kartę na wybrany kolor */
+	(function () {
+		var touch = window.matchMedia && window.matchMedia('(hover: none)').matches;
+		function dataOf(box) {
+			if (!box._fx) { try { box._fx = JSON.parse(box.getAttribute('data-fx-cf')); } catch (e) { box._fx = []; } }
+			return box._fx;
+		}
+		function apply(sw) {
+			var box = sw.closest('.fx-cf'), card = sw.closest('li.product');
+			if (!box || !card || sw.classList.contains('is-on')) { return false; }
+			var id = parseInt(sw.getAttribute('data-id'), 10), d = null;
+			dataOf(box).forEach(function (x) { if (x.id === id) { d = x; } });
+			if (!d) { return false; }
+			var link = card.querySelector('a.woocommerce-LoopProduct-link');
+			var img = link && link.querySelector('img');
+			if (link) { link.href = d.url; }
+			if (img) { img.removeAttribute('srcset'); img.src = d.img; if (d.srcset) { img.srcset = d.srcset; } img.alt = d.name; }
+			var t = card.querySelector('.woocommerce-loop-product__title'); if (t) { t.textContent = d.name; }
+			var pr = card.querySelector('.price'); if (pr) { pr.innerHTML = d.price.replace(/^<span class="price">|<\/span>$/g, ''); }
+			var b = card.querySelector('.fx-badges');
+			if (b || d.badges) {
+				var tmp = document.createElement('div'); tmp.innerHTML = d.badges || '';
+				var nb = tmp.firstElementChild;
+				if (b && nb) { b.replaceWith(nb); } else if (b) { b.remove(); } else if (nb && img) { img.insertAdjacentElement('afterend', nb); }
+			}
+			var s = card.querySelector('.fx-sizes__bar');
+			if (s) {
+				s.querySelectorAll('.fx-sizes__item').forEach(function (n) { n.remove(); });
+				(d.sizes || []).forEach(function (z) { var e = document.createElement('span'); e.className = 'fx-sizes__item'; e.textContent = z; s.appendChild(e); });
+				s.parentNode.style.display = (d.sizes && d.sizes.length) ? '' : 'none';
+			}
+			var w = card.querySelector('[data-fx-wish]');
+			if (w) { w.setAttribute('data-fx-wish', d.id); $(document.body).trigger('fx_wish_refresh'); }
+			box.querySelectorAll('.fx-cf__sw').forEach(function (x) { x.classList.toggle('is-on', x === sw); if (x === sw) { x.setAttribute('aria-current', 'true'); } else { x.removeAttribute('aria-current'); } });
+			var more = box.querySelector('.fx-cf__more'); if (more) { more.href = d.url + '#fx-colors'; }
+			return true;
+		}
+		if (!touch) {
+			document.addEventListener('mouseover', function (e) {
+				var sw = e.target.closest && e.target.closest('.fx-cf__sw');
+				if (sw) { apply(sw); }
+			});
+		}
+		document.addEventListener('click', function (e) {
+			var sw = e.target.closest && e.target.closest('.fx-cf__sw');
+			if (sw && touch && apply(sw)) { e.preventDefault(); }
+		});
+		/* wstępne ładowanie zdjęć kolorów po najechaniu na kartę */
+		document.addEventListener('mouseover', function (e) {
+			var card = e.target.closest && e.target.closest('li.product');
+			if (!card || card._fxPre) { return; }
+			card._fxPre = true;
+			var box = card.querySelector('.fx-cf');
+			if (box) { dataOf(box).forEach(function (d) { var i = new Image(); i.src = d.img; }); }
 		});
 	})();
 })(jQuery);
