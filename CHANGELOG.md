@@ -1,5 +1,11 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.9.5 – faktura i NIP
+- W zamówieniu „Chcę otrzymać fakturę na firmę” – po zaznaczeniu pole „Numer NIP” (wymagane). Jak na enduro.sklep.pl: te same nazwy pól i to samo pole zamówienia `_vat_number`.
+- Sprawdzanie NIP: puste → „NIP jest wymagany”, zła suma kontrolna → „NIP jest niepoprawny”. Akceptuje spacje, myślniki i prefiks PL (zapisuje same cyfry); numery UE z prefiksem kraju przepuszcza.
+- NIP widoczny w panelu zamówienia, na stronie podziękowania, w „Moje konto” i w e-mailach.
+- Gdy ten sam fragment kodu działa już w innej wtyczce, motyw nie dubluje pól.
+
 ## 3.9.4 – nagłówek: logo po lewej, wyszukiwarka na środku
 - Logo w lewym rogu, duża wyszukiwarka na środku (czarna ramka, podpowiedź „np. kask V1, buty, strój na crossa”, przycisk „Szukaj”).
 - Telefon: wyszukiwarka zawsze widoczna pod logo, na całą szerokość (zamiast ikonki lupy).

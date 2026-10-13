@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.9.4
+Version: 3.9.5
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -1348,3 +1348,16 @@ html.fx-added-open{overflow:hidden}
   .fx-header .fx-search input[type=search]::placeholder{font-size:14px}
   .fx-header .fx-search .fx-search__btn{display:none}
 }
+
+/* Faktura / NIP – 3.9.5 */
+.woocommerce-checkout .fx-invoice{margin:0 0 18px;padding:14px 16px;background:var(--fx-soft);border-radius:12px}
+.woocommerce-checkout .fx-invoice .form-row{margin:0}
+.woocommerce-checkout .fx-invoice__check label{display:flex!important;align-items:center;gap:10px;font-size:16px!important;font-weight:600!important;cursor:pointer;margin:0!important}
+.woocommerce-checkout .fx-invoice__check input[type=checkbox]{width:20px;height:20px;accent-color:var(--fx-ink);margin:0}
+.woocommerce-checkout .fx-invoice__check .optional{display:none}
+.woocommerce-checkout #vat_number_input_field_container{margin-top:14px}
+.woocommerce-checkout #vat_number_input_field_container[hidden]{display:none}
+.woocommerce-checkout .fx-invoice__nip.fx-req label .optional{display:none}
+.woocommerce-checkout .fx-invoice__nip.fx-req label::after{content:" *";color:#c62828;font-weight:700}
+.fx-invoice__hint{margin:8px 0 0;font-size:13px;color:var(--fx-muted)}
+.fx-order-nip{margin:-16px 0 32px;padding:14px 18px;border:1px solid var(--fx-line);border-radius:14px}
