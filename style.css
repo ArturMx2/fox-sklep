@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.3.4
+Version: 3.4.0
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -965,3 +965,92 @@ html,body{max-width:100%;overflow-x:clip}
 .woocommerce div.product form.cart.variations_form{display:block}
 .woocommerce div.product form.cart .woocommerce-variation-add-to-cart{display:flex;flex-wrap:wrap;gap:10px}
 @media (max-width:600px){.woocommerce div.product form.cart .button{flex:1 1 auto;padding:0 20px}}
+
+/* =====================================================================
+   Koszyk i zamówienie
+   ===================================================================== */
+.fx-steps{list-style:none;margin:0 0 32px;padding:0;display:flex;gap:0;counter-reset:s}
+.fx-steps__item{flex:1;display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:var(--fx-muted);text-transform:uppercase;letter-spacing:.03em;position:relative;padding-right:12px}
+.fx-steps__item:not(:last-child)::after{content:"";flex:1;height:1px;background:var(--fx-line-2);margin-left:6px}
+.fx-steps__dot{flex:none;width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;border:1.5px solid var(--fx-line-2);background:#fff;font-size:13px}
+.fx-steps__item.is-current{color:var(--fx-ink)}
+.fx-steps__item.is-current .fx-steps__dot{background:var(--fx-ink);border-color:var(--fx-ink);color:#fff}
+.fx-steps__item.is-done{color:var(--fx-ink)}
+.fx-steps__item.is-done .fx-steps__dot{border-color:var(--fx-ink)}
+.fx-steps__item a{color:inherit}
+@media (max-width:700px){.fx-steps__item{font-size:11px;gap:6px;letter-spacing:0}.fx-steps__item span:not(.fx-steps__dot){display:none}.fx-steps__item.is-current span:not(.fx-steps__dot){display:inline}.fx-steps__dot{width:26px;height:26px}}
+
+/* Układ: lista po lewej, podsumowanie po prawej (przyklejone) */
+@media (min-width:1025px){
+  .woocommerce-cart .fx-content .woocommerce{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:0 40px;align-items:start}
+  .woocommerce-cart .fx-content .woocommerce>*{grid-column:1}
+  .woocommerce-cart .fx-content .woocommerce>.fx-steps{grid-column:1/-1}
+  .woocommerce-cart .fx-content .woocommerce>.cart-collaterals{grid-column:2;grid-row:2 / span 12;position:sticky;top:var(--fx-sticky-top,150px)}
+  .woocommerce-cart .fx-content .woocommerce>.cross-sells{grid-column:1/-1}
+}
+.woocommerce-cart .cart-collaterals .cart_totals{width:100%;float:none;background:var(--fx-soft);padding:24px}
+.woocommerce-cart .cart-collaterals .cart_totals h2{font-size:24px;margin:0 0 14px}
+.woocommerce-cart .cart_totals table.shop_table{border:0;margin:0 0 16px;background:transparent}
+.woocommerce-cart .cart_totals table.shop_table th,.woocommerce-cart .cart_totals table.shop_table td{border-top:1px solid var(--fx-line-2);padding:12px 0;background:transparent;vertical-align:top;font-size:15px}
+.woocommerce-cart .cart_totals table.shop_table th{font-weight:600;width:38%}
+.woocommerce-cart .cart_totals .order-total th,.woocommerce-cart .cart_totals .order-total td{font-size:20px;padding-top:16px}
+.woocommerce-cart .cart_totals .order-total .amount{font-weight:700}
+.woocommerce-cart .cart_totals .order-total small{display:block;font-size:12px;font-weight:400;color:var(--fx-muted)}
+.woocommerce ul#shipping_method li{margin:0 0 8px;display:flex;align-items:flex-start;gap:8px;line-height:1.35}
+.woocommerce ul#shipping_method li input{margin:3px 0 0;accent-color:var(--fx-ink)}
+.woocommerce-shipping-destination,.woocommerce-shipping-calculator{font-size:13px;color:var(--fx-muted)}
+.woocommerce-cart .wc-proceed-to-checkout{padding:0}
+.woocommerce-cart .wc-proceed-to-checkout .checkout-button{display:flex!important;align-items:center;justify-content:center;width:100%;min-height:58px;font-size:17px!important;margin:0 0 14px!important;border-radius:var(--fx-pill)}
+.fx-cart-continue{display:block;text-align:center;font-weight:600;font-size:14px;text-decoration:underline;text-underline-offset:3px;margin-bottom:16px}
+.fx-cart-trust{list-style:none;margin:0;padding:14px 0 0;border-top:1px solid var(--fx-line-2);font-size:13.5px;color:var(--fx-ink-2)}
+.fx-cart-trust li{padding-left:22px;position:relative;margin:0 0 6px}
+.fx-cart-trust li::before{content:"✓";position:absolute;left:0;font-weight:700;color:var(--fx-ink)}
+.fx-freeship{margin:0 0 18px;font-size:14.5px}
+.fx-freeship p{margin:0 0 8px}
+.fx-freeship__bar{height:6px;background:#e3e1dc;border-radius:6px;overflow:hidden}
+.fx-freeship__bar span{display:block;height:100%;background:var(--fx-ink);border-radius:6px;transition:width .3s}
+.fx-freeship.is-done .fx-freeship__bar span{background:#2e7d4f}
+
+/* Lista produktów */
+.woocommerce-cart table.cart{border:0;border-top:1px solid var(--fx-ink)}
+.woocommerce-cart table.cart thead th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--fx-muted);font-weight:600;padding:12px 10px;border:0}
+.woocommerce-cart table.cart td{border-top:1px solid var(--fx-line);padding:18px 10px;vertical-align:middle}
+.woocommerce-cart table.cart td.product-thumbnail{width:96px}
+.woocommerce-cart table.cart img{width:84px!important;height:84px;object-fit:contain;background:var(--fx-pack)}
+.woocommerce-cart table.cart td.product-name a{font-weight:600;color:var(--fx-ink);text-decoration:none;font-size:15.5px}
+.woocommerce-cart table.cart td.product-name a:hover{text-decoration:underline}
+.fx-ci-meta{display:block;margin-top:4px;font-size:13px;color:var(--fx-muted)}
+.fx-ci-meta strong{color:var(--fx-ink);font-weight:600}
+.woocommerce-cart table.cart td.product-price del,.woocommerce-cart table.cart td.product-price del .amount{display:block;color:var(--fx-muted);font-size:13px;font-weight:400}
+.woocommerce-cart table.cart td.product-price ins{text-decoration:none;color:var(--fx-sale);font-weight:700}
+.woocommerce-cart table.cart td.product-subtotal{font-weight:700;font-size:16px}
+.woocommerce-cart table.cart td.product-remove{width:36px}
+.woocommerce a.remove{color:var(--fx-muted)!important;font-size:22px;font-weight:400;width:32px;height:32px;line-height:30px;border-radius:50%}
+.woocommerce a.remove:hover{background:var(--fx-soft)!important;color:var(--fx-sale)!important}
+.fx-qty{display:inline-flex;align-items:stretch;border:1.5px solid #cfccc5;height:44px}
+.fx-qty input.qty{width:46px!important;border:0!important;text-align:center;-moz-appearance:textfield;font-weight:600;height:auto;padding:0}
+.fx-qty input.qty::-webkit-outer-spin-button,.fx-qty input.qty::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.fx-qty__btn{width:38px;border:0;background:#fff;font-size:18px;cursor:pointer;color:var(--fx-ink)}
+.fx-qty__btn:hover{background:var(--fx-soft)}
+/* Kupon + ukryty „Zaktualizuj koszyk” (koszyk przelicza się sam) */
+.woocommerce-cart table.cart td.actions{padding:18px 0;border-top:1px solid var(--fx-line)}
+.woocommerce-cart table.cart td.actions .coupon{display:flex;gap:8px;flex-wrap:wrap;float:none;align-items:center}
+.woocommerce-cart table.cart td.actions .coupon label{display:none}
+.woocommerce-cart table.cart td.actions .coupon .input-text{width:240px!important;min-width:0;height:46px;border:1.5px solid #cfccc5;padding:0 14px!important;margin:0!important;font-size:15px}
+.woocommerce-cart table.cart td.actions .coupon .button{height:46px;background:#fff!important;color:var(--fx-ink)!important;border:1.5px solid var(--fx-ink)!important;margin:0!important}
+.fx-autoupdate [name="update_cart"]{display:none!important}
+.woocommerce-cart .cross-sells{margin-top:48px}
+.woocommerce-cart .cross-sells>h2{font-size:28px}
+@media (max-width:768px){
+  .woocommerce-cart table.cart tr.cart_item{display:grid;grid-template-columns:84px 1fr auto;gap:4px 14px;padding:16px 0;border-top:1px solid var(--fx-line);position:relative}
+  .woocommerce-cart table.cart tr.cart_item td{display:block;border:0!important;padding:0!important;text-align:left!important;background:none!important}
+  .woocommerce-cart table.cart tr.cart_item td::before{display:none}
+  .woocommerce-cart table.cart td.product-thumbnail{grid-row:1 / span 3;display:block!important;width:84px}
+  .woocommerce-cart table.cart tr.cart_item td.product-name{grid-column:2 / 4;padding-right:34px!important}
+  .woocommerce-cart table.cart td.product-remove{position:absolute;top:12px;right:0;width:auto}
+  .woocommerce-cart table.cart td.product-price{grid-column:2;font-size:14px}
+  .woocommerce-cart table.cart td.product-quantity{grid-column:2}
+  .woocommerce-cart table.cart td.product-subtotal{grid-column:3;grid-row:3;align-self:center}
+  .woocommerce-cart table.cart thead{display:none}
+  .woocommerce-cart table.cart td.actions .coupon .input-text{flex:1;width:auto!important}
+}

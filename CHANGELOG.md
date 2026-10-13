@@ -1,5 +1,13 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.4.0 – nowy koszyk
+- Kroki zamówienia: Koszyk → Dane, dostawa i płatność → Potwierdzenie (koszyk, zamówienie, strona podziękowania).
+- Układ: lista produktów po lewej, podsumowanie po prawej (przyklejone przy przewijaniu); na telefonie pozycje jako karty.
+- Pozycje: nazwa modelu + „Rozmiar: M · Kod: 31372-005”, przekreślona cena regularna przy promocji, przyciski − / + przy ilości, koszyk przelicza się sam (bez „Zaktualizuj koszyk”).
+- Pasek „Brakuje Ci X zł do darmowej dostawy” (próg w Narzędziach sklepu, domyślnie 300 zł).
+- Podsumowanie: „Przejdź do zamówienia”, „Kontynuuj zakupy” (wraca do ostatnio oglądanej listy), atuty (dostawa, zwroty, płatności).
+- Pole kuponu w normalnym rozmiarze; produkty polecane pod koszykiem w 3 kolumnach.
+
 ## 3.3.4
 - Kod pocztowy sklepu stacjonarnego (55-080) w danych dla Google i w sekcji sklepu na stronie głównej.
 

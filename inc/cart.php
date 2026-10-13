@@ -1,0 +1,141 @@
+<?php
+/**
+ * Koszyk i zamówienie: kroki, czytelne pozycje, pasek darmowej dostawy, podsumowanie obok listy.
+ *
+ * Bez nadpisywania szablonów WooCommerce – same hooki, style i mały skrypt
+ * (przyciski − / + przy ilości i automatyczne przeliczenie koszyka).
+ *
+ * @package foxsklep
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+/* ---------- Kroki: Koszyk → Dane i dostawa → Gotowe ---------- */
+function fx_checkout_steps( $current ) {
+	$steps = array(
+		1 => array( 'Koszyk', wc_get_cart_url() ),
+		2 => array( 'Dane, dostawa i płatność', wc_get_checkout_url() ),
+		3 => array( 'Potwierdzenie', '' ),
+	);
+	echo '<ol class="fx-steps" aria-label="Etapy zamówienia">';
+	foreach ( $steps as $n => $s ) {
+		$state = $n < $current ? 'is-done' : ( $n === $current ? 'is-current' : '' );
+		echo '<li class="fx-steps__item ' . esc_attr( $state ) . '"' . ( $n === $current ? ' aria-current="step"' : '' ) . '><span class="fx-steps__dot">' . ( $n < $current ? '✓' : (int) $n ) . '</span>';
+		echo ( $n < $current && $s[1] ) ? '<a href="' . esc_url( $s[1] ) . '">' . esc_html( $s[0] ) . '</a>' : '<span>' . esc_html( $s[0] ) . '</span>';
+		echo '</li>';
+	}
+	echo '</ol>';
+}
+add_action( 'woocommerce_before_cart', function () {
+	fx_checkout_steps( 1 );
+}, 1 );
+add_action( 'woocommerce_before_checkout_form', function () {
+	fx_checkout_steps( 2 );
+}, 1 );
+add_action( 'woocommerce_before_thankyou', function () {
+	fx_checkout_steps( 3 );
+}, 1 );
+
+/* ---------- Pozycje: nazwa modelu + „Rozmiar: M · Kod: 31372-005” ---------- */
+add_filter( 'woocommerce_cart_item_name', function ( $name, $item, $key ) {
+	if ( ! is_cart() || empty( $item['data'] ) || ! $item['data'] instanceof WC_Product ) {
+		return $name;
+	}
+	$p      = $item['data'];
+	$parent = $p->get_parent_id() ? wc_get_product( $p->get_parent_id() ) : $p;
+	$title  = $parent ? $parent->get_name() : $p->get_name();
+	$link   = $p->is_visible() ? $p->get_permalink( $item ) : '';
+	$out    = $link ? '<a href="' . esc_url( $link ) . '">' . esc_html( $title ) . '</a>' : esc_html( $title );
+	$meta   = array();
+	if ( $p->is_type( 'variation' ) ) {
+		foreach ( $p->get_variation_attributes() as $attr => $val ) {
+			$tax   = str_replace( 'attribute_', '', $attr );
+			$label = wc_attribute_label( $tax, $p );
+			if ( preg_match( '/blvariant|wariant/i', $tax . ' ' . $label ) ) {
+				$label = 'Rozmiar';
+			}
+			$term  = taxonomy_exists( $tax ) ? get_term_by( 'slug', $val, $tax ) : null;
+			$meta[] = esc_html( $label ) . ': <strong>' . esc_html( $term ? $term->name : $val ) . '</strong>';
+		}
+	}
+	if ( $p->get_sku() ) {
+		$meta[] = 'Kod: ' . esc_html( $p->get_sku() );
+	}
+	if ( $meta ) {
+		$out .= '<span class="fx-ci-meta">' . implode( '<span aria-hidden="true"> · </span>', $meta ) . '</span>';
+	}
+	return $out;
+}, 10, 3 );
+
+/* Rozmiar jest już pod nazwą – bez powtórki w danych pozycji. */
+add_filter( 'woocommerce_get_item_data', function ( $data, $item ) {
+	if ( is_cart() && ! empty( $item['variation'] ) ) {
+		return array_values(
+			array_filter(
+				$data,
+				function ( $d ) {
+					return empty( $d['key'] ) || ! preg_match( '/rozmiar|wariant|kolor|size/i', wp_strip_all_tags( (string) $d['key'] ) );
+				}
+			)
+		);
+	}
+	return $data;
+}, 20, 2 );
+
+/* Przekreślona cena regularna przy produktach w promocji. */
+add_filter( 'woocommerce_cart_item_price', function ( $price, $item ) {
+	if ( ! empty( $item['fx_kit_units'] ) || empty( $item['data'] ) ) {
+		return $price;
+	}
+	$p = $item['data'];
+	if ( $p->is_on_sale() && (float) $p->get_regular_price() > (float) $p->get_price() ) {
+		return '<del>' . wc_price( wc_get_price_to_display( $p, array( 'price' => $p->get_regular_price() ) ) ) . '</del> <ins>' . $price . '</ins>';
+	}
+	return $price;
+}, 10, 2 );
+
+/* ---------- Darmowa dostawa: ile brakuje ---------- */
+function fx_free_ship_threshold() {
+	return (float) fx_tool( 'free_ship' );
+}
+function fx_free_ship_bar() {
+	$min = fx_free_ship_threshold();
+	if ( $min <= 0 || ! WC()->cart ) {
+		return;
+	}
+	$sum  = (float) WC()->cart->get_displayed_subtotal() - (float) WC()->cart->get_discount_total() - ( WC()->cart->display_prices_including_tax() ? (float) WC()->cart->get_discount_tax() : 0 );
+	$left = $min - $sum;
+	$pct  = max( 0, min( 100, $sum / $min * 100 ) );
+	echo '<div class="fx-freeship' . ( $left <= 0 ? ' is-done' : '' ) . '">';
+	echo $left > 0 ? '<p>Brakuje Ci <strong>' . wc_price( $left ) . '</strong> do <strong>darmowej dostawy</strong>.</p>' : '<p>Masz <strong>darmową dostawę</strong>.</p>'; // phpcs:ignore
+	echo '<div class="fx-freeship__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' . (int) $pct . '"><span style="width:' . esc_attr( round( $pct, 1 ) ) . '%"></span></div></div>';
+}
+add_action( 'woocommerce_before_cart_totals', 'fx_free_ship_bar', 5 );
+
+/* ---------- Podsumowanie: przycisk, „Kontynuuj zakupy”, atuty ---------- */
+remove_action( 'woocommerce_cart_collaterals', 'woocommerce_cross_sell_display' );
+add_action( 'woocommerce_after_cart', function () {
+	woocommerce_cross_sell_display( 3, 3 );
+}, 10 );
+add_filter( 'woocommerce_cross_sells_columns', function () {
+	return 3;
+} );
+
+add_action( 'woocommerce_proceed_to_checkout', function () {
+	$shop = wc_get_page_permalink( 'shop' );
+	echo '<a class="fx-cart-continue" data-fx-continue href="' . esc_url( $shop ) . '">← Kontynuuj zakupy</a>';
+	$points = array_filter( array( fx_mod( 'trust_1' ), fx_mod( 'trust_3' ), 'Bezpieczne płatności online' ) );
+	echo '<ul class="fx-cart-trust">';
+	foreach ( $points as $pt ) {
+		echo '<li>' . esc_html( $pt ) . '</li>';
+	}
+	echo '</ul>';
+}, 30 );
+
+/* Tekst przycisku przejścia do zamówienia. */
+add_filter( 'gettext', function ( $t, $text, $domain ) {
+	if ( 'woocommerce' === $domain && 'Proceed to checkout' === $text ) {
+		return 'Przejdź do zamówienia';
+	}
+	return $t;
+}, 20, 3 );

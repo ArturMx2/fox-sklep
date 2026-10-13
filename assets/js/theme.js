@@ -626,4 +626,52 @@
 		});
 		paint();
 	})();
+
+	/* Koszyk: przyciski − / + przy ilości i automatyczne przeliczenie (bez „Zaktualizuj koszyk”) */
+	(function () {
+		var form = document.querySelector('form.woocommerce-cart-form');
+		if (!form) { return; }
+		var timer = 0;
+		function decorate() {
+			var f = document.querySelector('form.woocommerce-cart-form');
+			if (!f) { return; }
+			f.classList.add('fx-autoupdate');
+			f.querySelectorAll('.quantity').forEach(function (q) {
+				if (q.querySelector('.fx-qty__btn')) { return; }
+				var input = q.querySelector('input.qty');
+				if (!input || input.type === 'hidden') { return; }
+				q.classList.add('fx-qty');
+				var minus = document.createElement('button'), plus = document.createElement('button');
+				minus.type = plus.type = 'button';
+				minus.className = 'fx-qty__btn'; plus.className = 'fx-qty__btn';
+				minus.setAttribute('data-step', '-1'); plus.setAttribute('data-step', '1');
+				minus.setAttribute('aria-label', 'Zmniejsz ilość'); plus.setAttribute('aria-label', 'Zwiększ ilość');
+				minus.textContent = '−'; plus.textContent = '+';
+				q.insertBefore(minus, input); q.appendChild(plus);
+			});
+		}
+		function scheduleUpdate() {
+			clearTimeout(timer);
+			timer = setTimeout(function () {
+				var f = document.querySelector('form.woocommerce-cart-form');
+				var btn = f && f.querySelector('[name="update_cart"]');
+				if (btn) { btn.disabled = false; btn.removeAttribute('aria-disabled'); btn.click(); }
+			}, 650);
+		}
+		$(document).on('click', '.fx-qty__btn', function () {
+			var input = this.parentNode.querySelector('input.qty');
+			var step = parseFloat(input.step) || 1, min = parseFloat(input.min) || 0, max = parseFloat(input.max) || Infinity;
+			var v = (parseFloat(input.value) || 0) + step * parseInt(this.getAttribute('data-step'), 10);
+			input.value = Math.max(min, Math.min(max, v));
+			$(input).trigger('change');
+		});
+		$(document).on('change', 'form.woocommerce-cart-form input.qty', scheduleUpdate);
+		$(document.body).on('updated_wc_div updated_cart_totals', decorate);
+		decorate();
+		/* „Kontynuuj zakupy” – wróć do ostatnio oglądanej listy */
+		try {
+			var last = JSON.parse(sessionStorage.getItem('fxLastList') || 'null');
+			if (last && last.url) { document.querySelectorAll('[data-fx-continue]').forEach(function (a) { a.href = last.url; }); }
+		} catch (e) {}
+	})();
 })(jQuery);
