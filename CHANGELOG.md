@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.5.3 – pole „Komplet (zestaw)” w edycji produktu
+- Osobne pole „Komplet (zestaw)” pod opisem produktu (zamiast ukrytego w zakładce „Produkty podlinkowane”): przełącznik „To jest strona kompletu”, wybór części (wyszukiwarka po nazwie i SKU, kolejność = kolejność wyświetlania), podgląd „Teraz w komplecie”, tytuł sekcji, zdjęcie całego kompletu.
+- Strona kompletu może mieć dowolną nazwę (przełącznik); stare komplety ze Smart Composite są zaznaczone automatycznie – wystarczy wybrać części na nowo i zapisać.
+
 ## 3.5.2 – sortowanie „Największa przecena”
 - Nowa pozycja w sortowaniu: „Największa przecena” – najpierw produkty z najwyższym % rabatu (dla wariantowych: najwyższy rabat spośród wariantów na stanie), potem pozostałe od najnowszych. Działa z filtrami, Promocjami i doczytywaniem produktów.
 - % rabatu liczony przy zapisie produktu i raz dziennie dla całego sklepu (także końce promocji z harmonogramu).

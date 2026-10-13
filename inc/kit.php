@@ -13,14 +13,26 @@ defined( 'ABSPATH' ) || exit;
 
 /* ---------- Panel administracyjny ---------- */
 
-add_action( 'woocommerce_product_options_related', function () {
-	global $post;
-	$ids = fx_kit_get_ids( $post->ID );
+/* Osobne pole „Komplet” w edycji produktu (pod opisem), zamiast ukrytego w zakładce „Produkty podlinkowane”. */
+add_action( 'add_meta_boxes_product', function () {
+	add_meta_box( 'fx_kit_box', 'Komplet (zestaw)', 'fx_kit_box', 'product', 'normal', 'high' );
+} );
+
+function fx_kit_box( $post ) {
+	$ids     = fx_kit_get_ids( $post->ID );
+	$is_page = fx_kit_is_page( $post->ID );
+	$flag    = get_post_meta( $post->ID, '_fx_is_kit', true );
+	$auto    = fx_kit_resolve( $post->ID );
 	?>
-	<div class="options_group">
-		<p class="form-field">
-			<label for="fx_kit_ids">Zbuduj komplet – części</label>
-			<select class="wc-product-search" multiple="multiple" style="width:50%;" id="fx_kit_ids" name="fx_kit_ids[]" data-placeholder="Wyszukaj produkt…" data-action="woocommerce_json_search_products" data-exclude="<?php echo (int) $post->ID; ?>">
+	<div class="fx-kit-admin" style="display:grid;gap:14px;max-width:900px">
+		<p style="margin:0">
+			<label><input type="checkbox" name="_fx_is_kit" value="yes" <?php checked( $is_page ); ?>> <strong>To jest strona kompletu</strong> (np. „Strój na crossa FOX 180 Frame Red”)</label><br>
+			<span class="description">Klient nie kupuje tego produktu, tylko wybrane części z rozmiarami – trafiają do koszyka jako osobne produkty. Cena wyliczy się sama z części<?php echo fx_kit_discount() ? ' (z rabatem ' . esc_html( wc_format_localized_decimal( fx_kit_discount() ) ) . '% za komplet)' : ''; ?>. Adres, opis i zdjęcia tej strony zostają bez zmian.</span>
+			<input type="hidden" name="_fx_is_kit_sent" value="1">
+		</p>
+		<div>
+			<label for="fx_kit_ids"><strong>Części kompletu</strong></label><br>
+			<select class="wc-product-search" multiple="multiple" style="width:100%" id="fx_kit_ids" name="fx_kit_ids[]" data-placeholder="Wpisz nazwę lub SKU, np. „180 Frame Red”…" data-action="woocommerce_json_search_products" data-exclude="<?php echo (int) $post->ID; ?>">
 				<?php
 				foreach ( $ids as $id ) {
 					$p = wc_get_product( $id );
@@ -30,37 +42,34 @@ add_action( 'woocommerce_product_options_related', function () {
 				}
 				?>
 			</select>
-			<?php echo wc_help_tip( 'Produkty, które razem z tym tworzą komplet (np. spodnie i rękawice w tej samej grafice). Ten produkt jest dodawany automatycznie jako pierwszy. Moduł pokaże się też na kartach tych części.' ); // phpcs:ignore ?>
-		</p>
-		<?php
-		$auto = function_exists( 'fx_kit_resolve' ) ? fx_kit_resolve( $post->ID ) : array( 'parts' => array() );
-		if ( $auto['parts'] && 'manual' !== $auto['source'] ) {
-			$names = array();
-			foreach ( $auto['parts'] as $aid ) {
-				$names[] = get_the_title( $aid );
-			}
-			echo '<p class="form-field"><label>Komplet – wykryty automatycznie</label><span>' . esc_html( implode( ' + ', $names ) ) . ( 'wooco' === $auto['source'] ? ' (ze starej wtyczki kompletów)' : '' ) . '<br><em>Pole wyżej zostaw puste, jeśli to się zgadza.</em></span></p>';
-		}
-		woocommerce_wp_text_input(
-			array(
-				'id'          => '_fx_kit_title',
-				'label'       => 'Komplet – tytuł',
-				'placeholder' => 'Cała grafika jednym kliknięciem',
-			)
-		);
-		woocommerce_wp_text_input(
-			array(
-				'id'          => '_fx_kit_img',
-				'label'       => 'Komplet – adres zdjęcia',
-				'placeholder' => 'https://… (zdjęcie całego kompletu na modelu)',
-				'description' => 'Wklej adres pliku z biblioteki mediów. Puste = zdjęcie główne produktu.',
-				'desc_tip'    => true,
-			)
-		);
-		?>
+			<p class="description" style="margin-top:6px">
+				<?php if ( $is_page ) : ?>
+					Wybierz produkty, z których składa się komplet (koszulka, spodnie, rękawice…), w kolejności wyświetlania. Klient wybierze rozmiar każdej części.
+				<?php else : ?>
+					Opcjonalnie: produkty, które razem z tym tworzą komplet (ten produkt dodaje się sam jako pierwszy). Sekcja „Zbuduj komplet” pokaże się na kartach wszystkich części.
+				<?php endif; ?>
+				Puste pole = części dobierane automatycznie po nazwie.
+			</p>
+			<?php if ( $auto['parts'] ) : ?>
+				<?php
+				$names = array();
+				foreach ( $auto['parts'] as $aid ) {
+					$names[] = '<a href="' . esc_url( get_edit_post_link( $aid ) ) . '">' . esc_html( get_the_title( $aid ) ) . '</a>';
+				}
+				$src = array( 'manual' => 'wybrane ręcznie', 'wooco' => 'ze starej wtyczki kompletów – wybierz części powyżej, żeby je zastąpić', 'auto' => 'dobrane automatycznie po nazwie' );
+				?>
+				<p style="margin:8px 0 0;padding:10px 12px;background:#f6f7f7;border-left:4px solid #2271b1">Teraz w komplecie (<?php echo esc_html( $src[ $auto['source'] ] ); ?>):<br><?php echo implode( ' + ', $names ); // phpcs:ignore ?></p>
+			<?php elseif ( $is_page ) : ?>
+				<p style="margin:8px 0 0;padding:10px 12px;background:#fcf0f1;border-left:4px solid #d63638">Komplet potrzebuje co najmniej 2 części – wybierz je powyżej (albo zostaw puste, jeśli mają się dobrać automatycznie po nazwie).</p>
+			<?php endif; ?>
+		</div>
+		<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+			<p style="margin:0"><label for="_fx_kit_title"><strong>Tytuł sekcji</strong> (na kartach części)</label><br><input type="text" class="widefat" id="_fx_kit_title" name="_fx_kit_title" value="<?php echo esc_attr( get_post_meta( $post->ID, '_fx_kit_title', true ) ); ?>" placeholder="<?php echo $is_page ? esc_attr( get_the_title( $post ) ) : 'Cała grafika jednym kliknięciem'; ?>"></p>
+			<p style="margin:0"><label for="_fx_kit_img"><strong>Zdjęcie całego kompletu</strong> (adres z biblioteki mediów)</label><br><input type="url" class="widefat" id="_fx_kit_img" name="_fx_kit_img" value="<?php echo esc_attr( get_post_meta( $post->ID, '_fx_kit_img', true ) ); ?>" placeholder="puste = zdjęcie główne"></p>
+		</div>
 	</div>
 	<?php
-} );
+}
 
 add_action( 'woocommerce_admin_process_product_object', function ( $product ) {
 	// phpcs:disable WordPress.Security.NonceVerification -- WooCommerce weryfikuje nonce zapisu produktu.
@@ -71,6 +80,10 @@ add_action( 'woocommerce_admin_process_product_object', function ( $product ) {
 		$product->update_meta_data( '_fx_kit_ids', ',' . implode( ',', $ids ) . ',' );
 	} else {
 		$product->delete_meta_data( '_fx_kit_ids' );
+	}
+	if ( isset( $_POST['_fx_is_kit_sent'] ) ) {
+		$product->update_meta_data( '_fx_is_kit', isset( $_POST['_fx_is_kit'] ) ? 'yes' : 'no' );
+		delete_transient( 'fx_kit_index' );
 	}
 	if ( isset( $_POST['_fx_kit_title'] ) ) {
 		$product->update_meta_data( '_fx_kit_title', sanitize_text_field( wp_unslash( $_POST['_fx_kit_title'] ) ) );
@@ -203,6 +216,13 @@ foreach ( array( 'woocommerce_update_product', 'woocommerce_new_product', 'trash
 function fx_kit_is_page( $product ) {
 	$product = $product instanceof WC_Product ? $product : wc_get_product( $product );
 	if ( ! $product ) {
+		return false;
+	}
+	$flag = get_post_meta( $product->get_id(), '_fx_is_kit', true );
+	if ( 'yes' === $flag ) {
+		return true;
+	}
+	if ( 'no' === $flag ) {
 		return false;
 	}
 	if ( has_term( 'composite', 'product_type', $product->get_id() ) ) {
