@@ -62,6 +62,9 @@ function fx_added_html() {
 	}
 	$h .= '<p class="fx-added__price">' . wc_price( wc_get_price_to_display( $p ) ) . ' <span>× ' . (int) $item['quantity'] . '</span></p></div></div>';
 	$h .= $ship;
+	if ( function_exists( 'fox_bl_delivery_render_alert' ) ) {
+		$h .= fox_bl_delivery_render_alert( true );
+	}
 	$h .= '<div class="fx-added__sum">W koszyku: <strong>' . (int) $count . ' ' . esc_html( function_exists( 'fx_pl' ) ? fx_pl( $count, 'produkt', 'produkty', 'produktów' ) : 'szt.' ) . '</strong> za <strong>' . WC()->cart->get_cart_subtotal() . '</strong></div>';
 	$h .= '<div class="fx-added__btns"><button type="button" class="fx-btn fx-btn--outline" data-fx-added-close>Kontynuuj zakupy</button><a class="fx-btn" href="' . esc_url( wc_get_cart_url() ) . '">Przejdź do koszyka</a></div>';
 	$h .= '<a class="fx-added__direct" href="' . esc_url( wc_get_checkout_url() ) . '">lub od razu: <strong>Zamawiam</strong> →</a>';

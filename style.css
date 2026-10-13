@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.9.6
+Version: 3.10.0
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -1373,3 +1373,30 @@ html.fx-added-open{overflow:hidden}
 .fx-ship__desc{margin:0;font-size:13.5px;line-height:1.5;color:var(--fx-ink-2)}
 .fx-ship__count{display:inline-block;margin:8px 0 0;padding:4px 10px;border-radius:var(--fx-pill);background:rgba(26,127,55,.12);color:#16692e;font-size:12.5px;font-weight:700}
 .fx-ship__count[hidden]{display:none}
+
+/* Termin wysyłki i dostawy (BaseLinker) – 3.10.0 */
+.fx-ship__top{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;margin-bottom:2px}
+.fx-ship__top .fx-ship__title{margin:0}
+.fx-ship__badge{display:inline-flex;align-items:center;min-height:20px;padding:2px 8px;border-radius:var(--fx-pill);background:#e6e4df;color:var(--fx-ink-2);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.fx-ship.is-today .fx-ship__badge{background:#d6efd9;color:#16692e}
+.fx-ship{margin:4px 0 16px}
+.fox-delivery-alert{display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;margin:0 0 16px;padding:14px 16px;border:1px solid var(--fx-line-2);border-left:4px solid var(--fx-ink);border-radius:12px;background:#fff;color:var(--fx-ink);text-align:left}
+.fox-delivery-alert--today{background:#f1f8f2;border-color:#bcdcc2;border-left-color:#1a7f37}
+.fox-delivery-alert--unknown{border-left-color:#9a968e}
+.fox-delivery-alert__icon{display:grid;place-items:center;flex:0 0 38px;width:38px;height:38px;border-radius:50%;background:var(--fx-ink);color:#fff}
+.fox-delivery-alert--today .fox-delivery-alert__icon{background:#1a7f37}
+.fox-delivery-alert__icon svg{display:block}
+.fox-delivery-alert__content{flex:1;min-width:0}
+.fox-delivery-alert__headline{margin:0 0 3px;font-size:15px;line-height:1.35;font-weight:700}
+.fox-delivery-alert__delivery{font-size:13.5px;line-height:1.45;color:var(--fx-ink-2)}
+.fox-delivery-alert__delivery strong{color:var(--fx-ink)}
+.fox-delivery-alert__note{margin-top:5px;font-size:12px;line-height:1.4;color:var(--fx-muted)}
+.fox-delivery-countdown{display:inline-block;margin-left:8px;color:#16692e;font-size:12.5px;font-weight:700;white-space:nowrap}
+.fox-delivery-checkout-row>td{padding:0!important;border:0!important;background:transparent!important}
+.woocommerce-checkout table.woocommerce-checkout-review-order-table tr.fox-delivery-checkout-row td{text-align:left}
+.fx-added .fox-delivery-alert{margin:0 0 14px;padding:12px 14px}
+@media (max-width:767px){
+  .fox-delivery-alert{gap:10px;padding:12px 14px}
+  .fox-delivery-alert__icon{flex-basis:34px;width:34px;height:34px}
+  .fox-delivery-alert__headline{font-size:14px}
+}

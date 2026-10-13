@@ -1,5 +1,11 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.10.0 – termin wysyłki i dostawy (BaseLinker) w motywie
+- Kod „FOX – Termin wysyłki i dostawy” 1.2.1 przeniesiony do motywu (inc/modules/delivery.php + delivery-core.php): termin całego koszyka z magazynów BaseLinkera, w koszyku, w zamówieniu i w oknie „Produkt został dodany do koszyka”. Te same ustawienia (Ustawienia → Termin wysyłki FOX, token zostaje) i te same pola zamówienia dla BaseLinkera (szacowana_wysylka, szacowana_dostawa, _fox_dispatch_date, _fox_delivery_date).
+- Polskie święta ustawowe doliczane automatycznie do dni bez wysyłki (karta produktu i obliczanie terminu).
+- Karta produktu: komunikat jak w 1.2.1 („Większość zamówień wysyłamy jeszcze dziś” + plakietka „zamów do 15:00”, nad przyciskiem), korzysta z ustawień „Termin wysyłki FOX”.
+- Bezpiecznie razem ze starym fragmentem: gdy fragment/wtyczka z tym kodem jest włączona, motyw nie ładuje swojej kopii (brak błędu „Cannot redeclare”).
+
 ## 3.9.6 – komunikat o wysyłce na karcie produktu
 - Pod „Dodaj do koszyka” (jak na enduro.sklep.pl): w dzień roboczy przed 15:00 zielone „Zamów do 15:00 — większość produktów wysyłamy jeszcze dziś” z licznikiem; po 15:00, w weekend i w święta neutralne „Sprawdź dokładny termin wysyłki przed zakupem”. Czas polski, polskie święta ustawowe liczone automatycznie (także Wielkanoc, Boże Ciało, Wigilia).
 - Ukrywa się przy niedostępnym wariancie. Godzina graniczna i włączanie w Dostosuj → Narzędzia sklepu.

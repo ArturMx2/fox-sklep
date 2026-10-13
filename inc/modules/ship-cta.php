@@ -1,6 +1,6 @@
 <?php
 /**
- * Komunikat o wysyłce pod przyciskiem „Dodaj do koszyka” (jak na enduro.sklep.pl).
+ * Komunikat o wysyłce nad przyciskiem „Dodaj do koszyka” (jak w „FOX – Termin wysyłki i dostawy” 1.2.1).
  *
  * - dzień roboczy przed godziną graniczną (domyślnie 15:00): „Zamów do 15:00 – większość
  *   produktów wysyłamy jeszcze dziś” + licznik czasu,
@@ -52,32 +52,52 @@ function fx_easter_ts( $y ) {
 	return gmmktime( 0, 0, 0, $month, $day, $y );
 }
 
-add_action( 'woocommerce_after_add_to_cart_button', function () {
-	if ( ! is_product() || ! fx_tool( 'ship_cta' ) ) {
+/** Ustawienia komunikatu: z „Termin wysyłki FOX” (BaseLinker), a gdy go nie ma – z Narzędzi sklepu. */
+function fx_ship_cta_conf() {
+	$conf = array(
+		'on'      => (bool) fx_tool( 'ship_cta' ),
+		'cutoff'  => sprintf( '%02d:00', max( 0, min( 23, (int) fx_tool( 'ship_cutoff' ) ) ) ),
+		'blocked' => array(),
+	);
+	if ( function_exists( 'fox_bl_delivery_get_settings' ) ) {
+		$s               = fox_bl_delivery_get_settings();
+		$conf['on']      = ! empty( $s['show_product_cta'] );
+		$conf['cutoff']  = $s['cutoff_time'];
+		$conf['blocked'] = function_exists( 'fox_bl_delivery_parse_blocked_dates' ) ? array_keys( fox_bl_delivery_parse_blocked_dates( $s['blocked_dates'] ) ) : array();
+	}
+	$y               = (int) wp_date( 'Y' );
+	$conf['blocked'] = array_values( array_unique( array_merge( $conf['blocked'], fx_pl_holidays( $y ), fx_pl_holidays( $y + 1 ) ) ) );
+	return $conf;
+}
+
+/* Nad wyborem ilości i przyciskiem (jak w „FOX – Termin wysyłki i dostawy” 1.2.1). */
+add_action( 'woocommerce_before_add_to_cart_button', function () {
+	if ( ! is_product() ) {
+		return;
+	}
+	$conf = fx_ship_cta_conf();
+	if ( ! $conf['on'] ) {
 		return;
 	}
 	global $product;
 	if ( ! $product instanceof WC_Product || ! $product->is_purchasable() ) {
 		return;
 	}
-	$y        = (int) wp_date( 'Y' );
-	$holidays = array_merge( fx_pl_holidays( $y ), fx_pl_holidays( $y + 1 ) );
-	$cutoff   = max( 0, min( 23, (int) fx_tool( 'ship_cutoff' ) ) );
-	$ok       = $product->is_in_stock();
+	$ok = $product->is_in_stock();
 	?>
-	<div class="fx-ship" id="fx-ship" data-cutoff="<?php echo (int) $cutoff; ?>" data-holidays="<?php echo esc_attr( implode( ',', $holidays ) ); ?>" data-available="<?php echo $ok ? '1' : '0'; ?>" aria-live="polite"<?php echo $ok ? '' : ' hidden'; ?>>
-		<span class="fx-ship__icon" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.6"/><circle cx="17" cy="17.5" r="1.6"/></svg></span>
+	<div class="fx-ship" id="fx-ship" data-cutoff="<?php echo esc_attr( $conf['cutoff'] ); ?>" data-holidays="<?php echo esc_attr( implode( ',', $conf['blocked'] ) ); ?>" data-available="<?php echo $ok ? '1' : '0'; ?>" aria-live="polite"<?php echo $ok ? '' : ' hidden'; ?>>
+		<span class="fx-ship__icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6.5h10v9h-10zM13.5 9h3.4l3.1 3.2v3.3h-6.5z"/><circle cx="7" cy="17.3" r="1.7"/><circle cx="17" cy="17.3" r="1.7"/></svg></span>
 		<div class="fx-ship__body">
-			<p class="fx-ship__title" data-fx-ship-title>Sprawdź dokładny termin wysyłki</p>
-			<p class="fx-ship__desc" data-fx-ship-desc>Dodaj produkt do koszyka, aby zobaczyć przewidywaną datę wysyłki i dostawy.</p>
+			<div class="fx-ship__top"><p class="fx-ship__title" data-fx-ship-title>Sprawdź dokładny termin dostawy</p><span class="fx-ship__badge" data-fx-ship-badge>w koszyku</span></div>
+			<p class="fx-ship__desc" data-fx-ship-desc>Dodaj produkt do koszyka — od razu pokażemy przewidywaną datę wysyłki i dostawy.</p>
 			<p class="fx-ship__count" data-fx-ship-count hidden></p>
 		</div>
 	</div>
 	<?php
-}, 25 );
+}, 8 );
 
 add_action( 'wp_footer', function () {
-	if ( ! is_product() || ! fx_tool( 'ship_cta' ) ) {
+	if ( ! is_product() ) {
 		return;
 	}
 	?>
@@ -85,32 +105,35 @@ add_action( 'wp_footer', function () {
 	(function () {
 		var box = document.getElementById('fx-ship');
 		if (!box) { return; }
-		var t = box.querySelector('[data-fx-ship-title]'), d = box.querySelector('[data-fx-ship-desc]'), c = box.querySelector('[data-fx-ship-count]');
-		var cutoff = parseInt(box.dataset.cutoff || '15', 10), hol = (box.dataset.holidays || '').split(','), parentOk = box.dataset.available === '1';
+		var t = box.querySelector('[data-fx-ship-title]'), d = box.querySelector('[data-fx-ship-desc]'), c = box.querySelector('[data-fx-ship-count]'), bdg = box.querySelector('[data-fx-ship-badge]');
+		var cp = (box.dataset.cutoff || '15:00').split(':'), ch = parseInt(cp[0] || '15', 10), cm = parseInt(cp[1] || '0', 10), hol = (box.dataset.holidays || '').split(','), parentOk = box.dataset.available === '1';
+		function two(v) { return (v < 10 ? '0' : '') + v; }
 		function now() {
 			try {
 				var p = {}; new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Warsaw', year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(new Date()).forEach(function (x) { p[x.type] = x.value; });
 				return { wd: { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 }[p.weekday] || 7, date: p.year + '-' + p.month + '-' + p.day, s: (+p.hour) * 3600 + (+p.minute) * 60 + (+p.second) };
 			} catch (e) {
-				var n = new Date(), w = n.getDay() || 7, pad = function (v) { return (v < 10 ? '0' : '') + v; };
-				return { wd: w, date: n.getFullYear() + '-' + pad(n.getMonth() + 1) + '-' + pad(n.getDate()), s: n.getHours() * 3600 + n.getMinutes() * 60 + n.getSeconds() };
+				var n = new Date();
+				return { wd: n.getDay() || 7, date: n.getFullYear() + '-' + two(n.getMonth() + 1) + '-' + two(n.getDate()), s: n.getHours() * 3600 + n.getMinutes() * 60 + n.getSeconds() };
 			}
 		}
 		function pl(n, a, b, cc) { var l = n % 10, ll = n % 100; return n === 1 ? a : (l >= 2 && l <= 4 && !(ll >= 12 && ll <= 14) ? b : cc); }
 		function update() {
 			if (box.hidden) { return; }
-			var x = now(), work = x.wd <= 5 && hol.indexOf(x.date) === -1, cut = cutoff * 3600;
+			var x = now(), cut = ch * 3600 + cm * 60, work = x.wd <= 5 && hol.indexOf(x.date) === -1;
 			if (work && x.s < cut) {
 				box.classList.add('is-today');
-				t.textContent = 'Zamów do ' + (cutoff < 10 ? '0' : '') + cutoff + ':00 — większość produktów wysyłamy jeszcze dziś';
-				d.textContent = 'Dodaj do koszyka, aby od razu sprawdzić dokładny termin wysyłki i dostawy.';
+				t.textContent = 'Większość zamówień wysyłamy jeszcze dziś';
+				bdg.textContent = 'zamów do ' + two(ch) + ':' + two(cm);
+				d.textContent = 'Dokładną datę wysyłki i dostawy pokażemy od razu po dodaniu produktu do koszyka.';
 				var m = Math.max(0, Math.ceil((cut - x.s) / 60)), h = Math.floor(m / 60); m = m % 60;
-				c.textContent = 'Do wysyłki dzisiaj zostało: ' + (h > 0 ? h + ' ' + pl(h, 'godzina', 'godziny', 'godzin') + (m > 0 ? ' ' + m + ' min' : '') : m + ' ' + pl(m, 'minuta', 'minuty', 'minut'));
+				c.textContent = 'Do godziny granicznej pozostało ' + (h > 0 ? h + ' ' + pl(h, 'godzina', 'godziny', 'godzin') + (m > 0 ? ' ' + m + ' min' : '') : m + ' ' + pl(m, 'minuta', 'minuty', 'minut'));
 				c.hidden = false;
 			} else {
 				box.classList.remove('is-today');
-				t.textContent = 'Sprawdź dokładny termin wysyłki przed zakupem';
-				d.textContent = 'Dodaj produkt do koszyka — przewidywaną datę wysyłki i dostawy pokażemy od razu. Nie musisz przechodzić do płatności.';
+				t.textContent = 'Sprawdź dokładny termin dostawy';
+				bdg.textContent = 'w koszyku';
+				d.textContent = 'Dodaj produkt do koszyka — od razu pokażemy przewidywaną datę wysyłki i dostawy.';
 				c.textContent = ''; c.hidden = true;
 			}
 		}
