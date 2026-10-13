@@ -492,4 +492,43 @@
 			if (track && window.innerWidth < 1025) { track.scrollTo({ left: 0, behavior: 'smooth' }); }
 		});
 	})();
+
+	/* Wstęp kategorii: zwiń, jeśli dłuższy niż ~3 linie */
+	document.querySelectorAll('[data-fx-clamp]').forEach(function (box) {
+		var text = box.querySelector('.fx-cat-intro__text'), btn = box.querySelector('.fx-cat-intro__toggle');
+		if (!text || !btn) { return; }
+		box.classList.add('is-clamped');
+		if (text.scrollHeight <= text.clientHeight + 8) { box.classList.remove('is-clamped'); return; }
+		btn.hidden = false;
+		btn.addEventListener('click', function () {
+			var open = box.classList.toggle('is-clamped') === false;
+			btn.textContent = open ? 'Pokaż mniej' : 'Pokaż więcej';
+			btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+		});
+	});
+
+	/* „Wróć do kategorii”: zapamiętaj listę, z której klient wchodzi w produkt (z filtrami i stroną),
+	   a na karcie produktu wróć dokładnie tam (przycisk Wstecz zachowuje miejsce na liście). */
+	(function () {
+		var store;
+		try { store = window.sessionStorage; } catch (e) { store = null; }
+		if (!store) { return; }
+		if (document.body.classList.contains('tax-product_cat') || document.body.classList.contains('post-type-archive-product') || document.body.classList.contains('tax-product_tag')) {
+			var h1 = document.querySelector('.woocommerce-products-header__title, h1.page-title');
+			try { store.setItem('fxLastList', JSON.stringify({ url: location.href.split('#')[0], title: h1 ? h1.textContent.trim() : '' })); } catch (e) {}
+			return;
+		}
+		var back = document.querySelector('[data-fx-back]');
+		if (!back) { return; }
+		var last;
+		try { last = JSON.parse(store.getItem('fxLastList') || 'null'); } catch (e) { last = null; }
+		if (!last || !last.url || !document.referrer) { return; }
+		var strip = function (u) { return u.replace(/\/page\/\d+\/?/, '/').split('#')[0]; };
+		if (strip(document.referrer) !== strip(last.url)) { return; }
+		back.href = last.url;
+		if (last.title) { back.querySelector('strong').textContent = last.title; }
+		back.addEventListener('click', function (e) {
+			if (window.history.length > 1) { e.preventDefault(); window.history.back(); }
+		});
+	})();
 })(jQuery);

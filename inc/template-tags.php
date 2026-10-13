@@ -85,21 +85,27 @@ function fx_rich( $html ) {
  */
 function fx_breadcrumb() {
 	if ( function_exists( 'rank_math_the_breadcrumbs' ) && class_exists( '\\RankMath\\Helper' ) && method_exists( '\\RankMath\\Helper', 'get_settings' ) && \RankMath\Helper::get_settings( 'general.breadcrumbs' ) ) {
+		echo '<div class="fx-bc">';
 		rank_math_the_breadcrumbs();
+		echo '</div>';
 		return;
 	}
 	if ( function_exists( 'yoast_breadcrumb' ) ) {
 		$opts = get_option( 'wpseo_titles' );
 		if ( is_array( $opts ) && ! empty( $opts['breadcrumbs-enable'] ) ) {
-			yoast_breadcrumb( '<nav class="fx-breadcrumb" aria-label="Okruszki">', '</nav>' );
+			add_filter( 'wpseo_breadcrumb_separator', 'fx_bc_sep' );
+			yoast_breadcrumb( '<nav class="fx-breadcrumb fx-bc" aria-label="Okruszki">', '</nav>' );
+			remove_filter( 'wpseo_breadcrumb_separator', 'fx_bc_sep' );
 			return;
 		}
 	}
 	if ( function_exists( 'woocommerce_breadcrumb' ) ) {
 		woocommerce_breadcrumb(
 			array(
-				'delimiter'   => ' <span aria-hidden="true">/</span> ',
-				'wrap_before' => '<nav class="woocommerce-breadcrumb" aria-label="Okruszki">',
+				'delimiter'   => '<span class="fx-bc__sep" aria-hidden="true"></span>',
+				'wrap_before' => '<nav class="woocommerce-breadcrumb fx-bc" aria-label="Okruszki">',
+				'before'      => '<span class="fx-bc__item">',
+				'after'       => '</span>',
 				'wrap_after'  => '</nav>',
 				'home'        => 'Strona główna',
 			)
@@ -180,4 +186,8 @@ function fx_clean_html( $html ) {
 	$html = preg_replace( '#<font[^>]*>|</font>#i', '', $html );
 	$html = preg_replace( '#<p[^>]*>(?:\s|&nbsp;|&\#160;|\xC2\xA0|<br\s*/?>)*</p>#i', '', $html );
 	return $html;
+}
+
+function fx_bc_sep() {
+	return '<span class="fx-bc__sep" aria-hidden="true"></span>';
 }

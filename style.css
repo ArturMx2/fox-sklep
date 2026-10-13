@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 2.7.0
+Version: 2.7.1
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -255,8 +255,27 @@ button,input,select,textarea{font:inherit;color:inherit}
 .fx-footer__bottom a{color:var(--fx-muted)}
 
 /* ---------- Okruszki ---------- */
-.woocommerce-breadcrumb,.fx-breadcrumb,.rank-math-breadcrumb,#breadcrumbs{font-size:13px;color:var(--fx-muted);margin:20px 0 0}
-.woocommerce-breadcrumb a,.fx-breadcrumb a,.rank-math-breadcrumb a,#breadcrumbs a{color:var(--fx-muted)}
+/* Okruszki: każdy poziom to wyraźny, klikalny link; strzałki między poziomami. */
+.fx-bc,.woocommerce .woocommerce-breadcrumb.fx-bc{display:flex;align-items:center;flex-wrap:wrap;gap:2px 0;font-size:14px;line-height:1.3;color:var(--fx-muted);margin:18px 0 0;padding:0}
+.fx-bc>span:not(.fx-bc__sep),.fx-bc .rank-math-breadcrumb p,.fx-bc .rank-math-breadcrumb{display:contents}
+.fx-bc a{display:inline-flex;align-items:center;min-height:32px;padding:0 2px;color:var(--fx-ink)!important;font-weight:500;text-decoration:none;border-radius:4px}
+.fx-bc a:hover{text-decoration:underline;text-underline-offset:3px}
+.fx-bc__sep{display:inline-block;width:6px;height:6px;border-right:1.5px solid #9a968e;border-top:1.5px solid #9a968e;transform:rotate(45deg);margin:0 11px 0 7px;flex:none}
+.rank-math-breadcrumb .separator{margin:0 8px;color:#9a968e}
+.fx-bc .breadcrumb_last,.fx-bc>.fx-bc__item:last-child{color:var(--fx-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:40ch}
+/* Na karcie produktu nazwa produktu stoi tuż pod okruszkami – w okruszkach pomijamy ostatni poziom. */
+.single-product .fx-bc .breadcrumb_last,.single-product .fx-bc>.fx-bc__item:last-child{display:none}
+.single-product .fx-bc>.fx-bc__sep:nth-last-child(2){display:none}
+/* Przycisk powrotu do kategorii (karta produktu) */
+.fx-back{display:inline-flex;align-items:center;gap:8px;margin:18px 0 0;padding:9px 16px 9px 12px;border:1.5px solid #cfccc5;border-radius:var(--fx-pill);font-size:14px;color:var(--fx-ink);text-decoration:none;line-height:1.2;max-width:100%}
+.fx-back:hover{border-color:var(--fx-ink);color:var(--fx-ink)}
+.fx-back span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fx-back strong{font-weight:600}
+.fx-back + .fx-bc{margin-top:10px}
+@media (max-width:700px){
+  .fx-bc,.woocommerce .woocommerce-breadcrumb.fx-bc{flex-wrap:nowrap;overflow-x:auto;white-space:nowrap;scrollbar-width:none;font-size:13.5px;margin-right:calc(var(--fx-gutter)*-1);padding-right:var(--fx-gutter)}
+  .fx-bc::-webkit-scrollbar{display:none}
+}
 
 /* =====================================================================
    SKLEP – style na STANDARDOWYM HTML WooCommerce (bez nadpisanych szablonów).
@@ -268,10 +287,16 @@ button,input,select,textarea{font:inherit;color:inherit}
 .fx-shop .woocommerce-products-header__title,.fx-shop h1.page-title{font-size:clamp(34px,4.5vw,56px);letter-spacing:-.02em;line-height:1.05;margin:16px 0 8px}
 
 /* Wstęp kategorii */
-.fx-cat-intro{max-width:780px;margin:8px 0 0;color:var(--fx-ink-2);font-size:16px;line-height:1.6}
-.fx-cat-intro p:last-child{margin-bottom:0}
-.fx-cat-intro a{text-decoration:underline;text-underline-offset:3px}
-.fx-cat-intro h1,.fx-cat-intro h2,.fx-cat-intro h3,.fx-cat-intro h4{font-family:var(--fx-body);font-size:16px;font-weight:700;letter-spacing:0;margin:0 0 4px;color:var(--fx-ink)}
+/* Wstęp kategorii nad produktami: cała szerokość, zwinięty do kilku linii z „Pokaż więcej” (tekst cały w HTML – widzi go Google). */
+.fx-cat-intro{margin:6px 0 0}
+.fx-cat-intro__text.fx-prose.fx-prose{max-width:none;font-size:16px!important;line-height:1.7!important}
+.fx-cat-intro__text.fx-prose :where(h2,h3,h4){font-size:17px!important;font-family:var(--fx-body)!important;font-weight:700!important;margin:.9em 0 .3em}
+.fx-cat-intro__text.fx-prose p{margin:0 0 .6em}
+.fx-cat-intro.is-clamped .fx-cat-intro__text{max-height:calc(1.7em*3.2);overflow:hidden;-webkit-mask-image:linear-gradient(#000 55%,transparent);mask-image:linear-gradient(#000 55%,transparent)}
+.fx-cat-intro__more{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:6px;font-size:14px}
+.fx-cat-intro__more:empty{display:none}
+.fx-cat-intro__toggle{background:none;border:0;padding:0;font:inherit;font-weight:600;color:var(--fx-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.fx-cat-intro__more a{color:var(--fx-muted);text-decoration:underline;text-underline-offset:3px}
 .fx-cat-intro img{display:none}
 .fx-cat-desc{clear:both;margin-top:64px;padding-top:48px;border-top:1px solid var(--fx-line)}
 .fx-cat-desc__body.fx-prose{max-width:none;column-gap:64px}

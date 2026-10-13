@@ -73,11 +73,13 @@ function fx_archive_intro() {
 	if ( '' === trim( wp_strip_all_tags( $top ) ) ) {
 		return;
 	}
-	echo '<div class="term-description fx-cat-intro">' . fx_rich( $top ); // phpcs:ignore
+	echo '<div class="term-description fx-cat-intro" data-fx-clamp><div class="fx-cat-intro__text fx-prose">' . fx_rich( $top ) . '</div>'; // phpcs:ignore
+	echo '<div class="fx-cat-intro__more">';
+	echo '<button type="button" class="fx-cat-intro__toggle" aria-expanded="false" hidden>Pokaż więcej</button>';
 	if ( '' !== trim( wp_strip_all_tags( $bot ) ) ) {
-		echo '<p><a href="#fx-opis">Czytaj pełny opis</a></p>';
+		echo '<a href="#fx-opis">Czytaj pełny opis</a>';
 	}
-	echo '</div>';
+	echo '</div></div>';
 }
 
 /* Pełny opis pod listingiem – na końcu treści sklepu, przed zamknięciem opakowania. */
@@ -385,3 +387,45 @@ add_action( 'woocommerce_before_single_product_summary', function () {
 add_action( 'woocommerce_after_single_product_summary', function () {
 	echo '</div>';
 }, 1 );
+
+/* =====================================================================
+ * KARTA PRODUKTU: „Wróć do kategorii” nad okruszkami
+ * Domyślnie kategoria główna produktu (Yoast „Ustaw jako główną”), inaczej najgłębsza.
+ * Skrypt podmienia link na listę, z której klient przyszedł (z filtrami i miejscem na liście).
+ * ===================================================================== */
+function fx_product_back_term( $product_id ) {
+	if ( function_exists( 'yoast_get_primary_term_id' ) ) {
+		$pid = (int) yoast_get_primary_term_id( 'product_cat', $product_id );
+		if ( $pid ) {
+			$t = get_term( $pid, 'product_cat' );
+			if ( $t instanceof WP_Term ) {
+				return $t;
+			}
+		}
+	}
+	$terms = get_the_terms( $product_id, 'product_cat' );
+	if ( ! $terms || is_wp_error( $terms ) ) {
+		return null;
+	}
+	$best = null;
+	$depth = -1;
+	foreach ( $terms as $t ) {
+		$d = count( get_ancestors( $t->term_id, 'product_cat' ) );
+		if ( $d > $depth ) {
+			$best  = $t;
+			$depth = $d;
+		}
+	}
+	return $best;
+}
+
+add_action( 'woocommerce_before_main_content', function () {
+	if ( ! is_product() ) {
+		return;
+	}
+	$t = fx_product_back_term( get_queried_object_id() );
+	if ( ! $t ) {
+		return;
+	}
+	echo '<a class="fx-back" data-fx-back href="' . esc_url( get_term_link( $t ) ) . '"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg><span>Wróć do: <strong>' . esc_html( $t->name ) . '</strong></span></a>';
+}, 19 );

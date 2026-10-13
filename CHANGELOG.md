@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 2.7.1 – wstęp kategorii i nawigacja
+- Opis kategorii nad produktami: na całą szerokość, zwinięty do ~3 linii z „Pokaż więcej” (cały tekst zostaje w HTML dla Google), obok „Czytaj pełny opis”.
+- Okruszki: wyraźne linki ze strzałkami, większe pola kliknięcia, na telefonie w jednej linii z przewijaniem. Na karcie produktu bez powtarzania nazwy produktu.
+- Karta produktu: przycisk „Wróć do: [kategoria]”. Jeśli klient przyszedł z listy (także z filtrami i doczytanymi produktami), wraca dokładnie tam; przy wejściu z Google – do kategorii głównej produktu (Yoast „Ustaw jako główną”) albo najgłębszej.
+
 ## 2.7.0 – galeria przewijana, opis kategorii na całą szerokość
 - Karta produktu (komputer): zdjęcia jedno pod drugim (pierwsze duże, kolejne po dwa), kolumna z ceną i przyciskiem przyklejona obok. Przewijając, oglądasz zdjęcia; po ostatnim zdjęciu cała sekcja jedzie dalej w dół. Gdy kolumna jest wyższa niż ekran, przykleja się dołem (przycisk koszyka zawsze widoczny).
 - Telefon: zdjęcia przesuwane palcem, licznik „3 / 6”. Zmiana wariantu pokazuje jego zdjęcie.
