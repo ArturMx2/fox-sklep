@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 2.3.1
+- „Sprawdź podobne produkty” na karcie produktu – logika przeniesiona 1:1 z dotychczasowego kodu fox.sklep.pl
+  (kategoria najniższego rzędu, tylko dostępne, min. 2 wspólne słowa w nazwie, remis = droższy wyżej),
+  zastępuje „Z tej serii”. Dodana pamięć podręczna wyników (12 h). 6 produktów (2 rzędy po 3).
+
 ## 2.3.0
 - Filtry w kategoriach: Rozmiar i Kolor (kółka w kolorze z atrybutu), tylko wartości występujące w danej
   kategorii, łączenie filtrów, aktywne filtry z krzyżykiem i „Wyczyść filtry”. Wbudowane filtrowanie
