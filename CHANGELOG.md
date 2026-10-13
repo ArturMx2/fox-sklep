@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 2.8.0 – włącznik „Promocje”
+- W pasku filtrów kategorii włącznik „Promocje” – pokazuje tylko produkty w promocji (także warianty). Działa razem z rozmiarem, kolorem, sortowaniem i nieskończonym przewijaniem.
+- Widoczny tylko w kategoriach, w których jest choć jedna promocja. Strony z włączonym filtrem mają noindex (adres ?filter_promocja=1).
+
 ## 2.7.1 – wstęp kategorii i nawigacja
 - Opis kategorii nad produktami: na całą szerokość, zwinięty do ~3 linii z „Pokaż więcej” (cały tekst zostaje w HTML dla Google), obok „Czytaj pełny opis”.
 - Okruszki: wyraźne linki ze strzałkami, większe pola kliknięcia, na telefonie w jednej linii z przewijaniem. Na karcie produktu bez powtarzania nazwy produktu.

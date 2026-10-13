@@ -136,11 +136,16 @@ function fx_filters_bar() {
 			$groups[] = array( $role, $label, $taxes[ $role ], $terms );
 		}
 	}
-	if ( ! $groups ) {
+	$sale_on   = fx_filter_sale_on();
+	$sale_have = $sale_on || fx_filter_sale_in_cat( $term );
+	if ( ! $groups && ! $sale_have ) {
 		return;
 	}
 	$active = array();
 	echo '<div class="fx-filters" role="group" aria-label="Filtry">';
+	if ( $sale_have ) {
+		echo '<a rel="nofollow" class="fx-chip fx-switch' . ( $sale_on ? ' is-on' : '' ) . '" role="switch" aria-checked="' . ( $sale_on ? 'true' : 'false' ) . '" href="' . esc_url( fx_filter_sale_url() ) . '"><span class="fx-switch__ui" aria-hidden="true"></span>Promocje</a>';
+	}
 	foreach ( $groups as $g ) {
 		list( $role, $label, $tax, $terms ) = $g;
 		$sel = fx_filter_selected( $tax );
@@ -160,7 +165,7 @@ function fx_filters_bar() {
 		}
 		echo '</div></details>';
 	}
-	if ( $active ) {
+	if ( $active || $sale_on ) {
 		echo '<div class="fx-filter__active">';
 		foreach ( $active as $a ) {
 			echo '<a rel="nofollow" class="fx-chip is-active" href="' . esc_url( $a[1] ) . '" aria-label="Usuń filtr ' . esc_attr( $a[0] ) . '">' . esc_html( $a[0] ) . ' ×</a>';
@@ -169,6 +174,59 @@ function fx_filters_bar() {
 	}
 	echo '</div>';
 }
+
+/* =====================================================================
+ * Włącznik „Promocje”: ?filter_promocja=1 – tylko produkty w promocji.
+ * Nazwa zaczyna się od filter_, więc działa z resztą filtrów, paginacją, nieskończonym
+ * przewijaniem i noindex jak pozostałe filtry.
+ * ===================================================================== */
+function fx_filter_sale_on() {
+	return ! empty( $_GET['filter_promocja'] ); // phpcs:ignore WordPress.Security.NonceVerification
+}
+
+function fx_filter_sale_url() {
+	$url = remove_query_arg( array( 'filter_promocja', 'paged' ), fx_filter_base_url() );
+	return fx_filter_sale_on() ? $url : add_query_arg( 'filter_promocja', '1', $url );
+}
+
+/** Czy w kategorii (z podkategoriami) jest choć jeden produkt w promocji – żeby nie pokazywać pustego włącznika. */
+function fx_filter_sale_in_cat( $term ) {
+	$key   = 'fx_flt_sale_' . $term->term_id;
+	$cache = get_transient( $key );
+	if ( false !== $cache ) {
+		return (bool) $cache;
+	}
+	$sale = wc_get_product_ids_on_sale();
+	$has  = 0;
+	if ( $sale ) {
+		$q   = new WP_Query(
+			array(
+				'post_type'      => 'product',
+				'post_status'    => 'publish',
+				'post__in'       => $sale,
+				'posts_per_page' => 1,
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+				'tax_query'      => array( array( 'taxonomy' => 'product_cat', 'terms' => $term->term_id, 'include_children' => true ) ), // phpcs:ignore
+			)
+		);
+		$has = $q->posts ? 1 : 0;
+	}
+	set_transient( $key, $has, HOUR_IN_SECONDS );
+	return (bool) $has;
+}
+
+add_action( 'woocommerce_product_query', function ( $q ) {
+	if ( ! fx_filter_sale_on() ) {
+		return;
+	}
+	$ids = array_map( 'intval', wc_get_product_ids_on_sale() );
+	$cur = (array) $q->get( 'post__in' );
+	if ( $cur ) {
+		$ids = array_values( array_intersect( $ids, array_map( 'intval', $cur ) ) );
+	}
+	$q->set( 'post__in', $ids ? $ids : array( 0 ) );
+} );
 
 /* Strony z filtrami nie trafiają do indeksu Google (oryginalna kategoria zostaje bez zmian). */
 add_filter( 'wp_robots', function ( $robots ) {
