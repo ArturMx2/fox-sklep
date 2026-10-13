@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.6.1 – etykiety z nazwy produktu
+- WooCommerce → Etykiety z nazwy: reguły „nazwa zawiera: lady|women|damsk → etykieta Damskie, kolor” (jak „Dynamiczne naklejki” z enduro.sklep.pl). Nic nie zapisuje się w produktach.
+- Etykiety w stylu motywu (pigułki na zdjęciu, obok promocji i nowości), na listingu i karcie produktu; kolor tekstu (biały/czarny) dobierany automatycznie do tła. Tryb: pierwsza pasująca albo wszystkie (razem najwyżej 4 etykiety).
+- Reguły ze starej wtyczki przejmowane automatycznie (przyda się na enduro.sklep.pl).
+
 ## 3.6.0 – komplety jak Fox UK, ale z koszykiem
 - „Co jest w zestawie?”: duże kafle części (zdjęcie, typ części – Koszulka/Spodnie/Kask…, nazwa, cena z przekreśloną regularną), 3 w rzędzie na stronie kompletu, 2 na telefonie. Etykieta „Do −X% w zestawie”.
 - Rozmiar wybierany przyciskami prosto w kaflu (tylko dostępne rozmiary); produkty w jednym rozmiarze bez wyboru. Kółko ✓ na zdjęciu dodaje/odejmuje część.

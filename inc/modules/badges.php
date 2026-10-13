@@ -116,7 +116,11 @@ function fx_badges_html( $product, $extra_class = '' ) {
 	}
 	$html = '<span class="fx-badges ' . esc_attr( $extra_class ) . '">';
 	foreach ( $badges as $b ) {
-		$html .= '<span class="fx-badge fx-badge--' . esc_attr( $b[1] ) . '">' . esc_html( $b[0] ) . '</span>';
+		$style = '';
+		if ( 'custom' === $b[1] && ! empty( $b[2] ) && function_exists( 'fx_tb_text_color' ) ) {
+			$style = ' style="background:' . esc_attr( $b[2] ) . ';color:' . esc_attr( fx_tb_text_color( $b[2] ) ) . ';box-shadow:none"';
+		}
+		$html .= '<span class="fx-badge fx-badge--' . esc_attr( $b[1] ) . '"' . $style . '>' . esc_html( $b[0] ) . '</span>';
 	}
 	return $html . '</span>';
 }
