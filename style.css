@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.9.2
+Version: 3.9.3
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -1262,3 +1262,61 @@ html,body{max-width:100%;overflow-x:clip}
 .woocommerce-checkout form.checkout::before,.woocommerce-checkout form.checkout::after,
 .woocommerce-checkout .woocommerce-billing-fields__field-wrapper::before,.woocommerce-checkout .woocommerce-billing-fields__field-wrapper::after,
 .woocommerce-checkout .woocommerce-shipping-fields__field-wrapper::before,.woocommerce-checkout .woocommerce-shipping-fields__field-wrapper::after{display:none!important}
+
+/* ==========================================================================
+   Prowadzenie do zamówienia – 3.9.3
+   ========================================================================== */
+.woocommerce-message .button,.woocommerce-message a.button,.woocommerce-info .button{color:#fff!important;background:var(--fx-ink)!important;border-color:var(--fx-ink)!important}
+
+/* „Zamawiam” w nagłówku */
+.fx-hcta{display:inline-flex;align-items:center;gap:10px;height:44px;padding:0 20px;margin-left:8px;border-radius:var(--fx-pill);background:var(--fx-ink);color:#fff;font:600 15px/1 var(--fx-body);white-space:nowrap}
+.fx-hcta:hover{color:#fff;opacity:.88}
+.fx-hcta__sum{font-weight:400;opacity:.85;padding-left:10px;border-left:1px solid rgba(255,255,255,.35)}
+.fx-hcta__sum .amount{color:#fff}
+.fx-hcta[data-count="0"]{display:none}
+.fx-cart-count{background:var(--fx-sale)}
+@media (max-width:900px){.fx-hcta{display:none!important}}
+
+/* Pasek na telefonie */
+.fx-mbar{display:none}
+@media (max-width:900px){
+  .fx-mbar{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;align-items:center;gap:12px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--fx-line);box-shadow:0 -6px 20px rgba(0,0,0,.08)}
+  .fx-mbar[data-count="0"]{display:none}
+  .fx-mbar__cart{flex:1;display:flex;flex-direction:column;line-height:1.2;color:var(--fx-ink);min-width:0}
+  .fx-mbar__n{font-size:12px;color:var(--fx-muted)}
+  .fx-mbar__sum{font-weight:700;font-size:17px}
+  .fx-mbar__go{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;height:50px;padding:0 28px;border-radius:var(--fx-pill);background:var(--fx-ink);color:#fff;font-weight:600;font-size:16px}
+  .fx-mbar__go:hover{color:#fff}
+  body.fx-has-mbar{padding-bottom:76px}
+  body.fx-kit-page .fx-mbar{display:none}
+  body.fx-kit-page.fx-has-mbar{padding-bottom:0}
+}
+
+/* Okno „Produkt został dodany do koszyka” */
+.fx-added[hidden]{display:none}
+.fx-added{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px}
+.fx-added__bg{position:absolute;inset:0;background:rgba(12,10,8,.55)}
+.fx-added__box{position:relative;background:#fff;width:100%;max-width:560px;max-height:calc(100vh - 32px);overflow:auto;border-radius:16px;padding:32px;box-shadow:0 20px 60px rgba(0,0,0,.25);animation:fxAddedIn .18s ease-out}
+@keyframes fxAddedIn{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}
+html.fx-added-open{overflow:hidden}
+.fx-added__x{position:absolute;top:10px;right:12px;width:40px;height:40px;border:0;background:none;font-size:30px;line-height:1;cursor:pointer;color:var(--fx-ink)}
+.fx-added__title{font:600 22px/1.2 var(--fx-display);margin:0 30px 20px 0;display:flex;align-items:center;gap:10px}
+.fx-added__ok{width:28px;height:28px;border-radius:50%;background:#1a7f37;color:#fff;font-size:16px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+.fx-added__row{display:flex;gap:18px;align-items:center;margin-bottom:18px}
+.fx-added__row img,.fx-added__img{width:120px!important;height:120px!important;object-fit:contain;background:var(--fx-pack);border-radius:10px;margin:0!important;flex:0 0 auto}
+.fx-added__name{font-weight:600;margin:0 0 6px;line-height:1.3}
+.fx-added__meta{margin:0 0 6px;font-size:14px;color:var(--fx-ink-2)}
+.fx-added__price{margin:0;font-size:20px;font-weight:700}
+.fx-added__price span{font-size:14px;font-weight:400;color:var(--fx-muted)}
+.fx-added .fx-freeship{margin:0 0 14px}
+.fx-added__sum{font-size:15px;margin:0 0 18px;color:var(--fx-ink-2)}
+.fx-added__btns{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fx-added__btns .fx-btn{width:100%;min-height:54px;justify-content:center;font-size:16px}
+.fx-added__direct{display:block;text-align:center;margin-top:14px;font-size:15px;text-decoration:underline;text-underline-offset:3px}
+@media (max-width:600px){
+  .fx-added{align-items:flex-end;padding:0}
+  .fx-added__box{border-radius:16px 16px 0 0;padding:24px 18px calc(18px + env(safe-area-inset-bottom));max-height:92vh}
+  .fx-added__row img,.fx-added__img{width:88px!important;height:88px!important}
+  .fx-added__btns{grid-template-columns:1fr}
+  .fx-added__btns .fx-btn--outline{order:2}
+}

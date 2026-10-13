@@ -49,6 +49,7 @@ defined( 'ABSPATH' ) || exit;
 				<?php endif; ?>
 				<a class="fx-icon-btn" href="<?php echo esc_url( wc_get_page_permalink( 'myaccount' ) ); ?>" aria-label="Moje konto"><?php echo fx_icon( 'user', 24 ); // phpcs:ignore ?></a>
 				<a class="fx-icon-btn" href="<?php echo esc_url( wc_get_cart_url() ); ?>" aria-label="Koszyk"><?php echo fx_icon( 'bag', 24 ); // phpcs:ignore ?><?php fx_cart_count(); ?></a>
+				<?php if ( function_exists( 'fx_header_cta' ) ) { fx_header_cta(); } ?>
 			<?php else : ?>
 				<?php get_search_form(); ?>
 			<?php endif; ?>
