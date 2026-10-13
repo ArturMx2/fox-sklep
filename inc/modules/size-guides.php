@@ -12,24 +12,74 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/*
+ * Tabele mają też własne strony pod starymi adresami CommerceKit (/ckit_size_guide/nazwa/) –
+ * Google ma je w indeksie i przynoszą ruch. Gdy CommerceKit jest jeszcze włączony, adresy
+ * obsługuje on, a nasze tabele zostają tylko w panelu (bez konfliktu).
+ */
+function fx_sg_public() {
+	return ! post_type_exists( 'ckit_size_guide' );
+}
+
 add_action( 'init', function () {
+	$public = fx_sg_public();
 	register_post_type(
 		'fx_size_guide',
 		array(
-			'labels'       => array(
+			'labels'              => array(
 				'name'          => 'Tabele rozmiarów',
 				'singular_name' => 'Tabela rozmiarów',
 				'add_new_item'  => 'Dodaj tabelę rozmiarów',
 				'edit_item'     => 'Edytuj tabelę rozmiarów',
 				'menu_name'     => 'Tabele rozmiarów',
 			),
-			'public'       => false,
-			'show_ui'      => true,
-			'show_in_menu' => 'edit.php?post_type=product',
-			'show_in_rest' => true,
-			'supports'     => array( 'title', 'editor', 'revisions' ),
+			'public'              => $public,
+			'publicly_queryable'  => $public,
+			'exclude_from_search' => true,
+			'show_in_nav_menus'   => false,
+			'has_archive'         => false,
+			'rewrite'             => $public ? array( 'slug' => 'ckit_size_guide', 'with_front' => false ) : false,
+			'show_ui'             => true,
+			'show_in_menu'        => 'edit.php?post_type=product',
+			'show_in_rest'        => true,
+			'supports'            => array( 'title', 'editor', 'revisions' ),
 		)
 	);
+}, 20 );
+
+/* Po zmianie (np. wyłączeniu CommerceKit albo aktualizacji motywu) odświeżamy adresy raz. */
+add_action( 'init', function () {
+	$sig = FX_VERSION . '|' . ( fx_sg_public() ? 'pub' : 'priv' );
+	if ( get_option( 'fx_sg_rewrite' ) !== $sig ) {
+		flush_rewrite_rules( false );
+		update_option( 'fx_sg_rewrite', $sig, true );
+	}
+}, 99 );
+
+/* Strona tabeli: zwykły układ strony (tytuł + treść), bez daty i kategorii wpisu. */
+add_filter( 'single_template', function ( $tpl ) {
+	if ( is_singular( 'fx_size_guide' ) ) {
+		$page = locate_template( 'page.php' );
+		return $page ? $page : $tpl;
+	}
+	return $tpl;
+} );
+
+/*
+ * Stary adres tabeli, której nie ma w motywie (nie zaimportowana / usunięta):
+ * 301 do strony „Tabela rozmiarów” zamiast błędu 404.
+ */
+add_action( 'template_redirect', function () {
+	if ( ! is_404() || ! fx_sg_public() ) {
+		return;
+	}
+	$path = (string) wp_parse_url( isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '', PHP_URL_PATH ); // phpcs:ignore
+	if ( 0 !== strpos( $path, '/ckit_size_guide/' ) ) {
+		return;
+	}
+	$page = get_page_by_path( 'tabela-rozmiarow' );
+	wp_safe_redirect( $page ? get_permalink( $page ) : home_url( '/' ), 301 );
+	exit;
 } );
 
 /* ---------- Przypisanie do kategorii ---------- */

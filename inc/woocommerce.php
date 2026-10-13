@@ -117,7 +117,8 @@ function fx_is_term_archive() {
  *   1. pole motywu „Opis pod produktami” (fx_desc_bottom),
  *   2. tekst po <!--more--> w standardowym opisie,
  *   3. pole dolnego opisu zapisane przez poprzedni motyw lub wtyczkę (wykrywane automatycznie),
- *   4. gdy dolnego brak, a górny jest długi – górny dzielony na wstęp i resztę.
+ * Gdy dolnego opisu brak, cały opis zostaje nad produktami – tak jak w starym motywie
+ * (bez przenoszenia części tekstu pod listę; dzielenie można włączyć filtrem fx_split_top_desc).
  */
 function fx_term_descriptions( $term ) {
 	if ( ! $term instanceof WP_Term ) {
@@ -133,7 +134,7 @@ function fx_term_descriptions( $term ) {
 	if ( '' === trim( wp_strip_all_tags( $bot ) ) ) {
 		$bot = fx_legacy_bottom_desc( $term->term_id );
 	}
-	if ( '' === trim( wp_strip_all_tags( $bot ) ) ) {
+	if ( '' === trim( wp_strip_all_tags( $bot ) ) && apply_filters( 'fx_split_top_desc', false, $term ) ) {
 		list( $top, $bot ) = fx_split_long_html( $top );
 	}
 	return array( $top, $bot );

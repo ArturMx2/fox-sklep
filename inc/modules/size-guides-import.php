@@ -126,6 +126,7 @@ function fx_sg_import_page() {
 				'post_status'  => 'publish' === $src->post_status ? 'publish' : 'draft',
 				'post_title'   => $src->post_title ? $src->post_title : 'Tabela rozmiarów ' . $src->ID,
 				'post_content' => $src->post_content,
+				'post_name'    => $src->post_name, // ten sam adres: /ckit_size_guide/nazwa/
 			);
 			if ( $row['existing'] ) {
 				$data['ID'] = $row['existing'];
@@ -137,6 +138,12 @@ function fx_sg_import_page() {
 				continue;
 			}
 			update_post_meta( $gid, '_fx_imported_from', $src->ID );
+			// Tytuł i opis SEO (Yoast / Rank Math) przenosimy razem z tabelą.
+			foreach ( get_post_meta( $src->ID ) as $mk => $mv ) {
+				if ( preg_match( '/^_(yoast_wpseo_|rank_math_)/', $mk ) && isset( $mv[0] ) ) {
+					update_post_meta( $gid, $mk, maybe_unserialize( $mv[0] ) );
+				}
+			}
 			update_post_meta( $gid, '_fx_cats', $row['cats'] );
 			update_post_meta( $gid, '_fx_products', $row['products'] );
 			$done++;

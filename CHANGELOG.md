@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.8.1 – SEO 1:1 ze sklepem fox.sklep.pl
+- Tabele rozmiarów mają własne strony pod starymi adresami CommerceKit: /ckit_size_guide/nazwa/ (40 adresów z ruchem w Google). Import tabel zachowuje adres oraz tytuł i opis SEO z Yoast. Gdy CommerceKit jest włączony, adresy dalej obsługuje on. Stary adres tabeli, której nie ma w motywie → 301 do strony „Tabela rozmiarów”.
+- Opis kategorii bez dolnego opisu zostaje w całości nad produktami (jak w obecnym sklepie) – motyw nie przenosi już części tekstu pod listę.
+- Produktów na stronę: domyślnie 12, jak w obecnym sklepie (Dostosuj → Narzędzia sklepu).
+
 ## 3.8.0 – porównanie SEO przed startem
 - Narzędzia → „Porównanie SEO”: dla listy adresów pobiera tę samą podstronę ze starego sklepu i ze strony z nowym motywem i porównuje kod HTTP, tytuł, opis, canonical, robots, H1, nagłówki H2/H3 (które zniknęły, które doszły), ile zdań tekstu ze starej strony jest na nowej, dane strukturalne, okruszki, produkty linkowane z listy, linki w treści i obrazki bez alt. Wynik w tabeli + raport CSV. Nic nie zmienia w sklepie.
 - Produktów na stronę w kategoriach tyle co w starym motywie (wiersze × kolumny z ustawień WooCommerce), mimo 3 kolumn w nowym układzie – /page/2/, /page/3/ pokazują te same produkty co dotąd. Można zmienić w Dostosuj → Narzędzia sklepu.
