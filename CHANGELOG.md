@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 2.6.1 – poprawka mega menu
+- Naprawione: zamknięte (niewidoczne) panele menu łapały kursor, przez co przy zjeżdżaniu w dół lub podjeżdżaniu pod menu wyskakiwał inny panel (np. WYPRZEDAŻ).
+- Menu sterowane skryptem z „intencją”: otwiera się po krótkim zatrzymaniu kursora, otwarty panel zostaje przy przejeździe po skosie przez inne pozycje, przełącza się dopiero po ~0,4 s postoju na innej pozycji, zamyka po ~0,4 s od wyjechania. Esc zamyka, Tab otwiera.
+- Koszyk i zamówienie: jeśli strona ma blok WooCommerce, motyw pokazuje klasyczną wersję (wymagana przez walidację kasku i polskie teksty).
+
 ## 2.6.0 – mega menu
 - Rozwijane menu w nagłówku zamienione na panel na całą szerokość: pozycje 2. poziomu (Akcesoria, Buty, Kaski…) to kolumny z nagłówkami, 3. poziom to linki pod nimi, 4. poziom (np. Kaski fullface → Proframe) wcięty.
 - Kolumny układają się same – nic nie trzeba ustawiać w Wygląd → Menu; na dole panelu link „Zobacz wszystko: MOTO/ROWER”.

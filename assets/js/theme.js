@@ -402,4 +402,53 @@
 				.always(function () { btn.disabled = false; render(); });
 		});
 	}
+
+	/* Mega menu: otwiera się z intencją i nie przeskakuje.
+	   - pierwsze otwarcie po krótkim zatrzymaniu kursora (120 ms), żeby nie wyskakiwało przy przejeżdżaniu,
+	   - gdy panel jest otwarty, inna pozycja przejmuje go dopiero po 400 ms postoju na niej
+	     (przejazd po skosie w dół do panelu nie przełącza menu),
+	   - zamyka się 400 ms po wyjechaniu kursorem poza pozycję i panel. */
+	(function () {
+		var nav = document.querySelector('.fx-header__nav .fx-nav');
+		if (!nav) { return; }
+		var items = nav.querySelectorAll(':scope > ul > li.fx-has-mega');
+		if (!items.length) { return; }
+		nav.classList.add('fx-mega-js');
+		var current = null, tOpen = 0, tClose = 0;
+		function setOpen(li) {
+			if (current === li) { return; }
+			if (current) { current.classList.remove('is-open'); current.firstElementChild.setAttribute('aria-expanded', 'false'); }
+			current = li;
+			if (li) { li.classList.add('is-open'); li.firstElementChild.setAttribute('aria-expanded', 'true'); }
+		}
+		nav.querySelectorAll(':scope > ul > li').forEach(function (li) {
+			var mega = li.classList.contains('fx-has-mega');
+			if (mega) { li.firstElementChild.setAttribute('aria-haspopup', 'true'); li.firstElementChild.setAttribute('aria-expanded', 'false'); }
+			li.addEventListener('mouseenter', function () {
+				clearTimeout(tOpen);
+				if (current === li) { clearTimeout(tClose); return; }
+				var target = mega ? li : null;
+				tOpen = setTimeout(function () { clearTimeout(tClose); setOpen(target); }, current ? 400 : 120);
+			});
+			li.addEventListener('mouseleave', function () {
+				clearTimeout(tOpen);
+				if (current !== li) { return; }
+				clearTimeout(tClose);
+				tClose = setTimeout(function () { setOpen(null); }, 400);
+			});
+		});
+		/* klawiatura: Tab otwiera panel bieżącej pozycji, Esc zamyka */
+		nav.addEventListener('focusin', function (e) {
+			var li = e.target.closest('.fx-nav > ul > li');
+			clearTimeout(tClose); setOpen(li && li.classList.contains('fx-has-mega') ? li : null);
+		});
+		nav.addEventListener('focusout', function (e) {
+			if (!nav.contains(e.relatedTarget) && !(current && current.matches(':hover'))) { setOpen(null); }
+		});
+		document.addEventListener('keydown', function (e) {
+			if ('Escape' === e.key && current) { var a = current.firstElementChild; setOpen(null); a.focus(); }
+		});
+		/* klik w link w panelu – zamknij od razu (przy wolnym ładowaniu strony nie wisi otwarte) */
+		nav.addEventListener('click', function (e) { if (e.target.closest('.fx-mega a')) { setOpen(null); } });
+	})();
 })(jQuery);
