@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.5.2 – sortowanie „Największa przecena”
+- Nowa pozycja w sortowaniu: „Największa przecena” – najpierw produkty z najwyższym % rabatu (dla wariantowych: najwyższy rabat spośród wariantów na stanie), potem pozostałe od najnowszych. Działa z filtrami, Promocjami i doczytywaniem produktów.
+- % rabatu liczony przy zapisie produktu i raz dziennie dla całego sklepu (także końce promocji z harmonogramu).
+
 ## 3.5.1 – kolory rozpoznawane z nazwy
 - Próbka koloru ustawia się sama z nazwy wartości atrybutu koloru (polskie i angielskie nazwy, odcienie: granatowy/navy, grafitowy, fluo yellow/orange/red, khaki, oliwkowy, bordowy, camo…).
 - Dwa kolory jako próbka pół na pół: „Czarno-biały”, „Black/White”, „Red & Black”, „Grey Yellow”.
