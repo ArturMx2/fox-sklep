@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 1.0.7
+- Listing: elementy wtyczek, które nie są kartą produktu, nie są już ukrywane (ukrywały produkty na fox.sklep.pl) – zajmują cały wiersz, puste znikają.
+
 ## 1.0.6
 - Listing: 3 produkty w rzędzie (2 na telefonie), siatka odporna na style i elementy wtyczek
   (CommerceKit, YITH, WooCommerce) – koniec pustych komórek i rozjechanych kart.
