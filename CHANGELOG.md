@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.3.2 – stare adresy filtrów
+- Stare linki filtrów z YITH / WooCommerce (np. /sklep/?product_cat=buty-rowerowe-fox-union&filter_blvariant=37) przekierowują 301 na kategorię z nowym filtrem (?rozmiar=37). Działa dla rozmiaru, koloru i promocji; sortowanie zostaje.
+
 ## 3.3.1 – filtry rozmiaru, wstęp kategorii bez zwijania
 - Filtry przepisane na własny mechanizm (bez tabeli „lookup” WooCommerce, której import z BaseLinkera nie uzupełnia – stąd pusta lista po wyborze rozmiaru). Rozmiar pasuje, gdy produkt ma wariant w tym rozmiarze NA STANIE; działa też, gdy wariant ma zapisaną nazwę zamiast slugu (np. „M”).
 - Kilka atrybutów rozmiaru naraz (np. „wariant” dla odzieży i osobny dla butów) – wykrywane po nazwie: rozmiar / size / blvariant / wielkość.

@@ -359,3 +359,54 @@ function fx_size_rank( $name ) {
 	}
 	return 100000;
 }
+
+/*
+ * Stare adresy filtrów (wtyczka YITH / filtr WooCommerce), np.
+ * /sklep/?product_cat=buty-rowerowe-fox-union&source_id=3249&source_tax=product_cat&filter_blvariant=37
+ * → 301 na /kategoria-produktu/…/buty-rowerowe-fox-union/?rozmiar=37
+ * Linki z zewnątrz, zakładki klientów i stare reklamy dalej działają.
+ */
+add_action( 'template_redirect', function () {
+	if ( is_admin() || empty( $_GET ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+		return;
+	}
+	$map   = array();
+	$taxes = fx_filter_taxonomies();
+	foreach ( array( 'size' => 'rozmiar', 'color' => 'kolor' ) as $role => $param ) {
+		foreach ( $taxes[ $role ] as $tax ) {
+			$map[ 'filter_' . wc_attribute_taxonomy_slug( $tax ) ] = $param;
+		}
+	}
+	$map['filter_promocja'] = 'promocja';
+	$found = array_intersect_key( $_GET, $map ); // phpcs:ignore WordPress.Security.NonceVerification
+	if ( ! $found ) {
+		return;
+	}
+	// Adres docelowy: kategoria z parametru product_cat albo bieżąca strona.
+	$base = '';
+	if ( ! empty( $_GET['product_cat'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+		$t = get_term_by( 'slug', sanitize_title( wp_unslash( $_GET['product_cat'] ) ), 'product_cat' ); // phpcs:ignore WordPress.Security.NonceVerification
+		if ( $t ) {
+			$base = get_term_link( $t );
+		}
+	}
+	if ( ! $base ) {
+		$base = is_product_category() ? get_term_link( get_queried_object() ) : ( function_exists( 'wc_get_page_permalink' ) ? wc_get_page_permalink( 'shop' ) : home_url( '/' ) );
+	}
+	if ( is_wp_error( $base ) ) {
+		return;
+	}
+	$args = array();
+	foreach ( $found as $k => $v ) {
+		$vals = array_filter( array_map( 'sanitize_title', explode( ',', wp_unslash( $v ) ) ) );
+		if ( $vals ) {
+			$p          = $map[ $k ];
+			$args[ $p ] = isset( $args[ $p ] ) ? $args[ $p ] . ',' . implode( ',', $vals ) : implode( ',', $vals );
+		}
+	}
+	if ( isset( $_GET['orderby'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+		$args['orderby'] = sanitize_key( wp_unslash( $_GET['orderby'] ) ); // phpcs:ignore WordPress.Security.NonceVerification
+	}
+	wp_safe_redirect( add_query_arg( $args, $base ), 301 );
+	exit;
+}, 5 );
