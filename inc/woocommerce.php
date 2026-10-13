@@ -98,7 +98,52 @@ function fx_term_descriptions( $term ) {
 	} else {
 		$bot = fx_legacy_bottom_desc( $term->term_id );
 	}
+
+	// Brak osobnego opisu dolnego, a górny jest długi: nad produktami zostaje wstęp,
+	// reszta idzie pod listing. Cały tekst nadal jest na tej samej stronie.
+	if ( '' === trim( wp_strip_all_tags( $bot ) ) ) {
+		list( $top, $bot ) = fx_split_long_html( $top );
+	}
 	return array( $top, $bot );
+}
+
+/**
+ * Dzieli długi HTML na wstęp (pierwszy akapit z treścią, ok. 150+ znaków) i resztę.
+ * Krótkie opisy (do ~500 znaków) zostają w całości nad produktami.
+ */
+function fx_split_long_html( $html ) {
+	$plain = trim( wp_strip_all_tags( $html ) );
+	if ( mb_strlen( $plain ) < 500 ) {
+		return array( $html, '' );
+	}
+	$html = wpautop( $html );
+	// Bloki kończące się na zamknięciu akapitu, nagłówka lub listy.
+	$parts = preg_split( '/(<\/(?:p|h[1-6]|ul|ol|div|blockquote)>)/i', $html, -1, PREG_SPLIT_DELIM_CAPTURE );
+	$intro = '';
+	$i     = 0;
+	$n     = count( $parts );
+	while ( $i < $n ) {
+		$intro .= $parts[ $i ];
+		if ( isset( $parts[ $i + 1 ] ) ) {
+			$intro .= $parts[ $i + 1 ];
+		}
+		$closing = isset( $parts[ $i + 1 ] ) ? strtolower( $parts[ $i + 1 ] ) : '';
+		$i      += 2;
+		$text    = trim( wp_strip_all_tags( $intro ) );
+		// Wstęp kończymy na akapicie (nie na nagłówku), gdy ma już trochę treści.
+		if ( '</p>' === $closing && mb_strlen( $text ) >= 150 ) {
+			break;
+		}
+		if ( mb_strlen( $text ) > 700 ) {
+			break;
+		}
+	}
+	$rest = implode( '', array_slice( $parts, $i ) );
+	if ( '' === trim( wp_strip_all_tags( $rest ) ) ) {
+		return array( $html, '' );
+	}
+	// Kolejność tekstu zostaje bez zmian: wstęp (z ewentualnym nagłówkiem) nad produktami, dalsza część pod nimi.
+	return array( $intro, $rest );
 }
 
 function fx_legacy_bottom_desc( $term_id ) {

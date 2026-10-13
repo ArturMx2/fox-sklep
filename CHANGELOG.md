@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 1.0.5
+- Kategorie: gdy nie ma osobnego opisu dolnego, nad produktami zostaje tylko wstęp
+  (pierwszy akapit), dalsza część opisu przechodzi pod listing. Tekst bez zmian, w tej samej kolejności.
+
 ## 1.0.4
 - Próbna aktualizacja przez Git Updater (bez zmian w wyglądzie).
 - Dodany ten plik z historią zmian.
