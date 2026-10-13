@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.8.3 – poprawki po porównaniu SEO na fox.sklep.pl
+- Dane produktu dla Google (Product, cena, dostępność) zawsze na stronie produktu – w podglądzie na fox.sklep.pl ginęły na części produktów.
+- „Jedna karta na model” (kolory) domyślnie wyłączona: lista kategorii ma te same produkty i te same strony /page/N/ co obecny sklep.
+- Strona listy poza zakresem (/page/N/ większa niż liczba stron) → 301 do ostatniej strony zamiast 404.
+
 ## 3.8.2 – porównanie SEO na działającym sklepie
 - Nowa wtyczka „FOX – podgląd motywu i porównanie SEO” (tools/fox-podglad, osobny zip): nowy motyw widoczny na fox.sklep.pl tylko z kluczem podglądu (klienci i Google widzą obecny motyw, podgląd ma noindex i omija cache), a Narzędzia → Porównanie SEO porównuje obie wersje tych samych adresów jako gość. Lista adresów: 71 stron z największym ruchem w Search Console.
 - Porównanie SEO w motywie korzysta z trybu „ten sam sklep”, gdy wtyczka jest włączona; sprawdza też, czy podgląd nie został podany z cache.

@@ -47,6 +47,44 @@ add_filter( 'loop_shop_per_page', function () {
 	return max( 1, (int) get_option( 'woocommerce_catalog_rows', 4 ) ) * max( 1, (int) get_option( 'woocommerce_catalog_columns', 4 ) );
 }, 20 );
 
+/*
+ * Strona listy poza zakresem (np. /page/9/, gdy produktów jest mniej niż kiedyś): 301 do ostatniej
+ * istniejącej strony zamiast 404 – Google ma te adresy w indeksie.
+ */
+add_action( 'template_redirect', function () {
+	if ( ! is_404() || ! get_query_var( 'paged' ) ) {
+		return;
+	}
+	global $wp_query;
+	$path = (string) wp_parse_url( isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '', PHP_URL_PATH ); // phpcs:ignore
+	$base = preg_replace( '#/page/\d+/?$#', '/', $path );
+	if ( $base === $path || 0 !== strpos( $base, '/' ) ) {
+		return;
+	}
+	$max    = isset( $wp_query->max_num_pages ) ? (int) $wp_query->max_num_pages : 0;
+	$target = home_url( $base . ( $max > 1 ? 'page/' . $max . '/' : '' ) );
+	wp_safe_redirect( $target, 301 );
+	exit;
+}, 5 );
+
+/*
+ * Dane produktu dla Google (Product, cena, dostępność). WooCommerce dodaje je w podsumowaniu produktu;
+ * gdy coś je zablokuje (np. wtyczka poprzedniego motywu), dodajemy je sami – bez podwójnego wpisu.
+ */
+add_action( 'woocommerce_after_single_product_summary', function () {
+	global $product;
+	if ( ! $product instanceof WC_Product || ! function_exists( 'WC' ) || empty( WC()->structured_data ) ) {
+		return;
+	}
+	$sd = WC()->structured_data;
+	foreach ( (array) $sd->get_data() as $item ) {
+		if ( isset( $item['@type'] ) && 'Product' === $item['@type'] ) {
+			return;
+		}
+	}
+	$sd->generate_product_data( $product );
+}, 999 );
+
 /* Losowe „Podobne produkty” WooCommerce zastępuje sekcja „Z tej serii” (inc/modules/series.php). */
 remove_action( 'woocommerce_after_single_product_summary', 'woocommerce_output_related_products', 20 );
 

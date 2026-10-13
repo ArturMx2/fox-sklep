@@ -19,20 +19,20 @@ defined( 'ABSPATH' ) || exit;
 
 /* ---------- Ustawienie: jedna karta na model ---------- */
 add_action( 'customize_register', function ( $wp ) {
-	$wp->add_setting( 'fx_t_cf_collapse', array( 'default' => true, 'sanitize_callback' => 'fx_sanitize_bool' ) );
+	$wp->add_setting( 'fx_t_cf_collapse', array( 'default' => false, 'sanitize_callback' => 'fx_sanitize_bool' ) );
 	$wp->add_control(
 		'fx_t_cf_collapse',
 		array(
 			'section'     => 'fx_tools',
 			'label'       => 'Kolory: jedna karta na model w kategorii (pozostałe kolory jako miniatury)',
-			'description' => 'Przy włączonych filtrach i w wyszukiwarce widać każdy pasujący kolor osobno.',
+			'description' => 'Uwaga SEO: zmniejsza liczbę stron listy (/page/2/, /page/3/… znane Google) i przesuwa produkty między stronami. Na start zostaw wyłączone. Przy filtrach i w wyszukiwarce i tak widać każdy kolor osobno.',
 			'type'        => 'checkbox',
 		)
 	);
 }, 30 );
 
 function fx_cf_collapse_on() {
-	return (bool) get_theme_mod( 'fx_t_cf_collapse', true );
+	return (bool) get_theme_mod( 'fx_t_cf_collapse', false );
 }
 
 /* ---------- Klucz rodziny ---------- */
