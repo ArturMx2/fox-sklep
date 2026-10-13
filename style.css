@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 2.5.0
+Version: 2.6.0
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -111,6 +111,26 @@ button,input,select,textarea{font:inherit;color:inherit}
 .fx-nav .sub-menu a{display:block;padding:7px 0;font-size:15px}
 .fx-nav .sub-menu .sub-menu{position:static;opacity:1;visibility:visible;transform:none;border:0;padding:0 0 4px 12px;min-width:0}
 .fx-nav .sub-menu .sub-menu a{color:var(--fx-muted);font-size:14px;padding:4px 0}
+
+/* mega menu (desktop): panel na całą szerokość nagłówka, kolumny układane automatycznie */
+.fx-header__nav,.fx-header__nav .fx-nav,.fx-header__nav .fx-nav>ul>li.fx-has-mega{position:static}
+.fx-nav>ul>li.fx-has-mega>a{position:relative}
+.fx-nav>ul>li.fx-has-mega>a::after{content:"";width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg) translateY(-3px);margin-left:9px;transition:transform .15s}
+.fx-nav>ul>li.fx-has-mega:hover>a::after{transform:rotate(225deg) translateY(-1px)}
+.fx-mega{position:absolute;left:0;right:0;top:100%;background:#fff;border-top:1px solid var(--fx-line);border-bottom:1px solid var(--fx-line);box-shadow:0 18px 30px -18px rgba(12,10,8,.25);opacity:0;visibility:hidden;transition:opacity .15s .12s,visibility 0s .27s;z-index:60;max-height:calc(100vh - 140px);overflow:auto}
+.fx-nav li.fx-has-mega:hover>.fx-mega,.fx-nav li.fx-has-mega:focus-within>.fx-mega{opacity:1;visibility:visible;transition:opacity .15s .08s,visibility 0s .08s}
+.fx-mega__in{max-width:1280px;margin:0 auto;padding:28px var(--fx-gutter) 22px}
+.fx-nav .fx-mega .sub-menu{position:static;opacity:1;visibility:visible;transform:none;border:0;padding:0;min-width:0;background:none;box-shadow:none}
+.fx-nav .fx-mega__cols{columns:5 170px;column-gap:40px}
+.fx-nav .fx-mega__col{break-inside:avoid;margin:0 0 20px}
+.fx-nav .fx-mega__col>a{display:block;font-family:var(--fx-display);font-weight:600;font-size:15px;text-transform:uppercase;letter-spacing:.04em;padding:0 0 8px;margin-bottom:6px;border-bottom:1px solid var(--fx-line)}
+.fx-nav .fx-mega__col:not(.fx-mega__group)>a{border-bottom:0;margin-bottom:0}
+.fx-nav .fx-mega__col .sub-menu a{display:block;color:var(--fx-ink);font-size:14.5px;padding:5px 0}
+.fx-nav .fx-mega__col .sub-menu a:hover{color:var(--fx-muted);text-decoration:underline;text-underline-offset:3px}
+.fx-nav .fx-mega__col .sub-menu .sub-menu{padding:0 0 4px 12px;border-left:1px solid var(--fx-line);margin:2px 0 4px}
+.fx-nav .fx-mega__col .sub-menu .sub-menu a{color:var(--fx-muted);font-size:14px;padding:3px 0}
+.fx-nav .fx-mega .current-menu-item>a{text-decoration:underline;text-underline-offset:3px}
+.fx-mega__all{display:inline-flex;gap:6px;align-items:center;margin-top:4px;padding-top:14px;font-weight:600;font-size:14px;border-top:1px solid var(--fx-line);width:100%}
 
 /* szuflada mobilna */
 .fx-drawer{position:fixed;inset:0;z-index:200;display:none}

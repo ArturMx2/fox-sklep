@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 2.6.0 – mega menu
+- Rozwijane menu w nagłówku zamienione na panel na całą szerokość: pozycje 2. poziomu (Akcesoria, Buty, Kaski…) to kolumny z nagłówkami, 3. poziom to linki pod nimi, 4. poziom (np. Kaski fullface → Proframe) wcięty.
+- Kolumny układają się same – nic nie trzeba ustawiać w Wygląd → Menu; na dole panelu link „Zobacz wszystko: MOTO/ROWER”.
+- Panel otwiera się z krótkim opóźnieniem (nie miga przy przesuwaniu myszy), działa też z klawiatury; menu mobilne obsługuje 4 poziomy.
+
 ## 2.5.0 – walidacja kasku 1:1 z fox.sklep.pl v3.0
 - Moduł obwodu głowy zastąpiony Twoim kodem v3.0 (sekcje 1–8 bez zmian logiki): wykrywanie kasku po nazwie, pole + potwierdzenie w klasycznym checkoucie, format 2 cyfry z opcjonalnym miejscem po przecinku, zakres 40–75 cm.
 - Te same pola zamówienia: obwod_glowy, pomiar_glowy_potwierdzony, fox_head_circumference; dopisek do uwag klienta (BaseLinker) i notatka wewnętrzna DOUBLE-CHECK.

@@ -63,7 +63,8 @@ defined( 'ABSPATH' ) || exit;
 				'container'       => 'nav',
 				'container_class' => 'fx-nav',
 				'container_aria_label' => 'Menu główne',
-				'depth'           => 3,
+				'depth'           => 4,
+				'walker'          => new FX_Mega_Walker(),
 				'fallback_cb'     => false,
 				)
 			);
@@ -96,7 +97,7 @@ if ( $fx_announce ) {
 					'container'       => 'nav',
 					'container_class' => 'fx-mnav',
 					'container_aria_label' => 'Menu mobilne',
-					'depth'           => 3,
+					'depth'           => 4,
 					'fallback_cb'     => false,
 				)
 			);
