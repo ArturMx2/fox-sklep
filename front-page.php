@@ -308,7 +308,7 @@ if ( fx_mod( 'guides_on' ) ) :
 	foreach ( $gsets as $gs ) :
 		$args = array(
 			'post_type'           => 'post',
-			'posts_per_page'      => 3,
+			'posts_per_page'      => max( 1, min( 9, (int) fx_mod( 'guides_count' ) ) ),
 			'ignore_sticky_posts' => true,
 			'no_found_rows'       => true,
 		);

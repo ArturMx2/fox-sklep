@@ -87,6 +87,7 @@ function fx_defaults() {
 		// Poradniki.
 		'guides_on'       => true,
 		'guides_title'    => 'Poradniki',
+		'guides_count'    => 6,
 		'guides_cat'      => 0,
 		'guides_btn_url'  => $home . 'blog/',
 		// SEO.
@@ -386,6 +387,7 @@ function fx_customize( $wp ) {
 	$section( 'fx_home_guides', 'Strona główna – poradniki' );
 	$add( 'guides_on', 'fx_home_guides', 'Pokaż sekcję', 'checkbox' );
 	$add( 'guides_title', 'fx_home_guides', 'Tytuł sekcji' );
+	$add( 'guides_count', 'fx_home_guides', 'Ile wpisów pokazać (1–9)', 'number' );
 	$add( 'guides_cat', 'fx_home_guides', 'Kategoria wpisów', 'cat' );
 	$add( 'guides_btn_url', 'fx_home_guides', 'Link „Wszystkie”', 'url' );
 

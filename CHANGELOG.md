@@ -1,5 +1,11 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.9.0 – strona główna bez ryzyka SEO
+- Tytuł i opis strony głównej domyślnie z Yoast (te same co dziś: „Oficjalny sklep FOX Racing - FOX.SKLEP.PL”).
+- H1 i wstęp jak na obecnej stronie głównej („FOX SKLEP współpracuj z najlepszymi” + ten sam akapit); sekcja na dole z obecnym H2 „FOX.SKLEP.PL – najnowsze kolekcje, szeroki wybór, fachowe doradztwo.” i jego tekstem, a pod nim dodatkowe treści.
+- Poradniki: 6 ostatnich wpisów (jak dziś), liczba do ustawienia w Dostosuj (1–9).
+- Nowe propozycje tytułu i H1 pod Search Console zostają do wpisania w Dostosuj później.
+
 ## 3.8.5
 - Import tabel rozmiarów: przy tabelach bez rozpoznanych przypisań „Brak przypisań – szczegóły” (pola tabeli i wpisy w ustawieniach CommerceKit), żeby dopasować import.
 - Wtyczka podglądu 1.2.0: zaimportowane tabele widać w Produkty → „Tabele rozmiarów (nowy motyw)” także przed włączeniem motywu (wcześniej „Nieprawidłowy typ treści”).

@@ -26,10 +26,16 @@ function fx_home_seo_defaults( $home ) {
 		'hub_rower_on'     => true,
 		'hub_casual_on'    => true,
 		'about_on'         => true,
-		'seo_title'        => 'Sklep FOX Racing – motocross, enduro i MTB | FOX.SKLEP.PL',
-		'seo_desc'         => 'Sklep crossowy i enduro FOX Racing: kaski V1–V3, stroje na crossa, buty, ochraniacze i odzież rowerowa MTB. Sklep stacjonarny pod Wrocławiem, 14 dni na zwrot.',
-		'seo_h1'           => 'Sklep FOX Racing – sprzęt na crossa, enduro i MTB',
-		'seo_lead'         => 'Sklep crossowy, enduro i rowerowy z pełną ofertą FOX Racing: kaski, stroje na crossa, buty, ochraniacze i odzież MTB. Tylko oryginalne produkty z gwarancją, wysyłka w 48 godzin i sklep stacjonarny pod Wrocławiem, w którym przymierzysz sprzęt przed zakupem.',
+		/*
+		 * Start nowego motywu bez ryzyka: tytuł i opis z Yoast (jak dziś), H1 i teksty z obecnej strony głównej.
+		 * Propozycje pod Search Console (do wpisania później w Dostosuj, po kilku tygodniach):
+		 * tytuł „Sklep FOX Racing – motocross, enduro i MTB | FOX.SKLEP.PL”,
+		 * H1 „Sklep FOX Racing – sprzęt na crossa, enduro i MTB”.
+		 */
+		'seo_title'        => '',
+		'seo_desc'         => '',
+		'seo_h1'           => 'FOX SKLEP współpracuj z najlepszymi',
+		'seo_lead'         => 'Sklep Fox to najlepsze produkty na rynku dedykowane fanom sportów ekstremalnych, ale nie tylko. Tutaj bez problemu skompletujesz pełny strój niezwykle przydatny do uprawnia ulubionej dyscypliny sportowej wraz z niezbędnymi akcesoriami, jak również odzież codzienną.',
 		'seo_points'       => "Wysyłka w 48 h\nDarmowa dostawa od 300 zł\n14 dni na zwrot lub wymianę rozmiaru\nSklep stacjonarny pod Wrocławiem",
 		'hub_moto_title'   => 'Sklep crossowy i enduro',
 		'hub_moto_sub'     => 'Wszystko na tor i w teren – od kasku po buty.',
@@ -52,8 +58,9 @@ function fx_home_seo_defaults( $home ) {
 			. "Co wchodzi w skład stroju na crossa? | <a href=\"{$home}{$c}off-road/odziez-motocross/stroj-na-crossa/\">Strój na crossa</a> to koszulka (bluza) i spodnie w tej samej grafice, najczęściej z rękawicami. U nas zbudujesz komplet jednym kliknięciem, wybierając rozmiar każdej części osobno.\n"
 			. "Czy macie odzież rowerową Fox MTB? | Tak – <a href=\"{$home}{$c}rowerowy/kaski-odziez-mtb/\">kaski MTB</a> (full face Proframe i Rampage oraz kaski otwarte), ochraniacze, koszulki, spodenki, rękawice i <a href=\"{$home}{$c}rowerowy/akcesoria-rowerowy/\">akcesoria rowerowe</a> Fox.\n"
 			. "Ile trwa dostawa i jak zwrócić produkt? | Zamówienia wysyłamy w 48 godzin (InPost lub kurier DPD), dostawa jest darmowa od 300 zł. Masz 14 dni na zwrot lub wymianę rozmiaru.",
-		'about_title'      => 'FOX.SKLEP.PL – sklep motocrossowy, enduro i rowerowy',
-		'seo_text'         => '<p>FOX Racing to marka, która od 1974 roku ubiera zawodników motocrossu, a dziś także rowerzystów MTB na całym świecie. FOX.SKLEP.PL od ponad 10 lat sprzedaje wyłącznie oryginalne produkty FOX z gwarancją – w sklepie internetowym i stacjonarnym pod Wrocławiem.</p>'
+		'about_title'      => 'FOX.SKLEP.PL – najnowsze kolekcje, szeroki wybór, fachowe doradztwo.',
+		'seo_text'         => '<p>W naszym sklepie Fox czeka na Was szeroka gama produktów, w tym odzież i akcesoria enduro, cross i rowerowe. Ponad 10 lat doświadczenia. Zawsze stawiamy na jakość i satysfakcję naszych klientów, dlatego sprzedajemy tylko oryginalne produkty, które objęte są gwarancją. Poza tym zapewniamy fachowe doradztwo na infolinii oraz dostawę w 48 godziny.</p>'
+			. '<p>FOX Racing to marka, która od 1974 roku ubiera zawodników motocrossu, a dziś także rowerzystów MTB na całym świecie. FOX.SKLEP.PL od ponad 10 lat sprzedaje wyłącznie oryginalne produkty FOX z gwarancją – w sklepie internetowym i stacjonarnym pod Wrocławiem.</p>'
 			. "\n<!--more-->\n"
 			. '<h3>Sprzęt na crossa i enduro</h3><p>Kompletujesz sprzęt na tor albo w teren? Dobierzesz u nas <a href="' . $home . $c . 'off-road/kaski/">kask Fox</a> – od modelu V1 po V3 RS, <a href="' . $home . $c . 'off-road/odziez-motocross/stroj-na-crossa/">strój na crossa</a> w jednej grafice, <a href="' . $home . $c . 'off-road/buty/">buty crossowe</a> Instinct, Comp i Motion, <a href="' . $home . $c . 'off-road/ochraniacze/">zbroję i ochraniacze</a>, gogle oraz rękawice. Doradzimy, jak zestawić rozmiary, żeby kask, buzer i buty pracowały razem.</p>'
 			. '<h3>Odzież rowerowa Fox MTB</h3><p>Dla rowerzystów mamy <a href="' . $home . $c . 'rowerowy/">odzież rowerową Fox</a> na enduro, trail i downhill: kaski full face Proframe i Rampage, lekkie kaski otwarte, ochraniacze kolan i łokci, koszulki, spodenki oraz akcesoria rowerowe.</p>'
