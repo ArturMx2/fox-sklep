@@ -72,13 +72,13 @@ function fx_available_sizes( $product ) {
 		// Kolejność z ustawień atrybutu.
 		foreach ( wc_get_product_terms( $product->get_id(), $size_attr, array( 'fields' => 'all' ) ) as $t ) {
 			if ( isset( $in_stock[ $t->slug ] ) ) {
-				$out[] = $t->name;
+				$out[] = fx_size_label( $t->name );
 			}
 		}
 	} else {
 		foreach ( $attrs[ $size_attr ] as $val ) {
 			if ( isset( $in_stock[ $val ] ) || isset( $in_stock[ sanitize_title( $val ) ] ) ) {
-				$out[] = $val;
+				$out[] = fx_size_label( $val );
 			}
 		}
 	}

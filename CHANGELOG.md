@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.6.3 – czytelne nazwy rozmiarów
+- Rozmiar „OS” wyświetlany jako „Uniwersalny”, „YOS” jako „Junior” – na karcie produktu (przyciski rozmiarów), w podglądzie rozmiarów na listingu, w filtrze, w kompletach i w koszyku.
+- Lista do edycji w Narzędziach sklepu („OS = Uniwersalny”, jedna para na linię). Tylko wyświetlanie – w produktach, zamówieniach i BaseLinkerze zostają oryginalne wartości.
+
 ## 3.6.2
 - Etykiety z nazwy – reguły startowe: Dziecięce (kids, dziecięce), Juniorskie (junior, youth, młodzieżowe), Damskie (lady, women, wmn, damskie). Do zmiany lub wyłączenia w WooCommerce → Etykiety z nazwy.
 

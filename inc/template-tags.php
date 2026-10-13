@@ -204,3 +204,28 @@ function fx_pl( $n, $one, $few, $many ) {
 	$h = $n % 100;
 	return ( $d >= 2 && $d <= 4 && ( $h < 12 || $h > 14 ) ) ? $few : $many;
 }
+
+/**
+ * Czytelne nazwy rozmiarów w sklepie: OS → Uniwersalny, YOS → Junior (lista w Narzędziach sklepu).
+ * Tylko wyświetlanie – wartości w produktach, zamówieniach i BaseLinkerze zostają bez zmian.
+ */
+function fx_size_label( $name ) {
+	static $map = null;
+	if ( null === $map ) {
+		$map = array();
+		$raw = function_exists( 'fx_tool' ) ? (string) fx_tool( 'size_names' ) : '';
+		foreach ( preg_split( '/\r\n|\r|\n/', $raw ) as $line ) {
+			$parts = array_map( 'trim', explode( '=', $line, 2 ) );
+			if ( 2 === count( $parts ) && '' !== $parts[0] && '' !== $parts[1] ) {
+				$map[ mb_strtoupper( $parts[0], 'UTF-8' ) ] = $parts[1];
+			}
+		}
+	}
+	$key = mb_strtoupper( trim( wp_strip_all_tags( (string) $name ) ), 'UTF-8' );
+	return isset( $map[ $key ] ) ? $map[ $key ] : $name;
+}
+
+/* Lista rozmiarów przy wyborze wariantu (karta produktu, przyciski rozmiarów) i nazwy w koszyku. */
+add_filter( 'woocommerce_variation_option_name', function ( $name ) {
+	return ( is_admin() && ! wp_doing_ajax() ) ? $name : fx_size_label( $name );
+}, 20 );

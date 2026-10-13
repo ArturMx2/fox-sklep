@@ -55,7 +55,7 @@ add_filter( 'woocommerce_cart_item_name', function ( $name, $item, $key ) {
 				$label = 'Rozmiar';
 			}
 			$term  = taxonomy_exists( $tax ) ? get_term_by( 'slug', $val, $tax ) : null;
-			$meta[] = esc_html( $label ) . ': <strong>' . esc_html( $term ? $term->name : $val ) . '</strong>';
+			$meta[] = esc_html( $label ) . ': <strong>' . esc_html( fx_size_label( $term ? $term->name : $val ) ) . '</strong>';
 		}
 	}
 	if ( $p->get_sku() ) {

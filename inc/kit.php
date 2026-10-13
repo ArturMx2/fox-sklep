@@ -391,7 +391,7 @@ function fx_kit_options( $p ) {
 			}
 			$opts[] = array(
 				'id'    => $vid,
-				'label' => implode( ' / ', $labels ),
+				'label' => fx_size_label( implode( ' / ', $labels ) ),
 				'price' => (float) wc_get_price_to_display( $v ),
 				'reg'   => (float) wc_get_price_to_display( $v, array( 'price' => $v->get_regular_price() ? $v->get_regular_price() : $v->get_price() ) ),
 				'sku'   => $v->get_sku(),

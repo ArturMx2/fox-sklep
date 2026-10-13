@@ -19,6 +19,7 @@ function fx_tool_defaults() {
 		'filter_color_attr' => '',
 		'kit_discount'     => 5,
 		'free_ship'        => 300,
+		'size_names'       => "OS = Uniwersalny\nYOS = Junior",
 		'stock_alerts'     => true,
 		'stock_alert_text' => 'Zapisując się, zgadzasz się na jednorazową wiadomość e-mail o dostępności produktu.',
 	);
@@ -42,6 +43,7 @@ add_action( 'customize_register', function ( $wp ) {
 		'badge_new_days'   => array( 'number', 'Etykieta „Nowość” – przez ile dni od dodania produktu (0 = wyłączona)', 'absint' ),
 		'badge_sale_pct'   => array( 'checkbox', 'Etykieta promocji z procentem rabatu (np. −20%)', 'fx_sanitize_bool' ),
 		'badge_low_stock'  => array( 'number', 'Etykieta „Ostatnie sztuki”, gdy na stanie jest najwyżej tyle sztuk (0 = wyłączona)', 'absint' ),
+		'size_names'       => array( 'textarea', 'Nazwy rozmiarów w sklepie (jedna linia: „OS = Uniwersalny”). Zmienia tylko wyświetlanie – w produktach i zamówieniach zostaje oryginał.', 'sanitize_textarea_field' ),
 		'free_ship'        => array( 'number', 'Koszyk: próg darmowej dostawy w zł (pasek „Brakuje Ci … do darmowej dostawy”; 0 = ukryty)', 'absint' ),
 		'kit_discount'     => array( 'number', 'Rabat za komplet w % (gdy w koszyku są wszystkie części; 0 = bez rabatu)', 'absint' ),
 		'stock_alerts'     => array( 'checkbox', 'Formularz „Powiadom mnie o dostępności” przy niedostępnych rozmiarach', 'fx_sanitize_bool' ),

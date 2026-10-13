@@ -130,7 +130,7 @@ function fx_filter_options( $role, $term ) {
 			$terms = get_terms( array( 'taxonomy' => $tax, 'hide_empty' => false, 'orderby' => 'menu_order' ) );
 			foreach ( is_wp_error( $terms ) ? array() : $terms as $t ) {
 				if ( ( isset( $found[ $t->slug ] ) || isset( $found[ sanitize_title( $t->name ) ] ) ) && ! isset( $out[ $t->slug ] ) ) {
-					$out[ $t->slug ] = array( 'slug' => $t->slug, 'name' => $t->name, 'id' => $t->term_id );
+					$out[ $t->slug ] = array( 'slug' => $t->slug, 'name' => fx_size_label( $t->name ), 'id' => $t->term_id );
 				}
 			}
 		}
