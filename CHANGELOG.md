@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 2.4.3
+- Cena „Od X zł” dla produktów wariantowych w sklepie i kategoriach (gdy warianty mają różne ceny) –
+  logika 1:1 z dotychczasowego kodu. Karta produktu bez zmian.
+
 ## 2.4.2
 - Komunikat o ostatnich sztukach (1–3) zamiast „Na stanie” – teksty 1:1 z dotychczasowego kodu,
   wyróżniony kolorem; działa też dla wybranego wariantu.
