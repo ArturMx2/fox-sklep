@@ -40,6 +40,22 @@ function fx_defaults() {
 		'hero_b1_url'     => $home . 'kategoria-produktu/off-road/odziez-motocross/stroj-na-crossa/',
 		'hero_b2_label'   => 'Kaski MX',
 		'hero_b2_url'     => $home . 'kategoria-produktu/off-road/kaski/',
+		// Przełącznik Moto / Rower.
+		'worlds_on'         => true,
+		'world_default'     => 'moto',
+		'world_moto_img'    => 0,
+		'world_moto_title'  => 'Moto',
+		'world_moto_sub'    => 'Motocross i enduro – kaski, komplety, buty, ochraniacze',
+		'world_moto_btn'    => 'Pokaż sprzęt moto',
+		'world_moto_cat'    => 0,
+		'world_rower_img'   => 0,
+		'world_rower_title' => 'Rower',
+		'world_rower_sub'   => 'MTB, enduro i downhill – kaski, odzież, ochraniacze',
+		'world_rower_btn'   => 'Pokaż sprzęt rowerowy',
+		'world_rower_cat'   => 0,
+		'new_split'         => true,
+		'guides_cat_moto'   => 0,
+		'guides_cat_rower'  => 0,
 		// Odkrywaj.
 		'explore_title'   => 'Odkrywaj',
 		// Kafle.
@@ -83,8 +99,10 @@ function fx_defaults() {
 		array( 'Ochraniacze', 'kategoria-produktu/off-road/ochraniacze/' ),
 		array( 'Kaski Proframe', 'kategoria-produktu/rowerowy/kaski-odziez-mtb/kaski-full-face/proframe/' ),
 	);
+	$explore_world = array( 'moto', 'moto', 'all', 'moto', 'rower' );
 	foreach ( $explore as $i => $e ) {
 		$n                          = $i + 1;
+		$d[ "explore_{$n}_world" ] = $explore_world[ $i ];
 		$d[ "explore_{$n}_img" ]   = 0;
 		$d[ "explore_{$n}_label" ] = $e[0];
 		$d[ "explore_{$n}_url" ]   = $e[1] ? $home . $e[1] : '';
@@ -165,6 +183,8 @@ function fx_customize( $wp ) {
 			'fonts'    => 'fx_sanitize_fonts',
 			'source'   => 'fx_sanitize_source',
 			'cat'      => 'absint',
+			'world'    => 'fx_sanitize_world',
+			'pcat'     => 'absint',
 		);
 		$wp->add_setting(
 			'fx_' . $key,
@@ -208,6 +228,21 @@ function fx_customize( $wp ) {
 				'sale'     => 'Produkty w promocji',
 				'featured' => 'Produkty polecane (gwiazdka)',
 			);
+		} elseif ( 'world' === $type ) {
+			$base['type']    = 'select';
+			$base['choices'] = array(
+				'all'   => 'Zawsze (moto i rower)',
+				'moto'  => 'Tylko Moto',
+				'rower' => 'Tylko Rower',
+			);
+		} elseif ( 'pcat' === $type ) {
+			$choices = array( 0 => 'Automatycznie' );
+			$terms   = get_terms( array( 'taxonomy' => 'product_cat', 'parent' => 0, 'hide_empty' => false ) );
+			foreach ( is_wp_error( $terms ) ? array() : $terms as $t ) {
+				$choices[ $t->term_id ] = $t->name;
+			}
+			$base['type']    = 'select';
+			$base['choices'] = $choices;
 		} elseif ( 'cat' === $type ) {
 			$choices = array( 0 => 'Wszystkie wpisy' );
 			foreach ( get_categories( array( 'hide_empty' => false ) ) as $c ) {
@@ -261,6 +296,22 @@ function fx_customize( $wp ) {
 	$add( 'hero_b2_label', 'fx_home_hero', 'Przycisk 2 – tekst' );
 	$add( 'hero_b2_url', 'fx_home_hero', 'Przycisk 2 – link', 'url' );
 
+	/* Moto / Rower */
+	$section( 'fx_home_worlds', 'Strona główna – Moto / Rower', 'Baner podzielony na Moto i Rower z przełącznikiem. Wybór klienta jest zapamiętywany i przestawia sekcje strony głównej (produkty, kafle „Odkrywaj”, poradniki). Ustawia się też sam, gdy klient ogląda kategorie moto albo rowerowe.' );
+	$add( 'worlds_on', 'fx_home_worlds', 'Włącz baner Moto / Rower i przełącznik (zamiast pojedynczego banera)', 'checkbox' );
+	$wp->add_setting( 'fx_world_default', array( 'default' => 'moto', 'sanitize_callback' => 'fx_sanitize_world' ) );
+	$wp->add_control( 'fx_world_default', array( 'section' => 'fx_home_worlds', 'label' => 'Domyślnie (zanim klient wybierze)', 'type' => 'select', 'choices' => array( 'moto' => 'Moto', 'rower' => 'Rower' ) ) );
+	foreach ( array( 'moto' => 'Moto', 'rower' => 'Rower' ) as $w => $wl ) {
+		$add( "world_{$w}_img", 'fx_home_worlds', "{$wl} – zdjęcie (pionowe lub kwadratowe, min. 1400 px)", 'image' );
+		$add( "world_{$w}_title", 'fx_home_worlds', "{$wl} – nagłówek" );
+		$add( "world_{$w}_sub", 'fx_home_worlds', "{$wl} – podtytuł" );
+		$add( "world_{$w}_btn", 'fx_home_worlds', "{$wl} – tekst przycisku" );
+		$add( "world_{$w}_cat", 'fx_home_worlds', "{$wl} – kategoria główna", 'pcat' );
+	}
+	$add( 'new_split', 'fx_home_worlds', 'Sekcja produktów: osobne produkty dla Moto i Rower (z kategorii powyżej)', 'checkbox' );
+	$add( 'guides_cat_moto', 'fx_home_worlds', 'Poradniki dla Moto – kategoria wpisów', 'cat' );
+	$add( 'guides_cat_rower', 'fx_home_worlds', 'Poradniki dla Rower – kategoria wpisów', 'cat' );
+
 	/* Odkrywaj */
 	$section( 'fx_home_explore', 'Strona główna – Odkrywaj', 'Rząd pionowych kafli przewijany w bok. Puste kafle (bez nazwy) są pomijane.' );
 	$add( 'explore_title', 'fx_home_explore', 'Tytuł sekcji' );
@@ -268,6 +319,7 @@ function fx_customize( $wp ) {
 		$add( "explore_{$i}_img", 'fx_home_explore', "Kafel {$i} – zdjęcie (pionowe 5:7)", 'image' );
 		$add( "explore_{$i}_label", 'fx_home_explore', "Kafel {$i} – nazwa" );
 		$add( "explore_{$i}_url", 'fx_home_explore', "Kafel {$i} – link", 'url' );
+		$add( "explore_{$i}_world", 'fx_home_explore', "Kafel {$i} – pokazuj dla", 'world' );
 	}
 
 	/* Kafle */
@@ -276,6 +328,7 @@ function fx_customize( $wp ) {
 		$add( "tile_{$i}_img", 'fx_home_tiles', "Kafel {$i} – zdjęcie", 'image' );
 		$add( "tile_{$i}_title", 'fx_home_tiles', "Kafel {$i} – tytuł" );
 		$add( "tile_{$i}_links", 'fx_home_tiles', "Kafel {$i} – przyciski", 'textarea' );
+		$add( "tile_{$i}_world", 'fx_home_tiles', "Kafel {$i} – pokazuj dla", 'world' );
 	}
 
 	/* Dyscypliny */
@@ -326,4 +379,23 @@ function fx_customize( $wp ) {
 	$add( 'store_text', 'fx_home_store', 'Tekst', 'html' );
 	$add( 'store_btn_label', 'fx_home_store', 'Przycisk – tekst' );
 	$add( 'store_btn_url', 'fx_home_store', 'Przycisk – link', 'url' );
+}
+
+function fx_sanitize_world( $v ) {
+	return in_array( $v, array( 'all', 'moto', 'rower' ), true ) ? $v : 'all';
+}
+
+/** ID kategorii głównej świata (Moto / Rower): z ustawień, inaczej po adresie off-road / rowerowy. */
+function fx_world_cat( $world ) {
+	$id = (int) fx_mod( "world_{$world}_cat" );
+	if ( $id ) {
+		return $id;
+	}
+	foreach ( 'moto' === $world ? array( 'off-road', 'moto', 'motocross' ) : array( 'rowerowy', 'rower', 'mtb' ) as $slug ) {
+		$t = get_term_by( 'slug', $slug, 'product_cat' );
+		if ( $t ) {
+			return (int) $t->term_id;
+		}
+	}
+	return 0;
 }

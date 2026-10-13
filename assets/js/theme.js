@@ -595,4 +595,35 @@
 			if (box) { dataOf(box).forEach(function (d) { var i = new Image(); i.src = d.img; }); }
 		});
 	})();
+
+	/* Przełącznik Moto / Rower na stronie głównej */
+	(function () {
+		var root = document.documentElement;
+		var btns = document.querySelectorAll('[data-fx-world-set]');
+		if (!btns.length) { return; }
+		function paint() {
+			var w = root.getAttribute('data-world');
+			btns.forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-fx-world-set') === w ? 'true' : 'false'); });
+		}
+		function set(w) {
+			root.setAttribute('data-world', w);
+			try { localStorage.setItem('fxWorld', w); } catch (e) {}
+			paint();
+			if (window.dataLayer) { window.dataLayer.push({ event: 'fx_world', fx_world: w }); }
+		}
+		btns.forEach(function (b) {
+			b.addEventListener('click', function () {
+				set(b.getAttribute('data-fx-world-set'));
+				if (b.hasAttribute('data-fx-world-scroll')) {
+					var t = document.getElementById('fx-world');
+					if (t) {
+						var h = document.querySelector('.fx-header');
+						var y = t.getBoundingClientRect().top + window.pageYOffset - (h ? h.getBoundingClientRect().height : 0) - 8;
+						window.scrollTo({ top: y, behavior: 'smooth' });
+					}
+				}
+			});
+		});
+		paint();
+	})();
 })(jQuery);

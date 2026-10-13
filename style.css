@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.1.1
+Version: 3.2.0
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -884,3 +884,39 @@ button,input,select,textarea{font:inherit;color:inherit}
 .fx-colors__list{display:flex;flex-wrap:wrap;gap:8px}
 .fx-colors__sw{width:64px;height:64px}
 @media (max-width:600px){.fx-cf__sw,.fx-cf__more{width:34px;min-width:34px;height:34px}.fx-cf{gap:5px}}
+
+/* =====================================================================
+   Moto / Rower – baner podzielony i przełącznik
+   ===================================================================== */
+html[data-world="moto"] [data-fx-world="rower"],html[data-world="rower"] [data-fx-world="moto"]{display:none!important}
+.fx-worlds{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--fx-ink)}
+.fx-world{position:relative;min-height:clamp(420px,68vh,680px);display:flex;align-items:flex-end;color:#fff;overflow:hidden;background:#2a2723}
+.fx-world .fx-cover{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .6s ease}
+.fx-world:hover .fx-cover{transform:scale(1.03)}
+.fx-world::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(12,10,8,.72) 0%,rgba(12,10,8,.15) 55%,rgba(12,10,8,0) 100%);pointer-events:none;transition:background .3s}
+.fx-world__body{position:relative;z-index:1;padding:clamp(24px,4vw,56px)}
+.fx-world__title{font-size:clamp(48px,7vw,104px);line-height:.95;letter-spacing:-.03em;margin:0;color:#fff;text-transform:uppercase}
+.fx-world__sub{margin:12px 0 0;font-size:17px;font-weight:500;max-width:420px}
+.fx-world__ctas{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;margin-top:24px}
+.fx-world__link{color:#fff;font-weight:600;font-size:15px;text-decoration:underline;text-underline-offset:4px}
+.fx-world__link:hover{color:#fff;opacity:.8}
+.fx-world__chosen{display:none;margin-bottom:14px;background:#fff;color:var(--fx-ink);font-size:12px;font-weight:700;padding:5px 12px;border-radius:var(--fx-pill);letter-spacing:.04em;text-transform:uppercase}
+html[data-world="moto"] .fx-world--moto .fx-world__chosen,html[data-world="rower"] .fx-world--rower .fx-world__chosen{display:inline-block}
+@media (hover:hover){html[data-world="moto"] .fx-world--rower::after,html[data-world="rower"] .fx-world--moto::after{background:linear-gradient(to top,rgba(12,10,8,.8),rgba(12,10,8,.35))}}
+.fx-wswitch{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;padding:22px var(--fx-gutter);border-bottom:1px solid var(--fx-line);scroll-margin-top:140px}
+.fx-wswitch__label{font-size:14px;color:var(--fx-muted);font-weight:500}
+.fx-wswitch__seg{display:inline-flex;padding:4px;border-radius:var(--fx-pill);background:var(--fx-soft);box-shadow:inset 0 0 0 1px var(--fx-line)}
+.fx-wswitch__seg button{border:0;background:none;min-height:42px;padding:0 26px;border-radius:var(--fx-pill);font:inherit;font-weight:600;font-size:15px;color:var(--fx-ink);cursor:pointer;text-transform:uppercase;letter-spacing:.03em;transition:background .15s,color .15s}
+.fx-wswitch__seg button[aria-pressed="true"]{background:var(--fx-ink);color:#fff}
+@media (max-width:760px){
+  /* telefon: obie połowy obok siebie, cała połowa jest przyciskiem wyboru */
+  .fx-world{min-height:300px}
+  .fx-world__body{padding:16px;position:static}
+  .fx-world__title{font-size:34px;position:relative;z-index:1}
+  .fx-world__sub,.fx-world__link{display:none}
+  .fx-world__chosen{position:relative;z-index:1;margin-bottom:8px;font-size:11px;padding:4px 10px}
+  .fx-world__ctas{margin:0}
+  .fx-world__ctas .fx-btn{position:absolute;inset:0;z-index:2;opacity:0;width:100%;height:100%;min-height:0;border-radius:0}
+  .fx-wswitch{position:sticky;top:64px;z-index:20;background:#fff;padding:12px var(--fx-gutter)}
+  .fx-wswitch__label{display:none}
+}

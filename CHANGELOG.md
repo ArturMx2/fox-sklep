@@ -1,5 +1,12 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.2.0 – przełącznik Moto / Rower
+- Strona główna: baner podzielony na MOTO i ROWER (na telefonie obok siebie, cała połowa klikalna) + przełącznik „Pokazuję sprzęt: Moto | Rower”.
+- Wybór przestawia sekcje bez przeładowania: produkty (z kategorii moto albo rowerowej), kafle „Odkrywaj” i duże kafle (ustawienie „pokazuj dla” przy każdym), poradniki (osobna kategoria wpisów dla każdego świata).
+- Wybór zapamiętany w przeglądarce; ustawia się też sam, gdy klient ogląda kategorie albo produkty moto lub rowerowe. Bez migania strony, działa z cache.
+- SEO: obie wersje sekcji są w HTML strony głównej; kategorie i adresy bez zmian. Zdarzenie fx_world w dataLayer (GA4).
+- Ustawienia: Dostosuj → FOX.SKLEP.PL → Strona główna – Moto / Rower (zdjęcia, teksty, kategorie, domyślny świat). Wyłączenie przywraca pojedynczy baner.
+
 ## 3.1.1 – bezpieczeństwo
 - Formularz „Powiadom o dostępności”: limit 5 zapisów na 10 minut z jednego IP (ochrona przed zalewaniem bazy i wysyłką na cudze adresy).
 - Wzmocnienia (Narzędzia sklepu, domyślnie włączone): ukryta wersja WordPressa, blokada wyciągania loginów (?author=1, /wp-json/wp/v2/users i oEmbed dla niezalogowanych), nagłówki bezpieczeństwa (nosniff, X-Frame-Options, Referrer-Policy, Permissions-Policy). REST WooCommerce / BaseLinker bez zmian.
