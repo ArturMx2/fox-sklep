@@ -7,7 +7,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FX_VERSION', '3.1.0' );
+define( 'FX_VERSION', '3.1.1' );
 define( 'FX_DIR', get_template_directory() );
 define( 'FX_URI', get_template_directory_uri() );
 
@@ -15,6 +15,7 @@ require_once FX_DIR . '/inc/template-tags.php';
 require_once FX_DIR . '/inc/setup.php';
 require_once FX_DIR . '/inc/customizer.php';
 require_once FX_DIR . '/inc/mega-menu.php';
+require_once FX_DIR . '/inc/security.php';
 
 if ( class_exists( 'WooCommerce' ) ) {
 	require_once FX_DIR . '/inc/woocommerce.php';

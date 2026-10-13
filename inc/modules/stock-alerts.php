@@ -71,6 +71,14 @@ add_action( 'wc_ajax_fx_stock_alert', function () {
 	if ( ! is_email( $email ) ) {
 		wp_send_json_error( array( 'message' => 'Podaj poprawny adres e-mail.' ) );
 	}
+	// Limit: najwyżej 5 zapisów na 10 minut z jednego adresu IP (ochrona przed zalewaniem formularza).
+	$ip   = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+	$rkey = 'fx_sa_rate_' . md5( $ip );
+	$hits = (int) get_transient( $rkey );
+	if ( $hits >= 5 ) {
+		wp_send_json_error( array( 'message' => 'Zbyt wiele zapisów w krótkim czasie. Spróbuj ponownie za kilka minut.' ) );
+	}
+	set_transient( $rkey, $hits + 1, 10 * MINUTE_IN_SECONDS );
 	$target = $vid ? wc_get_product( $vid ) : wc_get_product( $pid );
 	if ( ! $target || ( $vid && $target->get_parent_id() !== $pid ) ) {
 		wp_send_json_error( array( 'message' => 'Nie znaleziono produktu.' ) );

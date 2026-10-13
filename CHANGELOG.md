@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.1.1 – bezpieczeństwo
+- Formularz „Powiadom o dostępności”: limit 5 zapisów na 10 minut z jednego IP (ochrona przed zalewaniem bazy i wysyłką na cudze adresy).
+- Wzmocnienia (Narzędzia sklepu, domyślnie włączone): ukryta wersja WordPressa, blokada wyciągania loginów (?author=1, /wp-json/wp/v2/users i oEmbed dla niezalogowanych), nagłówki bezpieczeństwa (nosniff, X-Frame-Options, Referrer-Policy, Permissions-Policy). REST WooCommerce / BaseLinker bez zmian.
+
 ## 3.1.0 – tabele rozmiarów: produkty + import z CommerceKit
 - Tabela rozmiarów przypisywana do kategorii (z podkategoriami) i teraz także do konkretnych produktów – pole „Konkretne produkty” na ekranie tabeli (wyszukiwarka produktów). Kolejność: ustawienie w produkcie → tabela przypisana do produktu → najbliższa kategoria.
 - Narzędzia → Import tabel rozmiarów: przenosi tabele z CommerceKit (treść, kategorie, produkty). Podgląd przed importem, oryginały nietknięte, ponowny import aktualizuje bez duplikatów. Działa też po wyłączeniu CommerceKit.
