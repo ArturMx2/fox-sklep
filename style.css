@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 1.0.7
+Version: 1.0.8
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -254,20 +254,19 @@ ul.products>li.product,.woocommerce ul.products li.product,.woocommerce-page ul.
 .fx-card .price,.woocommerce ul.products li.product .fx-card .price{display:block;font-size:16px;font-weight:700;color:var(--fx-ink)!important;margin:0}
 .fx-card .price del{font-weight:400;color:var(--fx-muted)!important;margin-right:6px;opacity:1}
 .fx-card .price ins{text-decoration:none;color:var(--fx-sale)!important;background:none}
-/* Etykiety wtyczek (Promocja!, Nowy!, Ocieplane…) – małe plakietki w lewym górnym rogu zdjęcia. */
-.fx-card__labels{position:absolute;top:10px;left:10px;z-index:2;display:flex;flex-wrap:wrap;gap:6px;max-width:calc(100% - 56px);pointer-events:none}
-.fx-card__labels:empty{display:none}
-.fx-card__labels>*,.fx-card-li .onsale,.fx-card-li .product-label{position:static!important;display:inline-flex!important;align-items:center;min-height:0!important;min-width:0!important;width:auto!important;height:auto!important;margin:0!important;padding:4px 9px!important;border-radius:var(--fx-pill)!important;background:#fff!important;color:var(--fx-ink)!important;font:700 12px/1.2 var(--fx-body)!important;box-shadow:0 0 0 1px var(--fx-line);transform:none!important}
-.fx-card-li .onsale,.fx-card__labels>.fx-card__badge--sale{color:var(--fx-sale)!important}
-/* Własna plakietka motywu tylko wtedy, gdy wtyczka nie dodała swoich etykiet. */
-.fx-card__labels>.fx-card__badge:not(:only-child){display:none!important}
-.fx-card-li .fx-card__hooks--top{position:absolute;top:8px;right:8px;z-index:3}
-.fx-card-li .fx-card__hooks--top:empty{display:none}
-.fx-card-li .commercekit-wishlist{position:static!important;margin:0!important}
+/* Plakietka motywu na zdjęciu. */
+.fx-card__labels{position:absolute;top:10px;left:10px;z-index:2;display:flex;gap:6px;pointer-events:none}
+.fx-card__labels .fx-card__badge{display:inline-flex;padding:4px 9px;border-radius:var(--fx-pill);background:#fff;box-shadow:0 0 0 1px var(--fx-line);font-size:12px;line-height:1.2}
+/* Elementy wtyczek (etykiety „Nowy!”, „Ocieplane”, dane GTM) – pod ceną, jako małe plakietki. */
+.fx-card__hooks{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;font-size:12px}
+.fx-card__hooks:empty{display:none}
+.fx-card__hooks .onsale,.fx-card__hooks .product-label,.fx-card__hooks [class*="badge"]{position:static!important;display:inline-flex!important;align-items:center;min-height:0!important;min-width:0!important;width:auto!important;height:auto!important;margin:0!important;padding:4px 9px!important;border-radius:var(--fx-pill)!important;background:#fff!important;color:var(--fx-ink)!important;font:700 12px/1.2 var(--fx-body)!important;box-shadow:0 0 0 1px var(--fx-line);transform:none!important}
+/* Gdy wtyczka dodaje własne etykiety, plakietka motywu na zdjęciu się chowa (bez dubli). */
+.fx-card-li:has(.fx-card__hooks .onsale,.fx-card__hooks .product-label,.fx-card__hooks [class*="badge"]) .fx-card__labels{display:none}
+.fx-card-li .commercekit-wishlist{position:absolute!important;top:8px;right:8px;z-index:3;margin:0!important}
 .fx-card-li .commercekit-wishlist a{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#fff}
-.fx-card-li .add_to_cart_button,.fx-card-li a.button{display:none!important}
+.fx-card-li .add_to_cart_button,.fx-card-li .fx-card__hooks a.button{display:none!important}
 .fx-card-li .star-rating{display:none}
-.fx-card__hooks{font-size:13px}
 .fx-card__hooks .price{display:none!important}
 .fx-promo-tile{grid-column:span 2;position:relative;min-height:340px;display:flex;align-items:flex-end;color:#fff;overflow:hidden}
 .fx-promo-tile .fx-tile__body{position:relative;z-index:1}
