@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.3.4
+- Kod pocztowy sklepu stacjonarnego (55-080) w danych dla Google i w sekcji sklepu na stronie głównej.
+
 ## 3.3.3 – telefon: strona nie ucieka na boki
 - Naprawione: tabela wyboru wariantów na karcie produktu była szersza niż ekran telefonu (cała strona przesuwała się w bok i po oddaleniu nie wypełniała szerokości). Dodatkowo zabezpieczenie: nic nie może poszerzyć strony poza ekran.
 - Polska odmiana: „5 kolorów”, „3 produkty”, „12 komentarzy” (wcześniej „5 kolory”, „3 produktów”).

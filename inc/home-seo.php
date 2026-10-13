@@ -57,7 +57,7 @@ function fx_home_seo_defaults( $home ) {
 		'store_text'       => 'Przymierz kask, buty albo strój na crossa przed zakupem – doradzimy rozmiar. Dojazd: zjazd z autostrady A8 pod Wrocławiem.',
 		'store_name'       => 'FOX.SKLEP.PL – sklep stacjonarny',
 		'store_street'     => 'ul. Stawowa 33A',
-		'store_postcode'   => '',
+		'store_postcode'   => '55-080',
 		'store_city'       => 'Mokronos Dolny',
 		'store_phone'      => '+48 71 880 85 54',
 		'store_hours'      => 'Mo-Fr 11:00-17:00',
