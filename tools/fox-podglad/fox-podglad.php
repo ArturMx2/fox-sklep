@@ -2,7 +2,7 @@
 /**
  * Plugin Name: FOX – podgląd motywu i porównanie SEO
  * Description: Pokazuje nowy motyw FOX.SKLEP.PL na działającym sklepie tylko osobom z kluczem podglądu (klienci i Google dalej widzą obecny motyw) i porównuje SEO obu wersji: Narzędzia → Porównanie SEO. Po przełączeniu motywu wtyczkę można usunąć.
- * Version: 1.0.0
+ * Version: 1.1.0
  * Author: FOX.SKLEP.PL
  * Requires PHP: 7.4
  *
@@ -95,9 +95,12 @@ add_action( 'init', function () {
 	}
 } );
 
-/* Porównanie SEO (ta sama kopia co w motywie). */
+/* Porównanie SEO i import tabel rozmiarów (te same pliki co w motywie) – działają, zanim motyw zostanie włączony. */
 if ( is_admin() && ! function_exists( 'fx_seo_cmp_page' ) ) {
 	require_once __DIR__ . '/seo-compare.php';
+}
+if ( is_admin() && ! function_exists( 'fx_sg_import_page' ) && ( class_exists( 'WooCommerce' ) || in_array( 'woocommerce/woocommerce.php', (array) get_option( 'active_plugins', array() ), true ) ) ) {
+	require_once __DIR__ . '/size-guides-import.php';
 }
 
 /* Adresy z największym ruchem w Google (Search Console, 3 miesiące do 13.10.2026). */

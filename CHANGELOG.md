@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.8.4
+- Import tabel rozmiarów dostępny także przed włączeniem motywu – we wtyczce „FOX – podgląd motywu” 1.1.0 (Narzędzia → Import tabel rozmiarów). Motyw nie dubluje narzędzia, gdy wtyczka jest włączona.
+
 ## 3.8.3 – poprawki po porównaniu SEO na fox.sklep.pl
 - Dane produktu dla Google (Product, cena, dostępność) zawsze na stronie produktu – w podglądzie na fox.sklep.pl ginęły na części produktów.
 - „Jedna karta na model” (kolory) domyślnie wyłączona: lista kategorii ma te same produkty i te same strony /page/N/ co obecny sklep.
