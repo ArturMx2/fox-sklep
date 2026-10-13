@@ -1,5 +1,14 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 2.3.0
+- Filtry w kategoriach: Rozmiar i Kolor (kółka w kolorze z atrybutu), tylko wartości występujące w danej
+  kategorii, łączenie filtrów, aktywne filtry z krzyżykiem i „Wyczyść filtry”. Wbudowane filtrowanie
+  WooCommerce – bez wtyczki. Strony z filtrami mają noindex, linki filtrów nofollow.
+- Atrybuty filtrów do wyboru w Narzędziach sklepu (domyślnie wykrywane po nazwie).
+- Nagłówek w dwóch rzędach: wyszukiwarka – logo – ikony, a pod spodem menu w jednej linii.
+- Karty wpisów bloga w układzie jak dotychczas: zdjęcie z kategorią, awatar autora, podkreślony tytuł,
+  zajawka, „Czytaj więcej”, data i komentarze.
+
 ## 2.2.0
 - Karta produktu: zamiast losowych „Podobnych produktów” sekcja „Z tej serii” – produkty z tej samej
   najgłębszej kategorii (np. V1), najpierw dostępne i o najbardziej podobnej nazwie, z linkiem do całej serii.

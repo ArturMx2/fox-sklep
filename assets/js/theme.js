@@ -265,6 +265,16 @@
 		io.observe(loader);
 	})();
 
+	/* ---------- Filtry: zamykanie listy po kliknięciu obok i otwieranie jednej naraz ---------- */
+	document.addEventListener('click', function (e) {
+		document.querySelectorAll('.fx-filter[open]').forEach(function (d) { if (!d.contains(e.target)) { d.removeAttribute('open'); } });
+	});
+	document.querySelectorAll('.fx-filter').forEach(function (d) {
+		d.addEventListener('toggle', function () {
+			if (d.open) { document.querySelectorAll('.fx-filter[open]').forEach(function (o) { if (o !== d) { o.removeAttribute('open'); } }); }
+		});
+	});
+
 	/* ---------- Przyklejony przycisk na telefonie ---------- */
 	var sticky = document.querySelector('.fx-sticky-atc');
 	var atcForm = document.querySelector('.fx-pdp form.cart');

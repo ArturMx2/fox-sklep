@@ -17,6 +17,8 @@ function fx_tool_defaults() {
 		'badge_low_stock'  => 2,
 		'helmet_cats'      => 'kaski, kaski-odziez-mtb',
 		'helmet_ranges'    => '',
+		'filter_size_attr'  => '',
+		'filter_color_attr' => '',
 		'stock_alerts'     => true,
 		'stock_alert_text' => 'Zapisując się, zgadzasz się na jednorazową wiadomość e-mail o dostępności produktu.',
 	);
@@ -45,6 +47,18 @@ add_action( 'customize_register', function ( $wp ) {
 		'stock_alerts'     => array( 'checkbox', 'Formularz „Powiadom mnie o dostępności” przy niedostępnych rozmiarach', 'fx_sanitize_bool' ),
 		'stock_alert_text' => array( 'textarea', 'Informacja pod formularzem powiadomienia (RODO)', 'sanitize_textarea_field' ),
 	);
+	// Atrybuty do filtrów: lista z WooCommerce.
+	$attrs = array( '' => 'Wykryj automatycznie po nazwie' );
+	if ( function_exists( 'wc_get_attribute_taxonomies' ) ) {
+		foreach ( wc_get_attribute_taxonomies() as $a ) {
+			$attrs[ $a->attribute_name ] = $a->attribute_label;
+		}
+	}
+	foreach ( array( 'filter_size_attr' => 'Filtr „Rozmiar” – atrybut', 'filter_color_attr' => 'Filtr „Kolor” – atrybut' ) as $key => $label ) {
+		$wp->add_setting( 'fx_t_' . $key, array( 'default' => '', 'sanitize_callback' => 'sanitize_title' ) );
+		$wp->add_control( 'fx_t_' . $key, array( 'section' => 'fx_tools', 'label' => $label, 'type' => 'select', 'choices' => $attrs ) );
+	}
+
 	foreach ( $fields as $key => $f ) {
 		$wp->add_setting(
 			'fx_t_' . $key,
