@@ -262,7 +262,8 @@ function fx_subcategory_chips() {
 remove_action( 'woocommerce_after_single_product_summary', 'woocommerce_output_product_data_tabs', 10 );
 add_action( 'woocommerce_single_product_summary', 'fx_size_help', 31 );
 add_action( 'woocommerce_single_product_summary', 'fx_trust_box', 35 );
-add_action( 'woocommerce_single_product_summary', 'fx_product_accordion', 45 );
+/* Opis i szczegóły pod częścią zakupową, na całą szerokość (przed kompletem i podobnymi produktami). */
+add_action( 'woocommerce_after_single_product_summary', 'fx_product_accordion', 4 );
 
 function fx_size_help() {
 	global $product;
@@ -298,13 +299,17 @@ function fx_product_accordion() {
 	if ( ! $product ) {
 		return;
 	}
-	echo '<div class="fx-acc">';
+	echo '<section class="fx-pdesc" id="opis">';
 
+	// Lewa kolumna: pełny opis produktu, zawsze rozwinięty.
 	if ( $post && '' !== trim( $post->post_content ) ) {
-		echo '<details open><summary>Opis produktu</summary><div class="fx-acc__body">';
+		echo '<div class="fx-pdesc__main"><h2 class="fx-pdesc__title">Opis produktu</h2><div class="fx-pdesc__body fx-content">';
 		the_content();
-		echo '</div></details>';
+		echo '</div></div>';
 	}
+
+	// Prawa kolumna: szczegóły w akordeonie.
+	echo '<div class="fx-pdesc__side"><div class="fx-acc">';
 
 	$tech = get_post_meta( $product->get_id(), '_fx_tech', true );
 	if ( $tech ) {
@@ -339,7 +344,7 @@ function fx_product_accordion() {
 		echo '</div></details>';
 	}
 
-	echo '</div>';
+	echo '</div></div></section>';
 }
 
 /* Pola produktu: „Technologia i materiały” oraz „Rozmiar i krój”. */

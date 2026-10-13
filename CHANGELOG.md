@@ -1,5 +1,11 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 2.1.1
+- Karta produktu: opis przeniesiony pod część zakupową, na całą szerokość – pełny opis po lewej,
+  szczegóły (informacje dodatkowe, rozmiar i krój, dostawa, opinie) w akordeonie po prawej.
+- Kolumna zakupowa i zdjęcia nigdy nie są przyklejane, pływające kolumny zamknięte przed sekcjami poniżej –
+  nic nie najeżdża na podobne produkty (sprawdzone pomiarem na komputerze i telefonie).
+
 ## 2.1.0 – własne narzędzia zamiast CommerceKit
 - Etykiety: automatyczne (−X% / Promocja, Nowość, Ostatnie sztuki, Wyprzedane) i ręczne w produkcie lub kategorii („!” = czarna).
 - Tabele rozmiarów: Produkty → Tabele rozmiarów, przypisanie do kategorii lub produktu, okno na karcie produktu.

@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 2.1.0
+Version: 2.1.1
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -290,6 +290,17 @@ button,input,select,textarea{font:inherit;color:inherit}
 .woocommerce div.product .stock.out-of-stock{color:var(--fx-sale)}
 .woocommerce div.product .related,.woocommerce div.product .upsells{clear:both;padding-top:56px;margin-top:24px;border-top:1px solid var(--fx-line)}
 .woocommerce div.product .related>h2,.woocommerce div.product .upsells>h2{font-size:30px;margin:0 0 8px}
+
+/* Część zakupowa: zawsze w swoim miejscu, bez przyklejania; pływające kolumny zamknięte przed sekcjami poniżej. */
+.woocommerce div.product div.summary,.woocommerce div.product div.images{position:relative!important;top:auto!important}
+.woocommerce div.product::after{content:"";display:table;clear:both}
+/* Opis produktu pod częścią zakupową */
+.fx-pdesc{clear:both;display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:48px;padding-top:56px;margin-top:16px;border-top:1px solid var(--fx-line)}
+.fx-pdesc__title{font-size:30px;margin:0 0 16px}
+.fx-pdesc__body{max-width:760px}
+.fx-pdesc__side .fx-acc{border-top:1px solid var(--fx-ink)}
+.fx-pdesc__main:only-child,.fx-pdesc__side:only-child{grid-column:1/-1}
+@media (max-width:900px){.fx-pdesc{grid-template-columns:1fr;gap:24px;padding-top:40px}}
 
 /* Rozmiary jako przyciski (tylko gdy nie robi tego wtyczka) */
 .fx-swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px;max-width:460px}
