@@ -300,8 +300,8 @@ function fx_product_accordion() {
 
 	// Lewa kolumna: pełny opis produktu, zawsze rozwinięty.
 	if ( $post && '' !== trim( $post->post_content ) ) {
-		echo '<div class="fx-pdesc__main"><h2 class="fx-pdesc__title">Opis produktu</h2><div class="fx-pdesc__body fx-content">';
-		the_content();
+		echo '<div class="fx-pdesc__main"><h2 class="fx-pdesc__title">Opis produktu</h2><div class="fx-pdesc__body fx-content fx-prose">';
+		echo fx_clean_html( apply_filters( 'the_content', get_the_content() ) ); // phpcs:ignore
 		echo '</div></div>';
 	}
 
@@ -362,3 +362,6 @@ add_action( 'woocommerce_after_single_product_summary', function () {
 		fx_kit_section( $product );
 	}
 }, 5 );
+
+/* Krótki opis – te same porządki co w opisie (jeden H1, bez wklejonych czcionek). */
+add_filter( 'woocommerce_short_description', 'fx_clean_html', 20 );

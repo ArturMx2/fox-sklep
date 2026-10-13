@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 2.6.2 – formatowanie opisów
+- Opis produktu: stała, czytelna typografia (tekst 16,5 px, nagłówki 23/19 px, listy, tabele), odporna na style z wtyczek, importów i wklejek z Worda.
+- SEO: <h1> w opisie produktu, krótkim opisie i opisach kategorii wyświetlany jako <h2> – na stronie jest jeden H1. Treść w bazie bez zmian.
+- Usuwane przy wyświetlaniu: wklejone czcionki, rozmiary, kolory i interlinie w atrybutach style, znaczniki <font> oraz puste akapity (&nbsp;).
+
 ## 2.6.1 – poprawka mega menu
 - Naprawione: zamknięte (niewidoczne) panele menu łapały kursor, przez co przy zjeżdżaniu w dół lub podjeżdżaniu pod menu wyskakiwał inny panel (np. WYPRZEDAŻ).
 - Menu sterowane skryptem z „intencją”: otwiera się po krótkim zatrzymaniu kursora, otwarty panel zostaje przy przejeździe po skosie przez inne pozycje, przełącza się dopiero po ~0,4 s postoju na innej pozycji, zamyka po ~0,4 s od wyjechania. Esc zamyka, Tab otwiera.

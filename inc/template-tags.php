@@ -76,7 +76,7 @@ function fx_icon( $name, $size = 22 ) {
  * Bezpieczne wyświetlenie HTML z treści sklepu.
  */
 function fx_rich( $html ) {
-	return wpautop( do_shortcode( wp_kses_post( $html ) ) );
+	return fx_clean_html( wpautop( do_shortcode( wp_kses_post( $html ) ) ) );
 }
 
 /**
@@ -144,4 +144,40 @@ function fx_fallback_menu( $class ) {
 function fx_is_elementor( $post_id = 0 ) {
 	$post_id = $post_id ? $post_id : get_the_ID();
 	return $post_id && 'builder' === get_post_meta( $post_id, '_elementor_edit_mode', true ) && did_action( 'elementor/loaded' );
+}
+
+/**
+ * Porządkuje HTML opisów (produkty, kategorie) przy wyświetlaniu – baza danych zostaje bez zmian.
+ *
+ * - <h1> w treści zamieniany na <h2>: na stronie ma być jeden H1 (nazwa produktu / kategorii),
+ * - z atrybutu style usuwane są czcionki, rozmiary, interlinia i kolory wklejone z Worda,
+ *   importów i starego motywu (wyrównanie tekstu zostaje),
+ * - puste akapity (&nbsp;, same <br>) usuwane, żeby nie robiły dziur.
+ *
+ * @param string $html HTML.
+ * @return string
+ */
+function fx_clean_html( $html ) {
+	if ( '' === trim( (string) $html ) ) {
+		return $html;
+	}
+	$html = preg_replace( '#<h1(\s[^>]*)?>#i', '<h2$1>', $html );
+	$html = preg_replace( '#</h1>#i', '</h2>', $html );
+	$html = preg_replace_callback(
+		'#\sstyle=("|\')(.*?)\1#is',
+		function ( $m ) {
+			$keep = array();
+			foreach ( explode( ';', $m[2] ) as $rule ) {
+				$prop = strtolower( trim( strtok( $rule, ':' ) ) );
+				if ( '' !== $prop && ! preg_match( '/^(font|line-height|color|background|letter-spacing|text-transform|mso-|margin|padding|width|height|white-space)/', $prop ) ) {
+					$keep[] = trim( $rule );
+				}
+			}
+			return $keep ? ' style="' . esc_attr( implode( '; ', $keep ) ) . '"' : '';
+		},
+		$html
+	);
+	$html = preg_replace( '#<font[^>]*>|</font>#i', '', $html );
+	$html = preg_replace( '#<p[^>]*>(?:\s|&nbsp;|&\#160;|\xC2\xA0|<br\s*/?>)*</p>#i', '', $html );
+	return $html;
 }
