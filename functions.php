@@ -7,7 +7,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FX_VERSION', '1.0.5' );
+define( 'FX_VERSION', '1.0.6' );
 define( 'FX_DIR', get_template_directory() );
 define( 'FX_URI', get_template_directory_uri() );
 

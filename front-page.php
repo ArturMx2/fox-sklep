@@ -115,9 +115,9 @@ get_header();
 		<?php endif; ?>
 	</div>
 	<?php
-	$count  = max( 4, min( 12, (int) fx_mod( 'new_count' ) ) );
+	$count  = max( 3, min( 12, (int) fx_mod( 'new_count' ) ) );
 	$source = fx_mod( 'new_source' );
-	$atts   = 'limit="' . $count . '" columns="4"';
+	$atts   = 'limit="' . $count . '" columns="3"';
 	if ( 'tag' === $source && fx_mod( 'new_tag' ) ) {
 		$atts .= ' visibility="visible" tag="' . esc_attr( sanitize_title( fx_mod( 'new_tag' ) ) ) . '" orderby="date" order="DESC"';
 	} elseif ( 'sale' === $source ) {

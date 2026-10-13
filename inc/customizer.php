@@ -48,7 +48,7 @@ function fx_defaults() {
 		'new_title'       => 'Nowe w sklepie',
 		'new_source'      => 'date',
 		'new_tag'         => 'bestseller',
-		'new_count'       => 4,
+		'new_count'       => 6,
 		'new_btn_label'   => 'Bestsellery',
 		'new_btn_url'     => $home . 'tag-produktu/bestseller/',
 		// Zawodnik.
@@ -292,7 +292,7 @@ function fx_customize( $wp ) {
 	$add( 'new_title', 'fx_home_new', 'Tytuł sekcji' );
 	$add( 'new_source', 'fx_home_new', 'Które produkty pokazać', 'source' );
 	$add( 'new_tag', 'fx_home_new', 'Slug tagu (gdy wybrano „Produkty z tagiem”)' );
-	$add( 'new_count', 'fx_home_new', 'Liczba produktów', 'number', array( 'input_attrs' => array( 'min' => 4, 'max' => 12, 'step' => 4 ) ) );
+	$add( 'new_count', 'fx_home_new', 'Liczba produktów', 'number', array( 'input_attrs' => array( 'min' => 3, 'max' => 12, 'step' => 3 ) ) );
 	$add( 'new_btn_label', 'fx_home_new', 'Przycisk – tekst' );
 	$add( 'new_btn_url', 'fx_home_new', 'Przycisk – link', 'url' );
 

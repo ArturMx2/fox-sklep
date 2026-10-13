@@ -39,19 +39,15 @@ add_filter( 'woocommerce_enqueue_styles', function ( $styles ) {
 	return $styles;
 } );
 
-add_filter( 'loop_shop_columns', function () {
-	return 4;
-} );
-
 add_filter( 'woocommerce_output_related_products_args', function ( $args ) {
-	$args['posts_per_page'] = 4;
-	$args['columns']        = 4;
+	$args['posts_per_page'] = 3;
+	$args['columns']        = 3;
 	return $args;
 } );
 
 add_filter( 'woocommerce_upsell_display_args', function ( $args ) {
-	$args['posts_per_page'] = 4;
-	$args['columns']        = 4;
+	$args['posts_per_page'] = 3;
+	$args['columns']        = 3;
 	return $args;
 } );
 
@@ -425,8 +421,25 @@ add_action( 'woocommerce_admin_process_product_object', function ( $product ) {
 
 /* Czysta karta w listingu (zdjęcie, nazwa, cena) – bez przycisku „Dodaj do koszyka”. */
 remove_action( 'woocommerce_after_shop_loop_item', 'woocommerce_template_loop_add_to_cart', 10 );
-/* Link karty zamyka szablon content-product.php; hak after_shop_loop_item zostaje dla wtyczek analitycznych. */
-remove_action( 'woocommerce_after_shop_loop_item', 'woocommerce_template_loop_product_link_close', 5 );
+/*
+ * Kartę rysuje content-product.php. Z haków listingu zdejmujemy domyślne elementy Woo
+ * (link, plakietka „Promocja!”, zdjęcie, tytuł, ocena, cena) – haki zostają dla wtyczek
+ * (ulubione, etykiety, GTM), które dzięki temu trafiają do wnętrza karty.
+ */
+add_action( 'init', function () {
+	remove_action( 'woocommerce_before_shop_loop_item', 'woocommerce_template_loop_product_link_open', 10 );
+	remove_action( 'woocommerce_after_shop_loop_item', 'woocommerce_template_loop_product_link_close', 5 );
+	remove_action( 'woocommerce_before_shop_loop_item_title', 'woocommerce_show_product_loop_sale_flash', 10 );
+	remove_action( 'woocommerce_before_shop_loop_item_title', 'woocommerce_template_loop_product_thumbnail', 10 );
+	remove_action( 'woocommerce_shop_loop_item_title', 'woocommerce_template_loop_product_title', 10 );
+	remove_action( 'woocommerce_after_shop_loop_item_title', 'woocommerce_template_loop_rating', 5 );
+	remove_action( 'woocommerce_after_shop_loop_item_title', 'woocommerce_template_loop_price', 10 );
+}, 20 );
+
+/* 3 produkty w rzędzie (2 na telefonie – reguluje CSS). */
+add_filter( 'loop_shop_columns', function () {
+	return 3;
+}, 20 );
 
 /**
  * Plakietka na karcie produktu.
