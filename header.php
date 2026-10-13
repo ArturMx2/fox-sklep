@@ -58,6 +58,9 @@ defined( 'ABSPATH' ) || exit;
 					<button type="submit" aria-label="Szukaj"><?php echo fx_icon( 'search', 18 ); // phpcs:ignore ?></button>
 				</form>
 				<button class="fx-icon-btn fx-only-mobile" type="button" data-fx-open="fx-search-drawer" aria-controls="fx-search-drawer" aria-expanded="false" aria-label="Szukaj"><?php echo fx_icon( 'search' ); // phpcs:ignore ?></button>
+				<?php if ( function_exists( 'fx_wishlist_page_id' ) && fx_wishlist_page_id() ) : ?>
+					<a class="fx-icon-btn" href="<?php echo esc_url( get_permalink( fx_wishlist_page_id() ) ); ?>" aria-label="Ulubione"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg><span class="fx-count fx-wish-count" data-count="0"></span></a>
+				<?php endif; ?>
 				<a class="fx-icon-btn" href="<?php echo esc_url( wc_get_page_permalink( 'myaccount' ) ); ?>" aria-label="Moje konto"><?php echo fx_icon( 'user', 24 ); // phpcs:ignore ?></a>
 				<a class="fx-icon-btn" href="<?php echo esc_url( wc_get_cart_url() ); ?>" aria-label="Koszyk"><?php echo fx_icon( 'bag', 24 ); // phpcs:ignore ?><?php fx_cart_count(); ?></a>
 			<?php else : ?>

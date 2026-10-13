@@ -74,37 +74,51 @@
 	$(document).on('click', '.woocommerce-review-link', function (e) { e.preventDefault(); openReviews(); });
 	if (/^#(reviews|comment-\d+)/.test(window.location.hash)) { openReviews(); }
 
-	/* ---------- Rozmiary jako przyciski ---------- */
-	var sizePattern = /(rozmiar|size|wielko)/i;
+	/* ---------- Przyciski wariantów (wszystkie atrybuty; kolory jako kółka) ---------- */
+	var swatchColors = (window.fxSwatches && window.fxSwatches.colors) || {};
 
 	function buildSwatches($form) {
-		// Jeśli wariantami zajmuje się wtyczka (np. CommerceKit), nie dokładamy własnych przycisków.
-		if ($form.find('[class*="cgkit"], [class*="swatch"]').not('.fx-swatches, .fx-swatches *').length) { return; }
 		$form.find('table.variations select').each(function () {
 			var select = this;
 			var $select = $(select);
-			var name = (select.getAttribute('data-attribute_name') || select.name || '') + ' ' + ($select.closest('tr').find('th label').text() || '');
-			if (!sizePattern.test(name)) { return; }
+			var attr = select.getAttribute('data-attribute_name') || select.name || '';
+			var colors = swatchColors[attr] || null;
+			var $row = $select.closest('tr');
+			var $label = $row.find('th label, td.label label').first();
 			var wrap = $select.siblings('.fx-swatches');
 			if (!wrap.length) {
 				wrap = $('<div class="fx-swatches" role="group"></div>');
-				wrap.attr('aria-label', $select.closest('tr').find('th label').text() || 'Rozmiar');
+				if (colors) { wrap.addClass('fx-swatches--color'); }
+				wrap.attr('aria-label', $label.text() || 'Wariant');
 				$select.after(wrap);
 				$select.addClass('screen-reader-text').attr('tabindex', '-1').attr('aria-hidden', 'true');
 			}
 			wrap.empty();
+			var enabledCount = $select.find('option.enabled').length;
 			$select.find('option').each(function () {
 				if (!this.value) { return; }
 				var opt = this;
-				var b = $('<button type="button"></button>').text(opt.text);
-				var unavailable = opt.disabled || ($(opt).hasClass('enabled') === false && $select.find('option.enabled').length > 0);
-				if (unavailable) { b.prop('disabled', true).attr('title', 'Niedostępny'); }
-				if (select.value === opt.value) { b.addClass('is-active').attr('aria-pressed', 'true'); } else { b.attr('aria-pressed', 'false'); }
+				var b = $('<button type="button"></button>');
+				if (colors && colors[opt.value]) {
+					var c = colors[opt.value];
+					b.addClass('fx-swatch-color').attr('aria-label', opt.text).attr('title', opt.text)
+						.css('background', c.length > 1 ? 'linear-gradient(135deg,' + c[0] + ' 50%,' + c[1] + ' 50%)' : c[0]);
+				} else {
+					b.text(opt.text);
+				}
+				var unavailable = opt.disabled || (enabledCount > 0 && !$(opt).hasClass('enabled'));
+				if (unavailable) { b.addClass('is-unavailable').attr('title', opt.text + ' – niedostępny'); }
+				var active = select.value === opt.value;
+				b.toggleClass('is-active', active).attr('aria-pressed', active ? 'true' : 'false');
 				b.on('click', function () {
 					$select.val(select.value === opt.value ? '' : opt.value).trigger('change');
 				});
 				wrap.append(b);
 			});
+			// Wybrana wartość obok nazwy atrybutu.
+			var chosen = $label.find('.fx-chosen');
+			if (!chosen.length) { chosen = $('<span class="fx-chosen"></span>'); $label.append(chosen); }
+			chosen.text(select.value ? ': ' + $select.find('option:selected').text() : '');
 		});
 	}
 
@@ -114,6 +128,100 @@
 	$(document).on('change', 'form.variations_form table.variations select', function () {
 		buildSwatches($(this).closest('form'));
 	});
+	$(function () { $('form.variations_form').each(function () { buildSwatches($(this)); }); });
+
+	/* ---------- Ulubione ---------- */
+	var W = window.fxWish;
+	if (W) {
+		var WKEY = 'fx_wishlist';
+		var readLocal = function () { try { var a = JSON.parse(localStorage.getItem(WKEY) || '[]'); return Array.isArray(a) ? a.map(Number).filter(Boolean) : []; } catch (e) { return []; } };
+		var writeLocal = function (a) { try { localStorage.setItem(WKEY, JSON.stringify(a)); } catch (e) {} };
+		var wish = readLocal();
+		var endpoint = function (name) { return W.url.replace('%%endpoint%%', name); };
+		var saveRemote = function () { if (W.loggedIn) { $.post(endpoint('fx_wish_save'), { ids: JSON.stringify(wish), nonce: W.nonce }); } };
+		if (W.loggedIn) {
+			var merged = (W.saved || []).map(Number);
+			var extra = wish.filter(function (id) { return merged.indexOf(id) < 0; });
+			wish = merged.concat(extra);
+			writeLocal(wish);
+			if (extra.length) { saveRemote(); }
+		}
+		var paintWish = function () {
+			$('[data-fx-wish]').each(function () {
+				var on = wish.indexOf(Number(this.getAttribute('data-fx-wish'))) >= 0;
+				this.classList.toggle('is-active', on);
+				this.setAttribute('aria-pressed', on ? 'true' : 'false');
+			});
+			$('.fx-wish-count').attr('data-count', wish.length).text(wish.length || '');
+		};
+		var renderWishPage = function () {
+			var box = document.querySelector('[data-fx-wishlist]');
+			if (!box) { return; }
+			if (!wish.length) {
+				box.innerHTML = '<p class="fx-wishlist__empty">Nie masz jeszcze ulubionych produktów. Kliknij serduszko przy produkcie, żeby go tu zapisać.</p>';
+				return;
+			}
+			$.post(endpoint('fx_wish_render'), { ids: JSON.stringify(wish) }).done(function (res) {
+				box.innerHTML = (res && res.success && res.data.html) ? res.data.html : '<p class="fx-wishlist__empty">Nie udało się wczytać ulubionych.</p>';
+				paintWish();
+			});
+		};
+		$(document).on('click', '[data-fx-wish]', function (e) {
+			e.preventDefault();
+			e.stopPropagation();
+			var id = Number(this.getAttribute('data-fx-wish'));
+			var i = wish.indexOf(id);
+			if (i >= 0) { wish.splice(i, 1); } else { wish.unshift(id); }
+			writeLocal(wish);
+			saveRemote();
+			paintWish();
+			if (i >= 0 && document.querySelector('[data-fx-wishlist]')) { renderWishPage(); }
+		});
+		$(document.body).on('post-load updated_wc_div', paintWish);
+		paintWish();
+		renderWishPage();
+	}
+
+	/* ---------- Powiadomienie o dostępności ---------- */
+	var alertForm = document.querySelector('[data-fx-alert]');
+	if (alertForm && window.fxWish) {
+		var $vf = $('form.variations_form');
+		$vf.on('found_variation', function (e, variation) {
+			var oos = variation && !variation.is_in_stock;
+			alertForm.classList.toggle('fx-hide', !oos);
+			alertForm.querySelector('[name=variation_id]').value = oos ? variation.variation_id : 0;
+			alertForm.querySelector('.fx-alert__msg').textContent = '';
+		});
+		$vf.on('reset_data hide_variation', function () { alertForm.classList.add('fx-hide'); });
+		alertForm.addEventListener('submit', function (e) {
+			e.preventDefault();
+			var msg = alertForm.querySelector('.fx-alert__msg');
+			var btn = alertForm.querySelector('button[type=submit]');
+			var email = alertForm.querySelector('[name=email]').value.trim();
+			msg.classList.remove('is-error');
+			if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { msg.textContent = 'Podaj poprawny adres e-mail.'; msg.classList.add('is-error'); return; }
+			btn.disabled = true;
+			$.post(window.fxWish.url.replace('%%endpoint%%', 'fx_stock_alert'), {
+				email: email,
+				website: alertForm.querySelector('[name=website]').value,
+				product_id: alertForm.getAttribute('data-product'),
+				variation_id: alertForm.querySelector('[name=variation_id]').value
+			}).done(function (res) {
+				msg.textContent = (res && res.data && res.data.message) || 'Gotowe!';
+				msg.classList.toggle('is-error', !(res && res.success));
+			}).fail(function () {
+				msg.textContent = 'Błąd połączenia. Spróbuj ponownie.'; msg.classList.add('is-error');
+			}).always(function () { btn.disabled = false; });
+		});
+	}
+
+	/* ---------- Okna (tabela rozmiarów) ---------- */
+	$(document).on('click', '[data-fx-dialog]', function (e) {
+		var d = document.getElementById(this.getAttribute('data-fx-dialog'));
+		if (d && d.showModal) { e.preventDefault(); d.showModal(); }
+	});
+	$(document).on('click', '[data-fx-dialog-close]', function () { var d = this.closest('dialog'); if (d) { d.close(); } });
+	$(document).on('click', 'dialog.fx-dialog', function (e) { if (e.target === this) { this.close(); } });
 
 	/* ---------- Przyklejony przycisk na telefonie ---------- */
 	var sticky = document.querySelector('.fx-sticky-atc');

@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 2.0.0
+Version: 2.1.0
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -90,8 +90,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 .fx-logo{font-family:var(--fx-display);font-weight:600;font-size:22px;letter-spacing:-.01em;white-space:nowrap}
 .fx-logo img{max-height:44px;width:auto}
 .fx-icon-btn{width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;background:none;border:0;cursor:pointer;color:var(--fx-ink);position:relative}
-.fx-cart-count{position:absolute;top:4px;right:2px;min-width:18px;height:18px;border-radius:9px;background:var(--fx-ink);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px}
-.fx-cart-count:empty,.fx-cart-count[data-count="0"]{display:none}
+.fx-cart-count,.fx-count{position:absolute;top:4px;right:2px;min-width:18px;height:18px;border-radius:9px;background:var(--fx-ink);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.fx-cart-count:empty,.fx-cart-count[data-count="0"],.fx-count:empty,.fx-count[data-count="0"]{display:none}
 .fx-search{display:flex;align-items:center;gap:8px;border:1px solid #cfccc5;height:44px;padding:0 12px;flex:0 1 280px;min-width:0}
 .fx-search input[type=search]{border:0;outline:0;background:transparent;width:100%;min-width:0;font-size:15px}
 .fx-search button{background:none;border:0;padding:0;cursor:pointer;display:flex}
@@ -337,6 +337,60 @@ button,input,select,textarea{font:inherit;color:inherit}
 .fx-kit__summary{font-size:14px;color:var(--fx-ink-2)}
 .fx-kit__msg{font-size:14px;font-weight:500;min-height:20px}
 .fx-kit__msg.is-error{color:var(--fx-sale)}
+
+
+/* =====================================================================
+   NARZĘDZIA SKLEPU (zamiast CommerceKit)
+   ===================================================================== */
+/* Etykiety */
+.woocommerce ul.products li.product,.woocommerce div.product{position:relative}
+.fx-badges{position:absolute;top:10px;left:10px;z-index:3;display:flex;flex-wrap:wrap;gap:6px;max-width:calc(100% - 64px);pointer-events:none}
+.fx-badges--single{top:22px;left:10px}
+.fx-badge{display:inline-flex;align-items:center;padding:5px 10px;border-radius:var(--fx-pill);background:#fff;color:var(--fx-ink);font:700 12px/1.2 var(--fx-body);box-shadow:0 0 0 1px var(--fx-line)}
+.fx-badge--sale{color:var(--fx-sale)}
+.fx-badge--strong{background:var(--fx-ink);color:#fff;box-shadow:none}
+.fx-badge--muted{background:var(--fx-soft);color:var(--fx-muted)}
+
+/* Ulubione */
+.fx-wish{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:40px;height:40px;border-radius:50%;border:0;background:#fff;color:var(--fx-ink);cursor:pointer;padding:0;box-shadow:0 0 0 1px var(--fx-line)}
+.fx-wish.is-active svg{fill:var(--fx-sale);stroke:var(--fx-sale)}
+.woocommerce ul.products li.product>.fx-wish{position:absolute;top:8px;right:8px;z-index:4}
+.fx-wish--label{width:auto;height:56px;padding:0 20px;border-radius:var(--fx-pill);box-shadow:inset 0 0 0 1.5px #cfccc5;font-weight:500;font-size:15px;margin-left:8px;vertical-align:top}
+.fx-wishlist__empty{color:var(--fx-ink-2);padding:24px 0}
+
+/* Tabela rozmiarów */
+.fx-sg-open{display:inline-flex;align-items:center;gap:8px;background:none;border:0;padding:0;cursor:pointer;font:500 15px var(--fx-body);color:var(--fx-ink);text-decoration:underline;text-underline-offset:4px}
+.fx-dialog{border:0;padding:0;width:min(860px,94vw);max-height:88vh;overflow:auto;background:#fff;color:var(--fx-ink)}
+.fx-dialog::backdrop{background:rgba(12,10,8,.5)}
+.fx-dialog__head{position:sticky;top:0;background:#fff;display:flex;justify-content:space-between;align-items:center;padding:16px 20px 16px 28px;border-bottom:1px solid var(--fx-line)}
+.fx-dialog__head h2{font-size:24px;margin:0}
+.fx-dialog__body{padding:20px 28px 32px;max-width:none}
+.fx-dialog__body table{width:100%;border-collapse:collapse;font-size:15px}
+.fx-dialog__body th,.fx-dialog__body td{border-bottom:1px solid var(--fx-line);padding:10px 8px;text-align:center}
+.fx-dialog__body th{background:var(--fx-soft);font-weight:700}
+.fx-dialog__body .wp-block-table{overflow-x:auto;margin:0}
+
+/* Przyciski wariantów */
+.fx-chosen{font-weight:400;color:var(--fx-ink-2)}
+.fx-swatches button.is-unavailable{opacity:.4;background:repeating-linear-gradient(135deg,#fff 0 6px,#f1f0ec 6px 12px)}
+.fx-swatches--color{display:flex;flex-wrap:wrap;gap:10px}
+.fx-swatches button.fx-swatch-color{width:40px;height:40px;min-height:0;padding:0;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #cfccc5}
+.fx-swatches button.fx-swatch-color.is-active{box-shadow:0 0 0 2px var(--fx-ink);background-clip:padding-box}
+
+/* Powiadomienie o dostępności */
+.fx-alert{background:var(--fx-soft);padding:18px 20px}
+.fx-alert__title{font-weight:700;margin-bottom:10px}
+.fx-alert__row{display:flex;flex-wrap:wrap;gap:8px}
+.fx-alert__row input[type=email]{flex:1 1 200px;min-width:0;height:48px;border:1.5px solid #cfccc5;padding:0 14px;background:#fff}
+.fx-alert__note{font-size:12px;color:var(--fx-muted);margin:10px 0 0}
+.fx-alert__msg{font-size:14px;font-weight:500;margin-top:8px}
+.fx-alert__msg:empty{display:none}
+.fx-alert__msg.is-error,.fx-kit__msg.is-error{color:var(--fx-sale)}
+.fx-hp{position:absolute!important;left:-9999px!important;width:1px;height:1px;opacity:0}
+
+/* Obwód głowy w zamówieniu */
+.fx-helmet-info{margin-bottom:24px}
+#fx_head_cm_field .description{font-size:13px;color:var(--fx-muted)}
 
 /* ---------- Ogólne strony, blog, koszyk ---------- */
 .fx-page{padding-top:40px;padding-bottom:80px}

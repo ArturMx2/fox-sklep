@@ -1,5 +1,18 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 2.1.0 – własne narzędzia zamiast CommerceKit
+- Etykiety: automatyczne (−X% / Promocja, Nowość, Ostatnie sztuki, Wyprzedane) i ręczne w produkcie lub kategorii („!” = czarna).
+- Tabele rozmiarów: Produkty → Tabele rozmiarów, przypisanie do kategorii lub produktu, okno na karcie produktu.
+- Przyciski wariantów dla wszystkich atrybutów, kolory jako kółka (kolor ustawiany przy wartości atrybutu).
+- Ulubione: serduszko na kartach i produkcie, licznik w nagłówku, strona /ulubione/ (tworzy się sama, noindex),
+  lista gościa w przeglądarce, zalogowanego na koncie.
+- Powiadomienia o dostępności: zapis e-maila przy niedostępnym rozmiarze, automatyczny e-mail po powrocie na stan,
+  lista w WooCommerce → Powiadomienia o dostępności.
+- Walidacja kasku: obowiązkowy obwód głowy przy zamówieniu z kaskiem, porównanie z zakresem rozmiaru,
+  zapis w zamówieniu, panelu i e-mailu. Działa w klasycznym i blokowym zamówieniu.
+- Ustawienia: Wygląd → Dostosuj → FOX.SKLEP.PL → Narzędzia sklepu.
+- Wszystko przetestowane na lokalnym WordPressie z WooCommerce 11.2.
+
 ## 2.0.0 – przebudowa części sklepowej
 - Motyw nie nadpisuje już żadnych szablonów WooCommerce (listing, kategoria, karta produktu).
   Wszystko działa na standardowym HTML WooCommerce, którego oczekują wtyczki (CommerceKit, YITH, GTM4WP).
