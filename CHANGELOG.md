@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 2.4.2
+- Komunikat o ostatnich sztukach (1–3) zamiast „Na stanie” – teksty 1:1 z dotychczasowego kodu,
+  wyróżniony kolorem; działa też dla wybranego wariantu.
+
 ## 2.4.1
 - Komunikat o oszczędności pod ceną – logika i teksty 1:1 z dotychczasowego kodu fox.sklep.pl
   („Kupujesz taniej o…”, przy wariantach „Oszczędzasz nawet…”). Warianty liczone szybszą metodą,
