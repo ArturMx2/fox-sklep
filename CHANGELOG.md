@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.10.3 – spójne sekcje pod produktem
+- „Produkty z tej samej serii” i „Sprawdź podobne produkty” w tej samej siatce: 4 równe kolumny (telefon: 2), te same odstępy, nagłówki i linie oddzielające. „Sprawdź podobne” pokazuje 8 produktów (2 rzędy po 4).
+
 ## 3.10.2 – koszyk bez wyboru dostawy
 - W koszyku nie ma już wyboru metody dostawy ani „Wysyłka do: …” – klient wybiera dostawę raz, w zamówieniu.
 - Zamiast tego jedna linijka „Dostawa: od 15,00 zł – sposób dostawy wybierzesz w następnym kroku” (najniższa płatna stawka ze stref wysyłki) albo „Gratis” po przekroczeniu progu darmowej dostawy.

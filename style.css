@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.10.2
+Version: 3.10.3
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -1406,3 +1406,14 @@ html.fx-added-open{overflow:hidden}
 .woocommerce-cart .cart_totals tr.fx-ship-info td small{display:block;margin-top:2px;font-size:12.5px;color:var(--fx-muted);font-weight:400}
 .fx-ship-free{color:#1a7f37}
 .woocommerce-cart .cart_totals .woocommerce-shipping-calculator,.woocommerce-cart .cart_totals tr.woocommerce-shipping-totals,.woocommerce-cart .cart_totals tr.shipping{display:none}
+
+/* Sekcje pod produktem („Z tej samej serii”, „Sprawdź podobne”): ta sama siatka – 4 kolumny, na telefonie 2 – 3.10.3 */
+.single-product .fx-same-series ul.products,.single-product .fx-series ul.products,.single-product .related ul.products,.single-product .upsells ul.products{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:40px 24px;margin:24px 0 0;padding:0}
+.single-product .fx-same-series ul.products::before,.single-product .fx-same-series ul.products::after,.single-product .fx-series ul.products::before,.single-product .fx-series ul.products::after,.single-product .related ul.products::before,.single-product .related ul.products::after,.single-product .upsells ul.products::before,.single-product .upsells ul.products::after{display:none!important}
+.single-product .fx-same-series ul.products li.product,.single-product .fx-series ul.products li.product,.single-product .related ul.products li.product,.single-product .upsells ul.products li.product{width:auto!important;float:none!important;margin:0!important;clear:none!important}
+.single-product .fx-same-series,.single-product .fx-series{padding-top:56px;margin-top:24px;border-top:1px solid var(--fx-line)}
+.single-product .fx-same-series .fx-row-head h2,.single-product .fx-series .fx-row-head h2,.single-product .related>h2{font-size:30px;margin:0}
+@media (max-width:900px){
+  .single-product .fx-same-series ul.products,.single-product .fx-series ul.products,.single-product .related ul.products,.single-product .upsells ul.products{grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 14px}
+  .single-product .fx-same-series .fx-row-head h2,.single-product .fx-series .fx-row-head h2{font-size:24px}
+}

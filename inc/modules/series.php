@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FX_SIMILAR_LIMIT', 6 );       // 2 rzędy po 3 produkty.
+define( 'FX_SIMILAR_LIMIT', 8 );       // 2 rzędy po 4 produkty (jak „Z tej samej serii”).
 define( 'FX_SIMILAR_MIN_COMMON', 2 );  // Minimalna liczba wspólnych słów.
 define( 'FX_SIMILAR_POOL', 150 );      // Ilu kandydatów analizować.
 
@@ -128,6 +128,6 @@ function fx_similar_section() {
 		return;
 	}
 	echo '<section class="related products fx-series"><div class="fx-row-head"><h2>Sprawdź podobne produkty</h2></div>';
-	echo do_shortcode( '[products ids="' . implode( ',', array_map( 'intval', $ids ) ) . '" orderby="post__in" columns="3" limit="' . (int) FX_SIMILAR_LIMIT . '"]' ); // phpcs:ignore
+	echo do_shortcode( '[products ids="' . implode( ',', array_map( 'intval', $ids ) ) . '" orderby="post__in" columns="4" limit="' . (int) FX_SIMILAR_LIMIT . '"]' ); // phpcs:ignore
 	echo '</section>';
 }
