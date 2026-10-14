@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.13.4 – rozmiary i nazwa koloru
+- Przyciski rozmiarów z dłuższą nazwą („Uniwersalny”, „Junior”) są szersze – tekst nie jest ucinany.
+- „Kolor: …” przy rodzinie kolorów: gdy nazwa produktu nie zawiera osobnej nazwy koloru (np. „Gogle … Vue Arc – Vivid”), pokazuje kolor z atrybutu albo z wtyczki FOX Smart Color, a w ostateczności ostatnie słowo nazwy – zamiast całej nazwy produktu.
+
 ## 3.13.3 – bez napisu „Rozmiar: …”
 - Nad przyciskami rozmiarów zamiast napisu „Rozmiar: 46” jest sam przycisk „Tabela rozmiarów” (po lewej). Wybrany rozmiar widać na zaznaczonym przycisku. Produkty bez tabeli rozmiarów – napis zostaje.
 

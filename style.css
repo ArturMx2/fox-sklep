@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.13.3
+Version: 3.13.4
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -449,7 +449,9 @@ button,input,select,textarea{font:inherit;color:inherit}
 
 /* Rozmiary jako przyciski (tylko gdy nie robi tego wtyczka) */
 .fx-swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px;max-width:460px}
-.fx-swatches button{min-height:46px;background:#fff;border:1.5px solid #cfccc5;cursor:pointer;font-weight:500;font-size:15px;padding:0 8px}
+.fx-swatches button{min-height:46px;background:#fff;border:1.5px solid #cfccc5;cursor:pointer;font-weight:500;font-size:15px;padding:0 8px;white-space:nowrap}
+/* Długie nazwy (np. „Uniwersalny”, „Junior”) zajmują tyle miejsca, ile potrzebują – bez ucinania */
+.fx-swatches:not(.fx-swatches--color) button.fx-sw-long{grid-column:span 2;padding:0 14px}
 .fx-swatches button.is-active{background:var(--fx-ink);border-color:var(--fx-ink);color:#fff}
 .fx-swatches button:disabled{opacity:.35;text-decoration:line-through;cursor:not-allowed}
 .fx-size-help{font-size:14px;color:var(--fx-ink-2);line-height:1.5}

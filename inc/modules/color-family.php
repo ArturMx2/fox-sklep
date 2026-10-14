@@ -142,7 +142,12 @@ function fx_cf_labels( $products ) {
 	foreach ( $products as $p ) {
 		$rest  = implode( ' ', array_slice( $names[ $p->get_id() ], $n ) );
 		$color = $p->get_attribute( 'pa_kolor' );
-		$label = '' !== $rest ? $rest : ( $color ? $color : $p->get_name() );
+		if ( ! $color ) {
+			$color = (string) get_post_meta( $p->get_id(), '_foxsc_gmc_color', true ); // kolor z wtyczki FOX Smart Color
+		}
+		// Nazwa = sama wspólna część (np. „… VUE ARC – VIVID”): kolor z atrybutu, a gdy go brak – ostatnie słowo nazwy, nie cała nazwa.
+		$words = $names[ $p->get_id() ];
+		$label = '' !== $rest ? $rest : ( $color ? $color : (string) end( $words ) );
 		$out[ $p->get_id() ] = mb_convert_case( mb_strtolower( $label ), MB_CASE_TITLE, 'UTF-8' );
 	}
 	return $out;

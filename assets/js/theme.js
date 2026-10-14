@@ -105,6 +105,7 @@
 						.css('background', c.length > 1 ? 'linear-gradient(135deg,' + c[0] + ' 50%,' + c[1] + ' 50%)' : c[0]);
 				} else {
 					b.text(opt.text);
+					if (opt.text.length > 5) { b.addClass('fx-sw-long'); }
 				}
 				var unavailable = opt.disabled || (enabledCount > 0 && !$(opt).hasClass('enabled'));
 				if (unavailable) { b.addClass('is-unavailable').attr('title', opt.text + ' – niedostępny'); }
