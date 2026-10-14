@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.13.1 – tabela rozmiarów przy wyborze rozmiaru
+- Przycisk „Tabela rozmiarów” przeniesiony do wiersza wyboru rozmiaru (po prawej od „Rozmiar: …”), w stylu przycisków sklepu (obrys, zaokrąglony, jak „Ulubione”). Produkty bez wyboru rozmiaru – przycisk zostaje na swoim miejscu, w tym samym stylu.
+- Poprawione łamanie tekstu w ramce „−20% Kup kask z goglami…” (tekst rozjeżdżał się na trzy kolumny).
+
 ## 3.13.0 – wydajność (PageSpeed)
 - Przelewy24: skrypty płatności dla zamówienia blokowego (React + biblioteki WooCommerce Blocks, ok. 750 KB JS) ładują się tylko w koszyku i na stronie zamówienia, a nie na każdej stronie sklepu.
 - Instagram Feed: style tylko na stronach z kanałem Instagrama.

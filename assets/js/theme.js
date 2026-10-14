@@ -705,4 +705,16 @@
 	$(document).on('click', '[data-fx-filters-open]', function () { document.body.classList.add('fx-filters-open'); });
 	$(document).on('click', '[data-fx-filters-close]', function () { document.body.classList.remove('fx-filters-open'); });
 	document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { document.body.classList.remove('fx-filters-open'); } });
+
+	/* Tabela rozmiarów: przycisk przy wyborze rozmiaru (w wierszu „Rozmiar: …”) */
+	$(function () {
+		var $sg = $('.summary .fx-sg-open').first();
+		if (!$sg.length) { return; }
+		var $sel = $('form.variations_form table.variations select').filter(function () {
+			return /blvariant|rozmiar|size|wielko/i.test(this.getAttribute('data-attribute_name') || this.name || '');
+		}).first();
+		if (!$sel.length) { $sel = $('form.variations_form table.variations select').not('[name*="kolor"],[name*="color"]').first(); }
+		var $th = $sel.closest('tr').find('th').first();
+		if ($th.length) { $th.addClass('fx-has-sg').append($sg); }
+	});
 })(jQuery);

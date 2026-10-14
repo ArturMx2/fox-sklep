@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.13.0
+Version: 3.13.1
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -1462,3 +1462,10 @@ html.fx-added-open{overflow:hidden}
 .fx-hg__more{font-size:12.5px;color:var(--fx-ink-2);text-decoration:underline;text-underline-offset:2px;margin-top:2px}
 .fx-hg__all{display:flex;align-items:center;justify-content:center;margin-top:10px;height:42px;border:1.5px solid var(--fx-ink);border-radius:var(--fx-pill);background:#fff;color:var(--fx-ink);font-weight:600;font-size:14px;text-decoration:none}
 .fx-hg__all:hover{background:var(--fx-ink);color:#fff}
+
+/* Tabela rozmiarów: przycisk w stylu „Dodaj do koszyka” (obrys), w wierszu wyboru rozmiaru */
+.woocommerce div.product .fx-sg-open.fx-btn{min-height:40px;padding:0 18px;border:1.5px solid var(--fx-ink);border-radius:var(--fx-pill);color:var(--fx-ink);font:500 14px/1 var(--fx-body);text-decoration:none;gap:8px;margin:0 0 14px;background:#fff}
+.woocommerce div.product .fx-sg-open.fx-btn:hover{background:var(--fx-ink);color:#fff;opacity:1}
+.woocommerce div.product form.cart table.variations th.fx-has-sg{display:flex!important;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.woocommerce div.product form.cart table.variations th.fx-has-sg .fx-sg-open.fx-btn{margin:0}
+.fx-hg-teaser__txt{flex:1 1 auto;min-width:0}

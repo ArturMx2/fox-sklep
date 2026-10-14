@@ -437,7 +437,7 @@ add_action( 'woocommerce_after_add_to_cart_button', function () {
 	if ( fx_hg_pct() <= 0 || ! $product || 'kask' !== fx_hg_type( $product ) ) {
 		return;
 	}
-	echo '<p class="fx-hg-teaser"><span class="fx-hg-teaser__tag">−' . esc_html( wc_format_localized_decimal( fx_hg_pct() ) ) . '%</span> Kup kask z goglami – <strong>gogle ' . esc_html( wc_format_localized_decimal( fx_hg_pct() ) ) . '% taniej</strong>. Rabat naliczy się sam w koszyku.</p>';
+	echo '<p class="fx-hg-teaser"><span class="fx-hg-teaser__tag">−' . esc_html( wc_format_localized_decimal( fx_hg_pct() ) ) . '%</span><span class="fx-hg-teaser__txt">Kup kask z goglami – <strong>gogle ' . esc_html( wc_format_localized_decimal( fx_hg_pct() ) ) . '% taniej</strong>. Rabat naliczy się sam w koszyku.</span></p>';
 }, 30 );
 
 /* 2. Okno po dodaniu kasku: gogle z ceną po rabacie. */
@@ -468,7 +468,7 @@ add_action( 'woocommerce_single_product_summary', function () {
 		return; // kask z innego świata (np. rowerowy przy goglach moto) – brak oferty
 	}
 	list( $reg, $deal ) = fx_hg_prices( $product );
-	echo '<p class="fx-hg-teaser fx-hg-teaser--on"><span class="fx-hg-teaser__tag">−' . esc_html( wc_format_localized_decimal( fx_hg_pct() ) ) . '%</span> Masz kask w koszyku – te gogle kupisz za <strong>' . wp_kses_post( ( $product->is_type( 'variable' ) ? 'od ' : '' ) . wc_price( $deal ) ) . '</strong>.</p>';
+	echo '<p class="fx-hg-teaser fx-hg-teaser--on"><span class="fx-hg-teaser__tag">−' . esc_html( wc_format_localized_decimal( fx_hg_pct() ) ) . '%</span><span class="fx-hg-teaser__txt">Masz kask w koszyku – te gogle kupisz za <strong>' . wp_kses_post( ( $product->is_type( 'variable' ) ? 'od ' : '' ) . wc_price( $deal ) ) . '</strong>.</span></p>';
 }, 11 );
 
 /* 4. Koszyk: kask bez gogli – przypomnienie z propozycjami. */

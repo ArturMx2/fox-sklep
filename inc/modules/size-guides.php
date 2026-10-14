@@ -239,9 +239,9 @@ function fx_size_guide_button() {
 	global $product;
 	$gid = fx_size_guide_for( $product );
 	if ( $gid ) {
-		echo '<button type="button" class="fx-sg-open" data-fx-dialog="fx-size-guide"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="2" y="7" width="20" height="10" rx="1"/><path d="M6 7v4M10 7v3M14 7v4M18 7v3"/></svg>Tabela rozmiarów</button>';
+		echo '<button type="button" class="fx-sg-open fx-btn fx-btn--outline" data-fx-dialog="fx-size-guide"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="2" y="7" width="20" height="10" rx="1"/><path d="M6 7v4M10 7v3M14 7v4M18 7v3"/></svg>Tabela rozmiarów</button>';
 	} elseif ( fx_mod( 'size_chart_url' ) && $product && $product->is_type( 'variable' ) ) {
-		echo '<a class="fx-sg-open" href="' . esc_url( fx_mod( 'size_chart_url' ) ) . '">Tabela rozmiarów</a>';
+		echo '<a class="fx-sg-open fx-btn fx-btn--outline" href="' . esc_url( fx_mod( 'size_chart_url' ) ) . '">Tabela rozmiarów</a>';
 	}
 }
 
