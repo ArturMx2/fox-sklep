@@ -2,7 +2,7 @@
 /**
  * Plugin Name: FOX – SEO zdjęć produktów
  * Description: Opisy zdjęć produktów przez AI (alt, podpis, opis), bezpieczna naprawa miniatur, audyt zdjęć, zdjęcia z galerii w danych strukturalnych produktu. Zastępuje fragment kodu „FOX SEO + Miniatury”.
- * Version: 1.0.0
+ * Version: 1.1.0
  * Author: FOX.SKLEP.PL
  * Requires at least: 5.8
  * Requires PHP: 7.4
@@ -19,7 +19,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FXI_VER', '1.0.0' );
+define( 'FXI_VER', '1.1.0' );
 
 /* =====================================================================
  * Ustawienia
@@ -401,7 +401,13 @@ function fxi_seo_image( $id, $pid, $index, $count ) {
 		$upd['post_title'] = $d['title'];
 	}
 	if ( count( $upd ) > 1 ) {
-		wp_update_post( $upd );
+		// Zapis bezpośrednio do bazy, bez wp_update_post – żadne haki zapisu (BaseLinker, Yoast,
+		// wtyczki zmieniające nazwy plików) nie są uruchamiane przy opisywaniu zdjęć.
+		global $wpdb;
+		$id_only = $upd['ID'];
+		unset( $upd['ID'] );
+		$wpdb->update( $wpdb->posts, $upd, array( 'ID' => $id_only ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		clean_post_cache( $id_only );
 	}
 	update_post_meta( $id, '_fxi_ai', time() );
 	return $d;
@@ -431,6 +437,10 @@ add_action( 'wp_ajax_fxi_batch', function () {
 	$mode = isset( $_POST['mode'] ) && 'seo' === $_POST['mode'] ? 'seo' : 'repair';
 	if ( get_transient( 'fxi_lock' ) ) {
 		wp_send_json_success( array( 'wait' => 5, 'log' => array( 'Inna partia jeszcze trwa – czekam…' ) ) );
+	}
+	$busy = fxi_import_busy();
+	if ( $busy ) {
+		wp_send_json_success( array( 'wait' => min( 60, $busy ), 'log' => array( 'Trwa import z BaseLinkera – wstrzymane, wznowię sam za ' . ceil( $busy / 60 ) . ' min.' ) ) );
 	}
 	set_transient( 'fxi_lock', 1, 90 );
 
@@ -573,42 +583,81 @@ add_action( 'wp_ajax_fxi_audit', function () {
 } );
 
 /* =====================================================================
- * Automatycznie dla nowych produktów (WP-Cron, 2 min po zapisaniu)
+ * Ochrona importu z BaseLinkera
+ *
+ * BaseLinker wysyła produkty, stany i zdjęcia przez REST API WooCommerce (/wc/…).
+ * Gdy takie zapytania zmieniające dane przychodzą, wtyczka uznaje, że trwa import,
+ * i przez 15 minut od ostatniego z nich NIC nie przetwarza (ani automat, ani przyciski).
+ * Wtyczka nie podpina się też pod zapis produktów – import nie uruchamia żadnego jej kodu.
  * ================================================================== */
 
-function fxi_queue_product( $pid ) {
-	if ( ! fxi_opt( 'auto_new' ) || ! fxi_key() || 'publish' !== get_post_status( $pid ) ) {
-		return;
-	}
-	$scope = trim( (string) fxi_opt( 'scope' ) );
-	if ( $scope && false === mb_stripos( get_the_title( $pid ), $scope ) ) {
-		return;
-	}
-	foreach ( array_keys( fxi_product_images( $pid ) ) as $id ) {
-		if ( ! get_post_meta( $id, '_fxi_ai', true ) ) {
-			if ( ! wp_next_scheduled( 'fxi_auto_product', array( (int) $pid ) ) ) {
-				wp_schedule_single_event( time() + 120, 'fxi_auto_product', array( (int) $pid ) );
-			}
-			return;
-		}
+function fxi_mark_import() {
+	$last = (int) get_option( 'fxi_import_at', 0 );
+	if ( time() - $last > 60 ) { // zapis najwyżej raz na minutę – bez obciążania importu
+		update_option( 'fxi_import_at', time(), false );
 	}
 }
-add_action( 'woocommerce_new_product', 'fxi_queue_product', 50 );
-add_action( 'woocommerce_update_product', 'fxi_queue_product', 50 );
+add_filter( 'rest_pre_dispatch', function ( $result, $server, $request ) {
+	// Tylko prawdziwe zapytania z zewnątrz (REST_REQUEST) – WooCommerce sam wewnętrznie też woła /wc/v3/.
+	if ( defined( 'REST_REQUEST' ) && REST_REQUEST && 'GET' !== $request->get_method() && preg_match( '#^/?wc/v[1-3]/#', $request->get_route() ) ) {
+		fxi_mark_import();
+	}
+	return $result;
+}, 10, 3 );
+add_action( 'woocommerce_api_request', 'fxi_mark_import' ); // stare API (wc-api)
 
-add_action( 'fxi_auto_product', function ( $pid ) {
-	if ( get_transient( 'fxi_lock' ) ) {
-		wp_schedule_single_event( time() + 300, 'fxi_auto_product', array( (int) $pid ) );
+/** Sekundy do końca przerwy po imporcie (0 = można pracować). */
+function fxi_import_busy() {
+	$left = (int) get_option( 'fxi_import_at', 0 ) + 15 * MINUTE_IN_SECONDS - time();
+	return max( 0, $left );
+}
+
+/* =====================================================================
+ * Automat: nowe zdjęcia opisywane w nocy (1:00–6:00), małymi porcjami
+ * ================================================================== */
+
+add_action( 'init', function () {
+	if ( ! wp_next_scheduled( 'fxi_night' ) ) {
+		wp_schedule_event( time() + 600, 'hourly', 'fxi_night' );
+	}
+} );
+register_deactivation_hook( __FILE__, function () {
+	wp_clear_scheduled_hook( 'fxi_night' );
+	wp_clear_scheduled_hook( 'fxi_auto_product' ); // zadania z wersji 1.0.0
+} );
+
+add_action( 'fxi_night', function () {
+	$hour = (int) wp_date( 'G' );
+	if ( ! fxi_opt( 'auto_new' ) || ! fxi_key() || $hour < 1 || $hour >= 6 || fxi_import_busy() || get_transient( 'fxi_lock' ) || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
 		return;
 	}
-	$imgs = fxi_product_images( $pid );
-	foreach ( $imgs as $id => $idx ) {
-		$r = fxi_seo_image( $id, $pid, $idx, count( $imgs ) );
-		if ( is_wp_error( $r ) && 'retry' === $r->get_error_code() ) {
-			wp_schedule_single_event( time() + 900, 'fxi_auto_product', array( (int) $pid ) );
-			return;
-		}
+	set_transient( 'fxi_lock', 1, 5 * MINUTE_IN_SECONDS );
+	$state = get_option( 'fxi_state_auto', array( 'cursor' => 0 ) );
+	$start = microtime( true );
+	$made  = 0;
+	$rows  = fxi_products_after( (int) $state['cursor'], 50 );
+	if ( ! $rows ) {
+		$state['cursor'] = 0; // koniec listy – następnym razem od najnowszych
 	}
+	foreach ( $rows as $row ) {
+		$imgs = fxi_product_images( $row->ID );
+		foreach ( $imgs as $id => $idx ) {
+			if ( $made >= 20 || microtime( true ) - $start > 90 || fxi_import_busy() ) {
+				break 2;
+			}
+			if ( get_post_meta( $id, '_fxi_ai', true ) ) {
+				continue;
+			}
+			$r = fxi_seo_image( $id, $row->ID, $idx, count( $imgs ) );
+			if ( is_wp_error( $r ) && in_array( $r->get_error_code(), array( 'retry', 'nokey' ), true ) ) {
+				break 2;
+			}
+			$made++;
+		}
+		$state['cursor'] = (int) $row->ID;
+	}
+	update_option( 'fxi_state_auto', $state, false );
+	delete_transient( 'fxi_lock' );
 } );
 
 /* =====================================================================
@@ -678,6 +727,9 @@ function fxi_page() {
 	}
 	if ( ! fxi_key() ) {
 		echo '<div class="notice notice-warning"><p>Brak klucza API – wpisz go w <a href="' . esc_url( $base . '&tab=ustawienia' ) . '">Ustawieniach</a>. Naprawa miniatur i audyt działają bez klucza.</p></div>';
+	}
+	if ( fxi_import_busy() ) {
+		echo '<div class="notice notice-info"><p><strong>Trwa import z BaseLinkera</strong> (ostatnia zmiana ' . esc_html( human_time_diff( (int) get_option( 'fxi_import_at' ) ) ) . ' temu). Przetwarzanie ruszy samo po ok. ' . (int) ceil( fxi_import_busy() / 60 ) . ' min spokoju.</p></div>';
 	}
 	$sr = get_option( 'fxi_state_repair', array( 'done' => 0 ) );
 	$ss = get_option( 'fxi_state_seo', array( 'done' => 0 ) );
@@ -811,7 +863,7 @@ function fxi_settings_page() {
 		<?php
 		$checks = array(
 			'gallery'        => array( 'Zdjęcia z galerii', 'Opisuj i naprawiaj także zdjęcia z galerii, nie tylko główne (zalecane – każde zdjęcie to osobna szansa w Google Grafika).' ),
-			'auto_new'       => array( 'Automatycznie dla nowych', 'Nowy/zmieniony produkt z nieopisanymi zdjęciami – opis w tle po 2 minutach.' ),
+			'auto_new'       => array( 'Automatycznie w nocy', 'Między 1:00 a 6:00, co godzinę do 20 nieopisanych zdjęć. Nie działa w trakcie importu z BaseLinkera ani 15 min po nim i nie podpina się pod zapis produktów.' ),
 			'overwrite'      => array( 'Nadpisuj ręczne alty', 'Domyślnie wyłączone: sensowny alt wpisany ręcznie zostaje. Słabe alty (nazwa pliku, jedno słowo, sama nazwa produktu) są poprawiane zawsze.' ),
 			'set_title'      => array( 'Zmieniaj tytuł załącznika', 'Tylko gdy tytuł wygląda jak nazwa pliku. Uwaga: wtyczki typu „Media File Renamer” zmieniają wtedy nazwę pliku – a to psuje miniatury. Włącz tylko, gdy takiej wtyczki nie ma.' ),
 			'alt_fallback'   => array( 'Alt awaryjny', 'Zdjęcie produktu bez alt dostaje na stronie nazwę produktu (+ numer ujęcia).' ),
@@ -833,4 +885,6 @@ function fxi_uninstall() {
 	delete_option( 'fxi_settings' );
 	delete_option( 'fxi_state_repair' );
 	delete_option( 'fxi_state_seo' );
+	delete_option( 'fxi_state_auto' );
+	delete_option( 'fxi_import_at' );
 }
