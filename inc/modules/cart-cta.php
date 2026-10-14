@@ -61,6 +61,7 @@ function fx_added_html() {
 		$h .= '<p class="fx-added__meta">' . implode( ' · ', $meta ) . '</p>';
 	}
 	$h .= '<p class="fx-added__price">' . wc_price( wc_get_price_to_display( $p ) ) . ' <span>× ' . (int) $item['quantity'] . '</span></p></div></div>';
+	$h .= apply_filters( 'fx_added_offer', '', $p, $item ); // np. „Kask + gogle −20%”.
 	$h .= $ship;
 	if ( function_exists( 'fox_bl_delivery_render_alert' ) ) {
 		$h .= fox_bl_delivery_render_alert( true );

@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.12.0 – oferta „Kask + gogle −20%”
+- Na każdy kask w koszyku jedne gogle (najdroższe) tańsze o 20% – naliczane automatycznie, bez kodu. Nie łączy się z rabatem za komplet (liczy się korzystniejszy). Procent w Dostosuj → Narzędzia sklepu (0 = wyłączone).
+- Komunikacja na całej ścieżce: karta kasku („Kup kask z goglami – gogle 20% taniej”), okno po dodaniu kasku („Dorzuć gogle i zgarnij −20%” – 3 gogle: najpierw ta sama grafika, potem najczęściej kupowane; cena przekreślona i po rabacie; „Dodaj” bez wychodzenia z okna dla gogli bez wersji), karta gogli z kaskiem w koszyku (cena po rabacie), koszyk (przypomnienie z propozycjami, przy goglach „−20% z kaskiem” i wiersz „Rabat kask + gogle”).
+- Szyby, zrywki, daszki, wkładki itp. nie są traktowane jako gogle ani kask.
+
 ## 3.11.4 – cena kompletu tylko za bluzę i spodnie
 - „Komplet od” na liście i na stronie kompletu = najtańszy dostępny rozmiar bluzy/koszulki + najtańszy dostępny rozmiar spodni (z rabatem za komplet). Kask, buty, gogle i rękawice nie wchodzą do ceny „od”; niedostępne rozmiary też nie. Gdy bluzy albo spodni nie ma na stanie – „Sprawdź dostępne części” zamiast ceny.
 - Podstawa kompletu (rabat) to zawsze góra stroju + spodnie, także w starych kompletach ze Smart Composite; buty, kask, gogle w „Zbuduj komplet” są propozycją (domyślnie odznaczone), rękawice zaznaczone.

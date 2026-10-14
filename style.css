@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.11.4
+Version: 3.12.0
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -1433,3 +1433,28 @@ html.fx-added-open{overflow:hidden}
 .fx-cf__sw,.fx-cf__more{width:48px;min-width:48px;height:48px}
 .fx-cf{gap:7px}
 @media (max-width:600px){.fx-cf__sw,.fx-cf__more{width:41px;min-width:41px;height:41px}.fx-cf{gap:6px}}
+
+/* Kask + gogle −20% – 3.12.0 */
+.fx-hg{margin:0 0 16px;padding:14px 16px;border:1.5px solid var(--fx-sale);border-radius:12px;background:#fff7f3}
+.fx-hg--done{border-color:#bcdcc2;background:#f1f8f2;font-size:14px}
+.fx-hg--cart{margin:20px 0 0}
+.fx-hg__title{margin:0;font:700 17px/1.3 var(--fx-display)}
+.fx-hg__title span{display:inline-block;margin-left:4px;padding:2px 8px;border-radius:var(--fx-pill);background:var(--fx-sale);color:#fff;font-size:14px}
+.fx-hg__sub{margin:4px 0 10px;font-size:13px;color:var(--fx-ink-2)}
+.fx-hg__list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.fx-hg__item{display:flex;align-items:center;gap:12px;padding:8px;background:#fff;border:1px solid var(--fx-line);border-radius:10px}
+.fx-hg__img{flex:0 0 auto}
+.fx-hg__img img{width:56px!important;height:56px!important;object-fit:contain;background:var(--fx-pack);border-radius:8px;margin:0!important;display:block}
+.fx-hg__info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.fx-hg__name{font-size:13.5px;font-weight:600;line-height:1.3;color:var(--fx-ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.fx-hg__price{font-size:13.5px}
+.fx-hg__price del{color:var(--fx-muted);margin-right:4px}
+.fx-hg__price strong{color:var(--fx-sale)}
+.fx-hg__add{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;height:38px;padding:0 16px;border-radius:var(--fx-pill);background:var(--fx-ink);color:#fff!important;font-size:14px;font-weight:600;text-decoration:none!important}
+.fx-hg__add.loading{opacity:.6}
+.fx-hg__add.added{display:none}
+.fx-hg .added_to_cart{display:none}
+.fx-hg-teaser{display:flex;align-items:center;gap:10px;flex:1 1 100%;width:100%;margin:12px 0 0;padding:10px 12px;border:1px dashed var(--fx-sale);border-radius:10px;font-size:14px;line-height:1.4;background:#fff}
+.fx-hg-teaser--on{border-style:solid;background:#fff7f3;margin:0 0 14px}
+.fx-hg-teaser__tag{flex:0 0 auto;padding:3px 8px;border-radius:var(--fx-pill);background:var(--fx-sale);color:#fff;font-weight:700;font-size:13px}
+.fx-hg-badge{color:var(--fx-sale)}
