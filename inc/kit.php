@@ -330,7 +330,67 @@ function fx_kit_resolve( $product_id ) {
 	if ( count( $out['parts'] ) < 2 ) {
 		$out = $empty;
 	}
+	// Strój bez rękawic: dobieramy rękawice FOX Dirtpaw w kolorze stroju (część dodatkowa – rabat za komplet
+	// liczy się i bez nich, a gdy są w koszyku, też są objęte rabatem).
+	$out['core']  = $out['parts'];
+	$out['extra'] = array();
+	if ( $out['parts'] && in_array( $out['source'], array( 'auto', 'wooco' ), true ) && apply_filters( 'fx_kit_add_gloves', true, $product_id ) ) {
+		$has_gloves = false;
+		foreach ( $out['parts'] as $pid ) {
+			list( $t ) = fx_kit_parse_name( get_the_title( $pid ) );
+			if ( 'rekawice' === $t ) {
+				$has_gloves = true;
+				break;
+			}
+		}
+		if ( ! $has_gloves ) {
+			$g = fx_kit_gloves_for( '' !== $key ? $key : fx_kit_parse_name( get_the_title( $out['parts'][0] ) )[1] );
+			if ( $g && ! in_array( $g, $out['parts'], true ) ) {
+				$out['parts'][] = $g;
+				$out['extra'][] = $g;
+			}
+		}
+	}
 	return $cache[ $product_id ] = $out;
+}
+
+/**
+ * Rękawice FOX Dirtpaw pasujące kolorem do stroju (po słowach koloru w nazwie), np. „180 Frame Blue” → „Dirtpaw … Blue”.
+ * Strój junior/dziecięcy – tylko rękawice junior/dziecięce. Brak dopasowania koloru – czarne.
+ */
+function fx_kit_gloves_for( $key ) {
+	$key = trim( (string) $key );
+	if ( '' === $key ) {
+		return 0;
+	}
+	$mods_all = array( 'junior', 'kids', 'lady' );
+	$tokens   = preg_split( '/\s+/u', $key );
+	$mods     = array_values( array_intersect( $tokens, $mods_all ) );
+	$words    = array_values( array_diff( $tokens, $mods_all ) );
+	$best     = array();
+	foreach ( fx_kit_index() as $k => $row ) {
+		if ( empty( $row['parts']['rekawice'] ) || false === strpos( $k, 'dirtpaw' ) ) {
+			continue;
+		}
+		$kt    = preg_split( '/\s+/u', $k );
+		$kmods = array_values( array_intersect( $kt, $mods_all ) );
+		if ( $kmods !== $mods ) {
+			continue;
+		}
+		$colors = array_values( array_diff( $kt, $mods_all, array( 'dirtpaw', 'race', 'ce', 'mx', 'rekawice', 'rękawice' ) ) );
+		$score  = count( array_intersect( $colors, $words ) );
+		$black  = in_array( 'black', $colors, true ) ? 1 : 0;
+		$id     = fx_kit_pick( $row['parts']['rekawice'] );
+		$p      = $id ? wc_get_product( $id ) : null;
+		if ( ! $p || ! $p->is_visible() || ! $p->is_in_stock() ) {
+			continue;
+		}
+		$rank = array( $score, $black, -count( $colors ) );
+		if ( ! $best || $rank > $best[0] ) {
+			$best = array( $rank, $id );
+		}
+	}
+	return $best ? (int) $best[1] : 0;
 }
 
 /**
@@ -630,7 +690,8 @@ function fx_kit_cart_discount( $cart ) {
 	$units = array();
 	$seen  = array();
 	foreach ( array_keys( $qty ) as $pid ) {
-		$parts = fx_kit_resolve( $pid )['parts'];
+		$kit   = fx_kit_resolve( $pid );
+		$parts = isset( $kit['core'] ) ? $kit['core'] : $kit['parts'];
 		if ( count( $parts ) < 2 ) {
 			continue;
 		}
@@ -647,6 +708,13 @@ function fx_kit_cart_discount( $cart ) {
 		if ( $n > 0 && PHP_INT_MAX !== $n ) {
 			foreach ( $parts as $part ) {
 				$units[ $part ] = ( isset( $units[ $part ] ) ? $units[ $part ] : 0 ) + $n;
+			}
+			// Dobrane rękawice też z rabatem, jeśli są w koszyku.
+			foreach ( ( isset( $kit['extra'] ) ? $kit['extra'] : array() ) as $ex ) {
+				$left = ( isset( $qty[ $ex ] ) ? $qty[ $ex ] : 0 ) - ( isset( $units[ $ex ] ) ? $units[ $ex ] : 0 );
+				if ( $left > 0 ) {
+					$units[ $ex ] = ( isset( $units[ $ex ] ) ? $units[ $ex ] : 0 ) + min( $n, $left );
+				}
 			}
 		}
 	}
@@ -794,3 +862,42 @@ add_filter( 'body_class', function ( $c ) {
 	}
 	return $c;
 } );
+
+/* ---------- Koszyk: „Dokończ komplet” – brakujące części kompletów z koszyka ---------- */
+function fx_kit_cart_missing( $limit = 4 ) {
+	if ( ! WC()->cart ) {
+		return array();
+	}
+	$in = array();
+	foreach ( WC()->cart->get_cart() as $item ) {
+		$in[ (int) $item['product_id'] ] = true;
+	}
+	$missing = array();
+	foreach ( array_keys( $in ) as $pid ) {
+		$kit = fx_kit_resolve( $pid );
+		if ( count( $kit['parts'] ) < 2 ) {
+			continue;
+		}
+		foreach ( $kit['parts'] as $part ) {
+			if ( empty( $in[ $part ] ) && ! isset( $missing[ $part ] ) ) {
+				$p = wc_get_product( $part );
+				if ( $p && $p->is_visible() && $p->is_in_stock() && $p->is_purchasable() ) {
+					$missing[ $part ] = $pid;
+				}
+			}
+		}
+	}
+	return array_slice( array_keys( $missing ), 0, $limit );
+}
+
+add_action( 'woocommerce_after_cart', function () {
+	$ids = fx_kit_cart_missing( 4 );
+	if ( ! $ids ) {
+		return;
+	}
+	$pct = fx_kit_discount();
+	echo '<section class="fx-kit-upsell"><div class="fx-row-head"><h2>Dokończ komplet</h2></div>';
+	echo '<p class="fx-kit-upsell__lead">' . ( $pct > 0 ? 'Dobierz brakujące części tej samej grafiki – za pełny komplet w koszyku dostaniesz <strong>−' . esc_html( wc_format_localized_decimal( $pct ) ) . '%</strong> na każdą część.' : 'Dobierz brakujące części tej samej grafiki.' ) . '</p>';
+	echo do_shortcode( '[products ids="' . implode( ',', array_map( 'intval', $ids ) ) . '" orderby="post__in" columns="4" limit="4"]' ); // phpcs:ignore
+	echo '</section>';
+}, 5 );

@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.10.4
+Version: 3.11.0
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -1417,3 +1417,14 @@ html.fx-added-open{overflow:hidden}
   .single-product .fx-same-series ul.products,.single-product .fx-series ul.products,.single-product .related ul.products,.single-product .upsells ul.products{grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 14px}
   .single-product .fx-same-series .fx-row-head h2,.single-product .fx-series .fx-row-head h2{font-size:24px}
 }
+
+/* Koszyk: Dokończ komplet – 3.11.0 */
+.fx-kit-upsell{grid-column:1/-1;clear:both;margin:48px 0 0;padding-top:40px;border-top:1px solid var(--fx-line)}
+.fx-kit-upsell .fx-row-head h2{font-size:28px;margin:0}
+.fx-kit-upsell__lead{margin:8px 0 0;color:var(--fx-ink-2)}
+.fx-kit-upsell ul.products{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:32px 20px;margin:24px 0 0;padding:0}
+.fx-kit-upsell ul.products::before,.fx-kit-upsell ul.products::after{display:none!important}
+.fx-kit-upsell ul.products li.product{width:auto!important;float:none!important;margin:0!important}
+@media (max-width:900px){.fx-kit-upsell ul.products{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 12px}.fx-kit-upsell .fx-row-head h2{font-size:24px}}
+.fx-kit-upsell .woocommerce{display:block!important;grid-template-columns:none!important}
+.fx-kit-upsell .woocommerce>*{grid-column:auto!important}

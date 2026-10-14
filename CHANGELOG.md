@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.11.0 – komplety: rękawice Dirtpaw i „Dokończ komplet” w koszyku
+- Strój bez rękawic tej samej grafiki dostaje rękawice FOX Dirtpaw w kolorze stroju (po słowach koloru w nazwie, np. „180 Frame Blue” → „Dirtpaw … Blue”; brak dopasowania → czarne; strój junior → rękawice junior). Dotyczy kompletów automatycznych i ze starej wtyczki; ręcznie ustawionych kompletów nie zmienia. Wyłączenie: filtr fx_kit_add_gloves.
+- Rabat za komplet liczy się jak dotąd (bluza + spodnie wystarczą); dobrane rękawice, jeśli są w koszyku, też dostają rabat.
+- Koszyk: sekcja „Dokończ komplet” z brakującymi częściami kompletów z koszyka (do 4 produktów) i informacją o rabacie.
+
 ## 3.10.4 – komplety: bluza motocyklowa jako część stroju
 - „Bluza motocyklowa FOX …” jest teraz rozpoznawana jako góra stroju (jak „koszulka”), więc komplet łączy bluzę, spodnie i rękawice tej samej grafiki. Wcześniej bluza nie była częścią kompletu – na bluzie 180 BNKR komplet był z samych spodni i rękawic, a na 180 Frame Blue (bez rękawic) nie było go wcale.
 - Dopisek sezonu na końcu nazwy („… FRAME BLUE 26”) nie rozbija już kompletu.
