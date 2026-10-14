@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.11.4 – cena kompletu tylko za bluzę i spodnie
+- „Komplet od” na liście i na stronie kompletu = najtańszy dostępny rozmiar bluzy/koszulki + najtańszy dostępny rozmiar spodni (z rabatem za komplet). Kask, buty, gogle i rękawice nie wchodzą do ceny „od”; niedostępne rozmiary też nie. Gdy bluzy albo spodni nie ma na stanie – „Sprawdź dostępne części” zamiast ceny.
+- Podstawa kompletu (rabat) to zawsze góra stroju + spodnie, także w starych kompletach ze Smart Composite; buty, kask, gogle w „Zbuduj komplet” są propozycją (domyślnie odznaczone), rękawice zaznaczone.
+
 ## 3.11.3
 - Miniatury innych kolorów na liście produktów o 20% większe (komputer 48 px zamiast 40, telefon 41 px zamiast 34).
 

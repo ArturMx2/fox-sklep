@@ -341,10 +341,20 @@ function fx_kit_resolve( $product_id ) {
 	if ( count( $out['parts'] ) < 2 ) {
 		$out = $empty;
 	}
-	// Strój bez rękawic: dobieramy rękawice FOX Dirtpaw w kolorze stroju (część dodatkowa – rabat za komplet
-	// liczy się i bez nich, a gdy są w koszyku, też są objęte rabatem).
+	// Podstawa kompletu (cena „od” i rabat) to góra stroju + spodnie; reszta (rękawice, buty, gogle, kask) to dodatki.
 	$out['core']  = $out['parts'];
 	$out['extra'] = array();
+	$core         = array();
+	foreach ( $out['parts'] as $pid ) {
+		if ( in_array( fx_kit_parse_name( get_the_title( $pid ) )[0], array( 'koszulka', 'spodnie' ), true ) ) {
+			$core[] = $pid;
+		}
+	}
+	if ( count( $core ) >= 2 ) {
+		$out['core']  = $core;
+		$out['extra'] = array_values( array_diff( $out['parts'], $core ) );
+	}
+	// Strój bez rękawic: dobieramy rękawice FOX Dirtpaw w kolorze stroju.
 	if ( $out['parts'] && in_array( $out['source'], array( 'auto', 'wooco' ), true ) && apply_filters( 'fx_kit_add_gloves', true, $product_id ) ) {
 		$has_gloves = false;
 		foreach ( $out['parts'] as $pid ) {
@@ -652,8 +662,8 @@ function fx_kit_section( $product, $inline = false ) {
 					$avail            = (bool) $opts;
 					$variable         = $p->is_type( 'variable' );
 					$single           = $avail && 1 === count( $opts );
-					// Gogle i kask to propozycja – domyślnie poza zestawem, klient zaznacza je sam (albo wybiera rozmiar).
-					$is_gear          = in_array( fx_kit_parse_name( $p->get_name() )[0], array_keys( fx_kit_extra_types() ), true );
+					// Zaznaczone od razu: bluza, spodnie i rękawice. Buty, gogle, kask – propozycja, klient zaznacza sam.
+					$is_gear          = ! in_array( $p->get_id(), isset( $kit['core'] ) ? $kit['core'] : $kit['parts'], true ) && 'rekawice' !== fx_kit_parse_name( $p->get_name() )[0];
 					?>
 					<div class="fx-kit__item<?php echo $avail ? '' : ' is-out'; ?>" data-core="<?php echo in_array( $p->get_id(), isset( $kit['core'] ) ? $kit['core'] : $kit['parts'], true ) ? '1' : '0'; ?>" data-product-id="<?php echo (int) $p->get_id(); ?>" data-name="<?php echo esc_attr( $p->get_name() ); ?>" data-category="<?php echo esc_attr( $cats ? $cats[0] : '' ); ?>">
 						<label class="fx-kit__check" title="Dodaj do zestawu">
@@ -722,14 +732,39 @@ function fx_kit_page_prices( $product_id ) {
 	if ( ! $kit['parts'] ) {
 		return array( 0, 0 );
 	}
-	$sum = 0;
+	// Tylko góra stroju + spodnie, najtańszy dostępny rozmiar każdej z nich. Gdy którejś nie ma – brak ceny „od”.
+	$sum   = 0;
+	$found = array();
 	foreach ( $kit['parts'] as $id ) {
-		$p = wc_get_product( $id );
-		if ( ! $p ) {
+		$type = fx_kit_parse_name( get_the_title( $id ) )[0];
+		if ( ! in_array( $type, array( 'koszulka', 'spodnie' ), true ) || isset( $found[ $type ] ) ) {
 			continue;
 		}
-		$sum += (float) ( $p->is_type( 'variable' ) ? $p->get_variation_price( 'min', true ) : wc_get_price_to_display( $p ) );
+		$p = wc_get_product( $id );
+		if ( ! $p || ! $p->is_in_stock() ) {
+			continue;
+		}
+		$min = 0;
+		if ( $p->is_type( 'variable' ) ) {
+			foreach ( $p->get_available_variations( 'objects' ) as $v ) {
+				if ( $v && $v->is_in_stock() && $v->is_purchasable() ) {
+					$price = (float) wc_get_price_to_display( $v );
+					if ( $price > 0 && ( ! $min || $price < $min ) ) {
+						$min = $price;
+					}
+				}
+			}
+		} else {
+			$min = (float) wc_get_price_to_display( $p );
+		}
+		if ( $min > 0 ) {
+			$found[ $type ] = $min;
+		}
 	}
+	if ( count( $found ) < 2 ) {
+		return array( 0, 0 );
+	}
+	$sum = array_sum( $found );
 	return array( $sum, $sum * ( 1 - fx_kit_discount() / 100 ) );
 }
 
@@ -739,7 +774,7 @@ add_filter( 'woocommerce_get_price_html', function ( $html, $product ) {
 	}
 	list( $full, $deal ) = fx_kit_page_prices( $product->get_id() );
 	if ( $full <= 0 ) {
-		return $html;
+		return '<span class="fx-kit-from">Sprawdź dostępne części</span>';
 	}
 	$out = '<span class="fx-kit-from">Komplet od</span> ';
 	if ( $deal < $full ) {
