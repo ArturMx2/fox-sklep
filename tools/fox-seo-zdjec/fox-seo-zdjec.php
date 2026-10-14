@@ -2,7 +2,7 @@
 /**
  * Plugin Name: FOX – SEO zdjęć produktów
  * Description: Opisy zdjęć produktów przez AI (alt, podpis, opis), bezpieczna naprawa miniatur, audyt zdjęć, zdjęcia z galerii w danych strukturalnych produktu. Zastępuje fragment kodu „FOX SEO + Miniatury”.
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author: FOX.SKLEP.PL
  * Requires at least: 5.8
  * Requires PHP: 7.4
@@ -19,7 +19,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FXI_VER', '1.1.0' );
+define( 'FXI_VER', '1.2.0' );
 
 /* =====================================================================
  * Ustawienia
@@ -36,6 +36,12 @@ function fxi_defaults() {
 		'auto_new'       => 1,
 		'schema_gallery' => 1,
 		'alt_fallback'   => 1,
+		'parallel'       => 4,
+		'lcp'            => 1,
+		'sitemap'        => 1,
+		'webp'           => 1,
+		'credit'         => '',
+		'license_url'    => '',
 	);
 }
 
@@ -74,7 +80,10 @@ add_action( 'admin_init', function () {
 				$out['api_key'] = 'usun' === $key ? '' : ( '' === $key ? $old['api_key'] : $key );
 				$out['model']   = isset( $in['model'] ) && preg_match( '/^[a-z0-9.\-]+$/i', $in['model'] ) ? $in['model'] : 'gpt-4o-mini';
 				$out['scope']   = isset( $in['scope'] ) ? sanitize_text_field( wp_unslash( $in['scope'] ) ) : '';
-				foreach ( array( 'gallery', 'overwrite', 'set_title', 'auto_new', 'schema_gallery', 'alt_fallback' ) as $b ) {
+				$out['parallel']    = isset( $in['parallel'] ) ? max( 1, min( 8, (int) $in['parallel'] ) ) : 4;
+				$out['credit']      = isset( $in['credit'] ) ? sanitize_text_field( wp_unslash( $in['credit'] ) ) : '';
+				$out['license_url'] = isset( $in['license_url'] ) ? esc_url_raw( wp_unslash( $in['license_url'] ) ) : '';
+				foreach ( array( 'gallery', 'overwrite', 'set_title', 'auto_new', 'schema_gallery', 'alt_fallback', 'lcp', 'sitemap', 'webp' ) as $b ) {
 					$out[ $b ] = empty( $in[ $b ] ) ? 0 : 1;
 				}
 				return $out;
@@ -120,22 +129,37 @@ function fxi_products_after( $cursor, $limit ) {
 	return $wpdb->get_results( $wpdb->prepare( $sql, $args ) ); // phpcs:ignore
 }
 
-/** Zdjęcia produktu: [ id_załącznika => numer (0 = główne) ]. */
-function fxi_product_images( $pid ) {
+/**
+ * Zdjęcia produktu: [ id_załącznika => numer (0 = główne) ] – główne, galeria i zdjęcia wariantów.
+ * $all = true: zawsze wszystkie (schemat, mapa witryny), niezależnie od ustawienia „galeria”.
+ */
+function fxi_product_images( $pid, $all = false ) {
+	static $cache = array();
+	$key = $pid . ( $all ? 'a' : '' );
+	if ( isset( $cache[ $key ] ) ) {
+		return $cache[ $key ];
+	}
 	$out  = array();
 	$main = (int) get_post_thumbnail_id( $pid );
 	if ( $main ) {
 		$out[ $main ] = 0;
 	}
-	if ( fxi_opt( 'gallery' ) ) {
-		$n = 1;
-		foreach ( array_filter( array_map( 'intval', explode( ',', (string) get_post_meta( $pid, '_product_image_gallery', true ) ) ) ) as $g ) {
-			if ( ! isset( $out[ $g ] ) && 'attachment' === get_post_type( $g ) ) {
+	if ( $all || fxi_opt( 'gallery' ) ) {
+		global $wpdb;
+		$ids = array_filter( array_map( 'intval', explode( ',', (string) get_post_meta( $pid, '_product_image_gallery', true ) ) ) );
+		// Zdjęcia wariantów (np. kolorów) – jedna kwerenda.
+		$var = $wpdb->get_col( $wpdb->prepare( "SELECT m.meta_value FROM {$wpdb->posts} v JOIN {$wpdb->postmeta} m ON m.post_id = v.ID AND m.meta_key = '_thumbnail_id' WHERE v.post_parent = %d AND v.post_type = 'product_variation' AND v.post_status = 'publish' ORDER BY v.menu_order, v.ID", $pid ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$n   = 1;
+		foreach ( array_merge( $ids, array_map( 'intval', $var ) ) as $g ) {
+			if ( $g && ! isset( $out[ $g ] ) && 'attachment' === get_post_type( $g ) ) {
 				$out[ $g ] = $n++;
 			}
 		}
 	}
-	return $out;
+	if ( count( $cache ) > 200 ) {
+		$cache = array();
+	}
+	return $cache[ $key ] = $out;
 }
 
 /* =====================================================================
@@ -209,6 +233,7 @@ function fxi_repair_image( $id ) {
 		wp_update_attachment_metadata( $id, $backup ); // nie zostawiamy gorszego stanu
 		return array( 'status' => 'err', 'msg' => 'błąd generowania: ' . $res->get_error_message() . ' – przywrócono poprzednie metadane' );
 	}
+	fxi_webp_flag( false );
 	$after = wp_get_attachment_metadata( $id );
 	$ok    = 0;
 	foreach ( (array) ( isset( $after['sizes'] ) ? $after['sizes'] : array() ) as $s ) {
@@ -249,7 +274,7 @@ function fxi_image_data_url( $id ) {
 }
 
 /** Dane produktu dla AI: nazwa, kategoria, kolor, model, SKU. */
-function fxi_product_context( $pid ) {
+function fxi_product_context( $pid, $img = 0 ) {
 	$p   = wc_get_product( $pid );
 	$ctx = array( 'nazwa' => get_the_title( $pid ) );
 	if ( ! $p ) {
@@ -265,15 +290,24 @@ function fxi_product_context( $pid ) {
 			$ctx[ wc_attribute_label( $tax ) ] = $p->get_attribute( $tax );
 		}
 	}
+	// Zdjęcie przypisane do wariantu – podaj jego cechy (np. kolor tej wersji).
+	if ( $img && $p->is_type( 'variable' ) ) {
+		global $wpdb;
+		$vid = (int) $wpdb->get_var( $wpdb->prepare( "SELECT v.ID FROM {$wpdb->posts} v JOIN {$wpdb->postmeta} m ON m.post_id = v.ID AND m.meta_key = '_thumbnail_id' AND m.meta_value = %d WHERE v.post_parent = %d AND v.post_type = 'product_variation' LIMIT 1", $img, $pid ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$v   = $vid ? wc_get_product( $vid ) : null;
+		if ( $v ) {
+			$ctx['wariant na zdjęciu'] = wc_get_formatted_variation( $v, true, false, false );
+		}
+	}
 	return array_filter( $ctx );
 }
 
 /**
- * Jedno zapytanie do AI dla jednego zdjęcia.
+ * Zapytanie do AI dla jednego zdjęcia (bez wysyłania).
  *
- * @return array|WP_Error [ alt, title, caption, desc ]; kod błędu 'retry' = limit, spróbuj później.
+ * @return array|WP_Error [ url, headers, data ]
  */
-function fxi_ai_describe( $id, $pid, $index, $count ) {
+function fxi_ai_request( $id, $pid, $index, $count ) {
 	$key = fxi_key();
 	if ( ! $key ) {
 		return new WP_Error( 'nokey', 'brak klucza API (Ustawienia)' );
@@ -282,58 +316,59 @@ function fxi_ai_describe( $id, $pid, $index, $count ) {
 	if ( ! $img ) {
 		return new WP_Error( 'nofile', 'brak pliku zdjęcia' );
 	}
-	$ctx  = fxi_product_context( $pid );
+	$ctx  = fxi_product_context( $pid, $id );
 	$info = '';
 	foreach ( $ctx as $k => $v ) {
 		$info .= '- ' . $k . ': ' . $v . "\n";
 	}
-	$which = 0 === $index ? 'zdjęcie główne' : 'zdjęcie ' . ( $index + 1 ) . ' z ' . $count . ' w galerii';
+	$which = 0 === $index ? 'zdjęcie główne' : 'zdjęcie ' . ( $index + 1 ) . ' z ' . $count . ' (galeria/warianty)';
 
 	$system = 'Jesteś specjalistą SEO sklepu internetowego z odzieżą i sprzętem motocyklowym oraz rowerowym marki FOX Racing (fox.sklep.pl). '
 		. 'Piszesz po polsku teksty do zdjęć produktów pod Google Grafika i dostępność (czytniki ekranu). '
 		. 'Opisujesz WYŁĄCZNIE to, co widać na zdjęciu, łącząc to z danymi produktu. Bez zmyślania cech, których nie widać i których nie ma w danych. '
-		. 'Bez fraz „zdjęcie”, „obraz”, „grafika przedstawia”. Bez upychania słów kluczowych i bez wielkich liter w całych słowach (poza skrótami jak MX, MTB).';
+		. 'Używasz słów, którymi klienci szukają (np. „gogle motocyklowe”, „bluza crossowa”, „kask MTB”), naturalnie, bez upychania. '
+		. 'Bez fraz „zdjęcie”, „obraz”, „grafika przedstawia”. Bez wielkich liter w całych słowach (poza skrótami jak MX, MTB).';
 	$user = "Dane produktu:\n" . $info . 'To jest ' . $which . ".\n\n"
 		. "Zwróć tylko JSON:\n"
 		. "{\"alt\":\"...\",\"title\":\"...\",\"caption\":\"...\",\"desc\":\"...\"}\n"
-		. "- alt: 70–125 znaków; rodzaj produktu + FOX + model/nazwa + kolor + co widać (np. widok z przodu/tyłu, detal, na modelu). Naturalne zdanie, bez kropki na końcu.\n"
+		. "- alt: 70–125 znaków; rodzaj produktu + FOX + model/nazwa + kolor + co widać (widok z przodu/tyłu/boku, detal, na modelu). Naturalne zdanie, bez kropki na końcu. Każde ujęcie opisz inaczej.\n"
 		. "- title: do 60 znaków, nazwa produktu + ujęcie (np. „– tył”).\n"
 		. "- caption: do 100 znaków, krótki podpis dla klienta.\n"
 		. "- desc: 1–2 zdania (do 250 znaków) o tym, co widać: krój, wzór, detale, materiał – tylko widoczne.\n";
 
-	$res = wp_remote_post(
-		'https://api.openai.com/v1/chat/completions',
-		array(
-			'timeout' => 45,
-			'headers' => array(
-				'Authorization' => 'Bearer ' . $key,
-				'Content-Type'  => 'application/json',
-			),
-			'body'    => wp_json_encode(
-				array(
-					'model'           => (string) fxi_opt( 'model' ),
-					'temperature'     => 0.3,
-					'max_tokens'      => 400,
-					'response_format' => array( 'type' => 'json_object' ),
-					'messages'        => array(
-						array( 'role' => 'system', 'content' => $system ),
-						array(
-							'role'    => 'user',
-							'content' => array(
-								array( 'type' => 'text', 'text' => $user ),
-								array( 'type' => 'image_url', 'image_url' => array( 'url' => $img, 'detail' => 'low' ) ),
-							),
+	return array(
+		'url'     => apply_filters( 'fxi_api_url', 'https://api.openai.com/v1/chat/completions' ),
+		'headers' => array(
+			'Authorization' => 'Bearer ' . $key,
+			'Content-Type'  => 'application/json',
+		),
+		'data'    => wp_json_encode(
+			array(
+				'model'           => (string) fxi_opt( 'model' ),
+				'temperature'     => 0.3,
+				'max_tokens'      => 400,
+				'response_format' => array( 'type' => 'json_object' ),
+				'messages'        => array(
+					array( 'role' => 'system', 'content' => $system ),
+					array(
+						'role'    => 'user',
+						'content' => array(
+							array( 'type' => 'text', 'text' => $user ),
+							array( 'type' => 'image_url', 'image_url' => array( 'url' => $img, 'detail' => 'low' ) ),
 						),
 					),
-				)
-			),
-		)
+				),
+			)
+		),
 	);
-	if ( is_wp_error( $res ) ) {
-		return new WP_Error( 'retry', 'połączenie: ' . $res->get_error_message() );
+}
+
+/** Odpowiedź API → [ alt, title, caption, desc ] albo WP_Error ('retry' = limit/awaria, spróbuj później). */
+function fxi_ai_parse( $code, $raw, $pid ) {
+	$body = json_decode( (string) $raw, true );
+	if ( 0 === $code ) {
+		return new WP_Error( 'retry', 'brak połączenia z API' );
 	}
-	$code = (int) wp_remote_retrieve_response_code( $res );
-	$body = json_decode( wp_remote_retrieve_body( $res ), true );
 	if ( 429 === $code || $code >= 500 ) {
 		return new WP_Error( 'retry', 'limit/awaria API (' . $code . ')' );
 	}
@@ -363,32 +398,82 @@ function fxi_ai_describe( $id, $pid, $index, $count ) {
 	);
 }
 
+/**
+ * Kilka zapytań do AI RÓWNOLEGLE (domyślnie 4 naraz) – partia trwa tyle co najwolniejsze zdjęcie,
+ * a nie suma wszystkich. Gdy serwer nie ma biblioteki Requests – po kolei.
+ *
+ * @param array $tasks [ id => [ pid, index, count ] ].
+ * @return array [ id => array|WP_Error ]
+ */
+function fxi_ai_many( $tasks ) {
+	$out  = array();
+	$reqs = array();
+	foreach ( $tasks as $id => $t ) {
+		$r = fxi_ai_request( $id, $t[0], $t[1], $t[2] );
+		if ( is_wp_error( $r ) ) {
+			$out[ $id ] = $r;
+			continue;
+		}
+		$reqs[ $id ] = $r + array( 'type' => 'POST' );
+	}
+	if ( ! $reqs ) {
+		return $out;
+	}
+	$class = class_exists( '\WpOrg\Requests\Requests' ) ? '\WpOrg\Requests\Requests' : ( class_exists( 'Requests' ) ? 'Requests' : '' );
+	if ( $class && count( $reqs ) > 1 ) {
+		try {
+			$res = $class::request_multiple(
+				$reqs,
+				array(
+					'timeout'         => 45,
+					'connect_timeout' => 10,
+					'verify'          => ABSPATH . WPINC . '/certificates/ca-bundle.crt',
+				)
+			);
+			foreach ( $reqs as $id => $r ) {
+				$x          = isset( $res[ $id ] ) ? $res[ $id ] : null;
+				$ok         = is_object( $x ) && isset( $x->status_code );
+				$out[ $id ] = $ok ? fxi_ai_parse( (int) $x->status_code, $x->body, $tasks[ $id ][0] ) : new WP_Error( 'retry', 'połączenie: ' . ( $x instanceof Exception ? $x->getMessage() : 'brak odpowiedzi' ) );
+			}
+			return $out;
+		} catch ( Exception $e ) {
+			unset( $e ); // przejdź do trybu po kolei
+		}
+	}
+	foreach ( $reqs as $id => $r ) {
+		$x          = wp_remote_post( $r['url'], array( 'timeout' => 45, 'headers' => $r['headers'], 'body' => $r['data'] ) );
+		$out[ $id ] = is_wp_error( $x ) ? new WP_Error( 'retry', 'połączenie: ' . $x->get_error_message() ) : fxi_ai_parse( (int) wp_remote_retrieve_response_code( $x ), wp_remote_retrieve_body( $x ), $tasks[ $id ][0] );
+	}
+	return $out;
+}
+
 /** Czy tytuł załącznika wygląda jak nazwa pliku (np. „IMG_1234”, „30451-001-xl”). */
 function fxi_title_is_filename( $t ) {
 	return '' === trim( $t ) || ! preg_match( '/\s/u', trim( $t ) ) || preg_match( '/^(img|dsc|photo|image)[\s_-]*\d+/i', $t );
 }
 
 /**
- * Opisuje jedno zdjęcie i zapisuje pola. Nie nadpisuje ręcznie wpisanego alt (chyba że w ustawieniach).
+ * Czy zdjęcie trzeba opisać. Zdjęcie z sensownym ręcznym altem jest oznaczane i pomijane.
  *
- * @return array|WP_Error
+ * @return true|string true albo powód pominięcia.
  */
-function fxi_seo_image( $id, $pid, $index, $count ) {
+function fxi_seo_needs( $id, $pid ) {
 	if ( get_post_meta( $id, '_fxi_ai', true ) ) {
-		return array( 'skip' => 'już opisane' );
+		return 'już opisane';
 	}
 	$cur_alt = (string) get_post_meta( $id, '_wp_attachment_image_alt', true );
 	if ( '' !== trim( $cur_alt ) && ! fxi_opt( 'overwrite' ) && ! fxi_alt_is_weak( $cur_alt, $id, $pid ) ) {
 		update_post_meta( $id, '_fxi_ai', 'manual' );
-		return array( 'skip' => 'ma ręczny alt' );
+		return 'ma ręczny alt';
 	}
-	$d = fxi_ai_describe( $id, $pid, $index, $count );
-	if ( is_wp_error( $d ) ) {
-		return $d;
-	}
+	return true;
+}
+
+/** Zapis opisu. Pliki i miniatury nie są dotykane – tylko tekst w bazie. */
+function fxi_seo_apply( $id, $d ) {
 	update_post_meta( $id, '_wp_attachment_image_alt', $d['alt'] );
 	$post = get_post( $id );
-	$upd  = array( 'ID' => $id );
+	$upd  = array();
 	if ( $d['caption'] && '' === trim( $post->post_excerpt ) ) {
 		$upd['post_excerpt'] = $d['caption'];
 	}
@@ -400,17 +485,48 @@ function fxi_seo_image( $id, $pid, $index, $count ) {
 	if ( fxi_opt( 'set_title' ) && $d['title'] && fxi_title_is_filename( $post->post_title ) ) {
 		$upd['post_title'] = $d['title'];
 	}
-	if ( count( $upd ) > 1 ) {
+	if ( $upd ) {
 		// Zapis bezpośrednio do bazy, bez wp_update_post – żadne haki zapisu (BaseLinker, Yoast,
 		// wtyczki zmieniające nazwy plików) nie są uruchamiane przy opisywaniu zdjęć.
 		global $wpdb;
-		$id_only = $upd['ID'];
-		unset( $upd['ID'] );
-		$wpdb->update( $wpdb->posts, $upd, array( 'ID' => $id_only ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
-		clean_post_cache( $id_only );
+		$wpdb->update( $wpdb->posts, $upd, array( 'ID' => $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		clean_post_cache( $id );
 	}
 	update_post_meta( $id, '_fxi_ai', time() );
-	return $d;
+}
+
+/**
+ * Opisuje wiele zdjęć naraz.
+ *
+ * @param array $tasks [ id => [ pid, index, count ] ].
+ * @return array [ id => array (opis) | [ 'skip' => powód ] | WP_Error ]
+ */
+function fxi_seo_many( $tasks ) {
+	$out  = array();
+	$todo = array();
+	foreach ( $tasks as $id => $t ) {
+		$n = fxi_seo_needs( $id, $t[0] );
+		if ( true === $n ) {
+			$todo[ $id ] = $t;
+		} else {
+			$out[ $id ] = array( 'skip' => $n );
+		}
+	}
+	foreach ( array_chunk( $todo, max( 1, (int) fxi_opt( 'parallel' ) ), true ) as $chunk ) {
+		foreach ( fxi_ai_many( $chunk ) as $id => $d ) {
+			if ( ! is_wp_error( $d ) ) {
+				fxi_seo_apply( $id, $d );
+			}
+			$out[ $id ] = $d;
+		}
+	}
+	return $out;
+}
+
+/** Jedno zdjęcie (zgodność wstecz). */
+function fxi_seo_image( $id, $pid, $index, $count ) {
+	$r = fxi_seo_many( array( $id => array( $pid, $index, $count ) ) );
+	return $r[ $id ];
 }
 
 /** Alt „słaby” = pusty, nazwa pliku, sama nazwa produktu bez opisu albo bardzo krótki. */
@@ -429,6 +545,90 @@ function fxi_alt_is_weak( $alt, $id, $pid = 0 ) {
  * Partie (AJAX)
  * ================================================================== */
 
+/**
+ * Partia opisów: zbiera zdjęcia z kolejnych produktów i wysyła je do AI równolegle.
+ * Kursor przesuwa się tylko za produkty, których wszystkie zdjęcia zostały obsłużone.
+ *
+ * @return array [ state, log, stats, wait, stop ]
+ */
+function fxi_seo_run( $state, $budget, $max_images = 0 ) {
+	$start = microtime( true );
+	$par   = max( 1, min( 8, (int) fxi_opt( 'parallel' ) ) );
+	$log   = array();
+	$stats = array( 'fixed' => 0, 'skip' => 0, 'err' => 0 );
+	$wait  = 0;
+	$stop  = false;
+	$made  = 0;
+	$rows  = fxi_products_after( (int) $state['cursor'], 30 );
+	if ( $rows ) {
+		update_meta_cache( 'post', wp_list_pluck( $rows, 'ID' ) );
+	}
+	$i = 0;
+	while ( $i < count( $rows ) && ! $wait && ! $stop ) {
+		if ( microtime( true ) - $start > $budget || ( $max_images && $made >= $max_images ) ) {
+			break;
+		}
+		// Grupa produktów, aż uzbiera się ok. 2 tury równoległych zapytań.
+		$group = array();
+		$tasks = array();
+		while ( $i < count( $rows ) && count( $tasks ) < $par * 2 ) {
+			$row  = $rows[ $i++ ];
+			$imgs = fxi_product_images( $row->ID );
+			if ( $imgs ) {
+				update_meta_cache( 'post', array_keys( $imgs ) );
+			}
+			$group[] = array( $row, array_keys( $imgs ) );
+			foreach ( $imgs as $id => $idx ) {
+				$n = fxi_seo_needs( $id, $row->ID );
+				if ( true === $n ) {
+					$tasks[ $id ] = array( $row->ID, $idx, count( $imgs ) );
+				} else {
+					$stats['skip']++;
+				}
+			}
+		}
+		$res = array();
+		foreach ( array_chunk( $tasks, $par, true ) as $chunk ) {
+			if ( microtime( true ) - $start > $budget || ( $max_images && $made >= $max_images ) ) {
+				break;
+			}
+			foreach ( fxi_ai_many( $chunk ) as $id => $d ) {
+				$res[ $id ] = $d;
+				$title      = get_the_title( $chunk[ $id ][0] );
+				if ( is_wp_error( $d ) ) {
+					if ( 'retry' === $d->get_error_code() ) {
+						$wait = 30;
+					} elseif ( 'nokey' === $d->get_error_code() ) {
+						$stop = true;
+					} else {
+						$stats['err']++;
+					}
+					$log[] = 'ERR ' . $title . ' #' . $id . ': ' . $d->get_error_message();
+					continue;
+				}
+				fxi_seo_apply( $id, $d );
+				$stats['fixed']++;
+				$made++;
+				$log[] = 'OK ' . $title . ' #' . $id . ': ' . $d['alt'];
+			}
+			if ( $wait || $stop ) {
+				break;
+			}
+		}
+		// Przesuń kursor za produkty obsłużone w całości.
+		foreach ( $group as $g ) {
+			foreach ( $g[1] as $id ) {
+				if ( isset( $tasks[ $id ] ) && ( ! isset( $res[ $id ] ) || ( is_wp_error( $res[ $id ] ) && in_array( $res[ $id ]->get_error_code(), array( 'retry', 'nokey' ), true ) ) ) ) {
+					break 3; // ten produkt dokończymy w następnej partii (opisane zdjęcia są pomijane)
+				}
+			}
+			$state['cursor'] = (int) $g[0]->ID;
+			$state['done']   = (int) ( isset( $state['done'] ) ? $state['done'] : 0 ) + 1;
+		}
+	}
+	return array( $state, $log, $stats, $wait, $stop );
+}
+
 add_action( 'wp_ajax_fxi_batch', function () {
 	check_ajax_referer( 'fxi', 'nonce' );
 	if ( ! fxi_cap() ) {
@@ -446,13 +646,19 @@ add_action( 'wp_ajax_fxi_batch', function () {
 
 	$state  = get_option( 'fxi_state_' . $mode, array( 'cursor' => 0, 'done' => 0, 'stats' => array() ) );
 	$start  = microtime( true );
-	$budget = 20; // sekund na partię – bezpiecznie poniżej limitów serwera
+	$budget = 'seo' === $mode ? 25 : 20; // sekund na partię – bezpiecznie poniżej limitów serwera
 	$log    = array();
 	$wait   = 0;
 	$stop   = false;
 	$stats  = wp_parse_args( (array) $state['stats'], array( 'ok' => 0, 'fixed' => 0, 'err' => 0, 'skip' => 0 ) );
 
-	foreach ( fxi_products_after( (int) $state['cursor'], 'seo' === $mode ? 5 : 10 ) as $row ) {
+	if ( 'seo' === $mode ) {
+		list( $state, $log, $add, $wait, $stop ) = fxi_seo_run( $state, $budget );
+		foreach ( $add as $k => $v ) {
+			$stats[ $k ] += $v;
+		}
+	}
+	foreach ( 'seo' === $mode ? array() : fxi_products_after( (int) $state['cursor'], 10 ) as $row ) {
 		$imgs     = fxi_product_images( $row->ID );
 		$finished = true;
 		if ( ! $imgs ) {
@@ -561,7 +767,7 @@ add_action( 'wp_ajax_fxi_audit', function () {
 					$a['ai']++;
 				}
 				$m = wp_get_attachment_metadata( $id );
-				if ( 0 === $idx && is_array( $m ) && ! empty( $m['width'] ) && (int) $m['width'] < 1000 ) {
+				if ( 0 === $idx && is_array( $m ) && ! empty( $m['width'] ) && (int) $m['width'] < 1200 ) {
 					$a['small']++;
 					if ( count( $small ) < 40 ) {
 						$small[] = array( 'name' => $row->post_title, 'url' => get_edit_post_link( $row->ID, 'raw' ), 'w' => (int) $m['width'] . '×' . (int) $m['height'] );
@@ -579,6 +785,16 @@ add_action( 'wp_ajax_fxi_audit', function () {
 			}
 		}
 	} while ( count( $rows ) === 300 );
+	// Czy Google ma dostęp do zdjęć (robots.txt).
+	$robots = '';
+	$r      = wp_remote_get( home_url( '/robots.txt' ), array( 'timeout' => 8 ) );
+	if ( ! is_wp_error( $r ) && 200 === (int) wp_remote_retrieve_response_code( $r ) ) {
+		$robots = wp_remote_retrieve_body( $r );
+	} elseif ( file_exists( ABSPATH . 'robots.txt' ) ) {
+		$robots = (string) file_get_contents( ABSPATH . 'robots.txt' ); // phpcs:ignore
+	}
+	$a['robots'] = preg_match( '#^\s*Disallow:\s*/(wp-content/?$|wp-content/uploads)#mi', $robots ) ? 'BLOKUJE zdjęcia – popraw robots.txt!' : ( $robots ? 'OK – zdjęcia dostępne dla Google' : 'nie udało się sprawdzić' );
+	$a['webp']   = wp_image_editor_supports( array( 'mime_type' => 'image/webp' ) ) ? ( fxi_opt( 'webp' ) ? 'tak – nowe miniatury w WebP' : 'serwer obsługuje, opcja wyłączona' ) : 'serwer nie obsługuje WebP';
 	wp_send_json_success( array( 'a' => $a, 'small' => $small ) );
 } );
 
@@ -632,41 +848,33 @@ add_action( 'fxi_night', function () {
 		return;
 	}
 	set_transient( 'fxi_lock', 1, 5 * MINUTE_IN_SECONDS );
-	$state = get_option( 'fxi_state_auto', array( 'cursor' => 0 ) );
+	$state = get_option( 'fxi_state_auto', array( 'cursor' => 0, 'done' => 0 ) );
 	$start = microtime( true );
 	$made  = 0;
-	$rows  = fxi_products_after( (int) $state['cursor'], 50 );
-	if ( ! $rows ) {
-		$state['cursor'] = 0; // koniec listy – następnym razem od najnowszych
-	}
-	foreach ( $rows as $row ) {
-		$imgs = fxi_product_images( $row->ID );
-		foreach ( $imgs as $id => $idx ) {
-			if ( $made >= 20 || microtime( true ) - $start > 90 || fxi_import_busy() ) {
-				break 2;
-			}
-			if ( get_post_meta( $id, '_fxi_ai', true ) ) {
-				continue;
-			}
-			$r = fxi_seo_image( $id, $row->ID, $idx, count( $imgs ) );
-			if ( is_wp_error( $r ) && in_array( $r->get_error_code(), array( 'retry', 'nokey' ), true ) ) {
-				break 2;
-			}
-			$made++;
+	// Do 40 zdjęć na godzinę (równolegle), najwyżej 2 min pracy; przerwa, gdy ruszy import.
+	while ( $made < 40 && microtime( true ) - $start < 120 && ! fxi_import_busy() ) {
+		$before = (int) $state['cursor'];
+		if ( ! fxi_products_after( $before, 1 ) ) {
+			$state['cursor'] = 0; // koniec listy – następnym razem od najnowszych
+			break;
 		}
-		$state['cursor'] = (int) $row->ID;
+		list( $state, $log, $st, $wait, $stop ) = fxi_seo_run( $state, 60, 40 - $made );
+		$made += $st['fixed'];
+		if ( $wait || $stop || (int) $state['cursor'] === $before ) {
+			break;
+		}
 	}
 	update_option( 'fxi_state_auto', $state, false );
 	delete_transient( 'fxi_lock' );
 } );
 
 /* =====================================================================
- * Front: alt awaryjny i zdjęcia w danych strukturalnych
+ * Front: alt awaryjny, szybkie zdjęcie główne, dane strukturalne, mapa witryny, WebP
  * ================================================================== */
 
 /** Zdjęcie produktu bez alt → nazwa produktu (+ numer ujęcia w galerii). */
-add_filter( 'wp_get_attachment_image_attributes', function ( $attr, $att ) {
-	if ( is_admin() || ! fxi_opt( 'alt_fallback' ) || ( isset( $attr['alt'] ) && '' !== trim( $attr['alt'] ) ) ) {
+add_filter( 'wp_get_attachment_image_attributes', function ( $attr, $att, $size ) {
+	if ( is_admin() ) {
 		return $attr;
 	}
 	global $product;
@@ -674,32 +882,141 @@ add_filter( 'wp_get_attachment_image_attributes', function ( $attr, $att ) {
 	if ( ! $pid && $att->post_parent && 'product' === get_post_type( $att->post_parent ) ) {
 		$pid = (int) $att->post_parent;
 	}
-	if ( $pid ) {
-		$imgs = fxi_product_images( $pid );
-		$n    = isset( $imgs[ $att->ID ] ) ? (int) $imgs[ $att->ID ] : 0;
+	if ( fxi_opt( 'alt_fallback' ) && $pid && ( ! isset( $attr['alt'] ) || '' === trim( $attr['alt'] ) ) ) {
+		$imgs        = fxi_product_images( $pid, true );
+		$n           = isset( $imgs[ $att->ID ] ) ? (int) $imgs[ $att->ID ] : 0;
 		$attr['alt'] = get_the_title( $pid ) . ( $n ? ' – zdjęcie ' . ( $n + 1 ) : '' );
 	}
+	// Zdjęcie główne na karcie produktu: bez leniwego ładowania, z wysokim priorytetem
+	// (to element LCP – szybciej widoczne dla klienta i lepiej oceniane przez Google).
+	static $lcp_done = false;
+	if ( fxi_opt( 'lcp' ) && ! $lcp_done && function_exists( 'is_product' ) && is_product() && (int) get_queried_object_id() === $pid && (int) get_post_thumbnail_id( $pid ) === (int) $att->ID && 'woocommerce_gallery_thumbnail' !== $size ) {
+		$lcp_done = true;
+		unset( $attr['loading'] );
+		$attr['loading']       = 'eager';
+		$attr['fetchpriority'] = 'high';
+		$attr['decoding']      = 'async';
+	}
 	return $attr;
-}, 20, 2 );
+}, 20, 3 );
 
-/** Product schema: wszystkie zdjęcia (główne + galeria) w pełnej rozdzielczości. */
+/** Dane zdjęcia do schematu: ImageObject z wymiarami, podpisem i (opcjonalnie) autorem. */
+function fxi_image_object( $id ) {
+	$src = wp_get_attachment_image_src( $id, 'full' );
+	if ( ! $src ) {
+		return null;
+	}
+	$o = array(
+		'@type'      => 'ImageObject',
+		'url'        => $src[0],
+		'contentUrl' => $src[0],
+	);
+	if ( $src[1] && $src[2] ) {
+		$o['width']  = (int) $src[1];
+		$o['height'] = (int) $src[2];
+	}
+	$alt = trim( (string) get_post_meta( $id, '_wp_attachment_image_alt', true ) );
+	if ( $alt ) {
+		$o['caption'] = $alt;
+	}
+	$credit = trim( (string) fxi_opt( 'credit' ) );
+	if ( $credit ) {
+		$o['creditText']      = $credit;
+		$o['creator']         = array( '@type' => 'Organization', 'name' => $credit );
+		$o['copyrightNotice'] = '© ' . $credit;
+	}
+	if ( fxi_opt( 'license_url' ) ) {
+		$o['license']            = fxi_opt( 'license_url' );
+		$o['acquireLicensePage'] = fxi_opt( 'license_url' );
+	}
+	return $o;
+}
+
+/** Product schema: wszystkie zdjęcia (główne, galeria, warianty) jako ImageObject w pełnej rozdzielczości. */
 add_filter( 'woocommerce_structured_data_product', function ( $data, $product ) {
 	if ( ! fxi_opt( 'schema_gallery' ) || ! $product instanceof WC_Product ) {
 		return $data;
 	}
-	$ids  = array_filter( array_merge( array( (int) $product->get_image_id() ), array_map( 'intval', $product->get_gallery_image_ids() ) ) );
-	$urls = array();
-	foreach ( array_unique( $ids ) as $id ) {
-		$u = wp_get_attachment_image_url( $id, 'full' );
-		if ( $u ) {
-			$urls[] = $u;
+	$list = array();
+	foreach ( array_keys( fxi_product_images( $product->get_id(), true ) ) as $id ) {
+		$o = fxi_image_object( $id );
+		if ( $o ) {
+			$list[] = $o;
+		}
+		if ( count( $list ) >= 10 ) {
+			break;
 		}
 	}
-	if ( count( $urls ) > 1 ) {
-		$data['image'] = array_slice( $urls, 0, 10 );
+	if ( $list ) {
+		$data['image'] = $list;
 	}
 	return $data;
 }, 20, 2 );
+
+/** Mapa witryny (Yoast / Rank Math): wszystkie zdjęcia produktu, nie tylko te z treści. */
+function fxi_sitemap_images( $images, $post_id ) {
+	if ( ! fxi_opt( 'sitemap' ) || 'product' !== get_post_type( $post_id ) ) {
+		return $images;
+	}
+	$have = array();
+	foreach ( (array) $images as $im ) {
+		if ( ! empty( $im['src'] ) ) {
+			$have[ $im['src'] ] = true;
+		}
+	}
+	foreach ( array_keys( fxi_product_images( $post_id, true ) ) as $id ) {
+		$u = wp_get_attachment_image_url( $id, 'full' );
+		if ( $u && ! isset( $have[ $u ] ) ) {
+			$images[]     = array(
+				'src'   => $u,
+				'title' => get_the_title( $id ),
+				'alt'   => (string) get_post_meta( $id, '_wp_attachment_image_alt', true ),
+			);
+			$have[ $u ] = true;
+		}
+	}
+	return $images;
+}
+add_filter( 'wpseo_sitemap_urlimages', 'fxi_sitemap_images', 20, 2 );
+add_filter( 'rank_math/sitemap/urlimages', 'fxi_sitemap_images', 20, 2 );
+
+/** Google może pokazywać duże podglądy zdjęć (gdy SEO-wtyczka sama tego nie dodaje). */
+add_filter( 'wp_robots', function ( $r ) {
+	if ( fxi_opt( 'sitemap' ) && empty( $r['noindex'] ) ) {
+		$r['max-image-preview'] = 'large';
+	}
+	return $r;
+}, 30 );
+
+/**
+ * WebP tylko dla MINIATUR. Plik główny (oryginał i wersja „-scaled”) zostaje w JPG pod tym samym
+ * adresem – BaseLinker, Merchant Center i Doofinder widzą to samo co dotąd.
+ * Przełącznik włącza się dopiero na etapie robienia miniatur (intermediate_image_sizes_advanced)
+ * i wyłącza na początku każdego wgrywania i po zakończeniu generowania.
+ */
+function fxi_webp_flag( $set = null ) {
+	static $on = false;
+	if ( null !== $set ) {
+		$on = (bool) $set;
+	}
+	return $on;
+}
+add_filter( 'intermediate_image_sizes_advanced', function ( $sizes ) {
+	fxi_webp_flag( true );
+	return $sizes;
+}, 999 );
+foreach ( array( 'wp_handle_upload_prefilter', 'wp_handle_sideload_prefilter', 'wp_generate_attachment_metadata' ) as $fxi_h ) {
+	add_filter( $fxi_h, function ( $x ) {
+		fxi_webp_flag( false );
+		return $x;
+	}, 1 );
+}
+add_filter( 'image_editor_output_format', function ( $formats, $filename = '', $mime = '' ) {
+	if ( fxi_webp_flag() && fxi_opt( 'webp' ) && 'image/jpeg' === $mime && wp_image_editor_supports( array( 'mime_type' => 'image/webp' ) ) ) {
+		$formats['image/jpeg'] = 'image/webp';
+	}
+	return $formats;
+}, 10, 3 );
 
 /* =====================================================================
  * Panel
@@ -738,7 +1055,7 @@ function fxi_page() {
 	<div class="fxi-cards">
 		<div class="fxi-card">
 			<h2>1. Audyt</h2>
-			<p>Ile zdjęć nie ma alt, ma słaby alt (nazwa pliku, jedno słowo), jest za małych (główne &lt; 1000 px) i ile ma brakujące pliki miniatur. Nic nie zmienia.</p>
+			<p>Ile zdjęć nie ma alt, ma słaby alt (nazwa pliku, jedno słowo), jest za małych (główne &lt; 1200 px – minimum Google dla dużych podglądów) i ile ma brakujące pliki miniatur. Nic nie zmienia.</p>
 			<button class="button" data-fxi-audit>Uruchom audyt</button>
 			<div id="fxi-audit"></div>
 		</div>
@@ -810,7 +1127,7 @@ function fxi_page() {
 					if (!r || !r.success) { return; }
 					var a = r.data.a, box = document.getElementById('fxi-audit'), rows = [
 						['Produkty', a.products], ['Produkty bez zdjęcia', a.no_image], ['Zdjęcia', a.images], ['Bez alt', a.no_alt],
-						['Słaby alt', a.weak_alt], ['Opisane przez AI / zostawione ręczne', a.ai], ['Główne zdjęcie < 1000 px', a.small], ['Brakujące pliki miniatur', a.missing_files]
+						['Słaby alt', a.weak_alt], ['Opisane przez AI / zostawione ręczne', a.ai], ['Główne zdjęcie < 1200 px', a.small], ['Brakujące pliki miniatur', a.missing_files], ['robots.txt', a.robots], ['WebP', a.webp]
 					];
 					var t = document.createElement('table');
 					rows.forEach(function (x) { var tr = t.insertRow(); tr.insertCell().textContent = x[0]; var c = tr.insertCell(); c.innerHTML = '<strong></strong>'; c.firstChild.textContent = x[1]; });
@@ -860,6 +1177,9 @@ function fxi_settings_page() {
 			</select>
 		</td></tr>
 		<tr><th>Zakres</th><td><input type="text" name="<?php echo esc_attr( $f( 'scope' ) ); ?>" value="<?php echo esc_attr( fxi_opt( 'scope' ) ); ?>"> <span class="description">tylko produkty z tym tekstem w nazwie (puste = wszystkie)</span></td></tr>
+		<tr><th>Zapytania naraz</th><td><input type="number" min="1" max="8" name="<?php echo esc_attr( $f( 'parallel' ) ); ?>" value="<?php echo (int) fxi_opt( 'parallel' ); ?>" style="width:70px"> <span class="description">ile zdjęć opisywać równolegle (4 = ok. 4× szybciej; przy błędach limitu API zmniejsz do 2)</span></td></tr>
+		<tr><th>Autor zdjęć</th><td><input type="text" class="regular-text" name="<?php echo esc_attr( $f( 'credit' ) ); ?>" value="<?php echo esc_attr( fxi_opt( 'credit' ) ); ?>" placeholder="np. FOX.SKLEP.PL"> <p class="description">Trafia do danych zdjęć (autor, prawa autorskie) i jest widoczne w Google Grafika. <strong>Wpisz tylko, jeśli wszystkie zdjęcia w zakresie są Wasze</strong> – zdjęć producenta nie podpisuj jako swoich.</p></td></tr>
+		<tr><th>Strona licencji</th><td><input type="url" class="regular-text" name="<?php echo esc_attr( $f( 'license_url' ) ); ?>" value="<?php echo esc_attr( fxi_opt( 'license_url' ) ); ?>" placeholder="https://fox.sklep.pl/…"> <p class="description">Opcjonalnie: strona z zasadami użycia zdjęć – Google pokazuje wtedy oznaczenie „Licencja”.</p></td></tr>
 		<?php
 		$checks = array(
 			'gallery'        => array( 'Zdjęcia z galerii', 'Opisuj i naprawiaj także zdjęcia z galerii, nie tylko główne (zalecane – każde zdjęcie to osobna szansa w Google Grafika).' ),
@@ -867,7 +1187,10 @@ function fxi_settings_page() {
 			'overwrite'      => array( 'Nadpisuj ręczne alty', 'Domyślnie wyłączone: sensowny alt wpisany ręcznie zostaje. Słabe alty (nazwa pliku, jedno słowo, sama nazwa produktu) są poprawiane zawsze.' ),
 			'set_title'      => array( 'Zmieniaj tytuł załącznika', 'Tylko gdy tytuł wygląda jak nazwa pliku. Uwaga: wtyczki typu „Media File Renamer” zmieniają wtedy nazwę pliku – a to psuje miniatury. Włącz tylko, gdy takiej wtyczki nie ma.' ),
 			'alt_fallback'   => array( 'Alt awaryjny', 'Zdjęcie produktu bez alt dostaje na stronie nazwę produktu (+ numer ujęcia).' ),
-			'schema_gallery' => array( 'Galeria w danych strukturalnych', 'W schemacie Product wszystkie zdjęcia produktu w pełnej rozdzielczości (Google zaleca kilka zdjęć).' ),
+			'schema_gallery' => array( 'Zdjęcia w danych strukturalnych', 'W schemacie Product wszystkie zdjęcia produktu (główne, galeria, warianty) z wymiarami i opisem – Google zaleca kilka zdjęć.' ),
+			'sitemap'        => array( 'Mapa witryny i podglądy', 'Do mapy witryny Yoast / Rank Math trafiają wszystkie zdjęcia produktu; strony pozwalają Google na duże podglądy zdjęć.' ),
+			'lcp'            => array( 'Szybkie zdjęcie główne', 'Zdjęcie główne na karcie produktu ładuje się od razu, z wysokim priorytetem (bez leniwego ładowania).' ),
+			'webp'           => array( 'WebP dla nowych miniatur', 'Nowe miniatury lżejsze o ok. 25–35%. Oryginał zostaje w JPG (BaseLinker, Merchant Center, Doofinder bez zmian). Istniejących plików nic nie przerabia.' ),
 		);
 		foreach ( $checks as $k => $c ) {
 			echo '<tr><th>' . esc_html( $c[0] ) . '</th><td><label><input type="checkbox" name="' . esc_attr( $f( $k ) ) . '" value="1" ' . checked( fxi_opt( $k ), 1, false ) . '> ' . esc_html( $c[1] ) . '</label></td></tr>';
