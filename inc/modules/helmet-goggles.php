@@ -52,10 +52,54 @@ function fx_hg_type( $product ) {
 	return $cache[ $id ] = apply_filters( 'fx_hg_type', $type, $product );
 }
 
-/** Kaski i gogle w koszyku: [ 'helmets' => liczba sztuk, 'goggles' => [klucz pozycji => sztuki] ]. */
+/**
+ * Świat produktu: 'moto', 'rower' albo '' (nie wiadomo). Po kategoriach (Moto/Rower z Dostosuj albo „rower…” / „off-road”
+ * w adresie kategorii), a gdy kategorie nie rozstrzygają – po nazwie („rowerowy”, „MTB” / „motocyklowy”, „cross”, „enduro”).
+ */
+function fx_hg_world( $id ) {
+	static $cache = array();
+	$id = (int) $id;
+	if ( isset( $cache[ $id ] ) ) {
+		return $cache[ $id ];
+	}
+	$found = array();
+	$moto  = function_exists( 'fx_world_cat' ) ? (int) fx_world_cat( 'moto' ) : 0;
+	$rower = function_exists( 'fx_world_cat' ) ? (int) fx_world_cat( 'rower' ) : 0;
+	foreach ( wc_get_product_cat_ids( $id ) as $cid ) {
+		$chain = array_merge( array( (int) $cid ), array_map( 'intval', get_ancestors( $cid, 'product_cat', 'taxonomy' ) ) );
+		foreach ( $chain as $tid ) {
+			$t    = get_term( $tid, 'product_cat' );
+			$slug = $t && ! is_wp_error( $t ) ? $t->slug : '';
+			if ( ( $rower && $tid === $rower ) || preg_match( '/rower|mtb|bike/', $slug ) ) {
+				$found['rower'] = true;
+			} elseif ( ( $moto && $tid === $moto ) || preg_match( '/off-road|motocross|motocykl|enduro|cross/', $slug ) ) {
+				$found['moto'] = true;
+			}
+		}
+	}
+	if ( 1 !== count( $found ) ) {
+		$found = array();
+		$name  = mb_strtolower( get_the_title( $id ), 'UTF-8' );
+		if ( preg_match( '/rowerow|\bmtb\b|\bbike\b|enduro mtb|downhill/u', $name ) ) {
+			$found['rower'] = true;
+		} elseif ( preg_match( '/motocykl|motocross|\bmx\b|crossow|\bcross\b|enduro/u', $name ) ) {
+			$found['moto'] = true;
+		}
+	}
+	return $cache[ $id ] = ( 1 === count( $found ) ? (string) key( $found ) : '' );
+}
+
+/** Czy kask i gogle są z tego samego świata (moto z moto, rower z rowerem; nieznany pasuje do wszystkiego). */
+function fx_hg_same_world( $helmet_id, $goggle_id ) {
+	$a = fx_hg_world( $helmet_id );
+	$b = fx_hg_world( $goggle_id );
+	return '' === $a || '' === $b || $a === $b;
+}
+
+/** Kaski i gogle w koszyku: [ 'helmets' => liczba sztuk, 'goggles' => [klucz pozycji => sztuki], 'hw' => [świat => sztuki] ]. */
 function fx_hg_cart_state( $cart = null ) {
 	$cart = $cart ? $cart : ( function_exists( 'WC' ) ? WC()->cart : null );
-	$out  = array( 'helmets' => 0, 'goggles' => array() );
+	$out  = array( 'helmets' => 0, 'goggles' => array(), 'hw' => array() );
 	if ( ! $cart ) {
 		return $out;
 	}
@@ -63,6 +107,8 @@ function fx_hg_cart_state( $cart = null ) {
 		$t = fx_hg_type( (int) $item['product_id'] );
 		if ( 'kask' === $t ) {
 			$out['helmets'] += (int) $item['quantity'];
+			$w = fx_hg_world( (int) $item['product_id'] );
+			$out['hw'][ $w ] = ( isset( $out['hw'][ $w ] ) ? $out['hw'][ $w ] : 0 ) + (int) $item['quantity'];
 		} elseif ( 'gogle' === $t ) {
 			$out['goggles'][ $k ] = (int) $item['quantity'];
 		}
@@ -94,15 +140,30 @@ add_action( 'woocommerce_before_calculate_totals', function ( $cart ) {
 		}
 	}
 	arsort( $lines );
-	$left = $st['helmets'];
+	$hw = $st['hw']; // kaski do wykorzystania wg świata (moto / rower / '')
 	foreach ( $lines as $k => $orig ) {
-		if ( $left <= 0 || $orig <= 0 ) {
-			break;
+		if ( $orig <= 0 ) {
+			continue;
 		}
 		$item  = $cart->cart_contents[ $k ];
 		$qty   = (int) $item['quantity'];
-		$units = min( $left, $qty );
-		$left -= $units;
+		$gw    = fx_hg_world( (int) $item['product_id'] );
+		$units = 0;
+		// Gogle moto – tylko z kaskiem moto, rowerowe – z rowerowym; świat nieznany pasuje do wszystkiego.
+		foreach ( array_keys( $hw ) as $w ) {
+			if ( $units >= $qty ) {
+				break;
+			}
+			if ( '' !== $gw && '' !== $w && $w !== $gw ) {
+				continue;
+			}
+			$take      = min( $hw[ $w ], $qty - $units );
+			$units    += $take;
+			$hw[ $w ] -= $take;
+		}
+		if ( $units <= 0 ) {
+			continue;
+		}
 		$hg    = $orig * ( 1 - ( $pct / 100 ) * $units / $qty );
 		$now   = (float) $item['data']->get_price(); // po ewentualnym rabacie za komplet
 		if ( $hg < $now ) {
@@ -213,6 +274,9 @@ function fx_hg_suggest( $helmet_id = 0, $limit = 3 ) {
 		$p = wc_get_product( $id );
 		if ( ! $p || ! $p->is_visible() || ! $p->is_in_stock() || ! $p->is_purchasable() ) {
 			continue;
+		}
+		if ( $helmet_id && ! fx_hg_same_world( $helmet_id, $id ) ) {
+			continue; // do kasku motocyklowego tylko gogle moto, do rowerowego – rowerowe
 		}
 		$gw = fx_hg_words( $p->get_name() );
 		if ( (bool) array_intersect( $gw, array( 'junior', 'youth', 'kids' ) ) !== $hjunior ) {
@@ -377,8 +441,9 @@ add_action( 'woocommerce_single_product_summary', function () {
 		return;
 	}
 	$st = fx_hg_cart_state();
-	if ( ! $st['helmets'] ) {
-		return;
+	$gw = fx_hg_world( $product->get_id() );
+	if ( ! $st['helmets'] || ( '' !== $gw && empty( $st['hw'][''] ) && empty( $st['hw'][ $gw ] ) ) ) {
+		return; // kask z innego świata (np. rowerowy przy goglach moto) – brak oferty
 	}
 	list( $reg, $deal ) = fx_hg_prices( $product );
 	echo '<p class="fx-hg-teaser fx-hg-teaser--on"><span class="fx-hg-teaser__tag">−' . esc_html( wc_format_localized_decimal( fx_hg_pct() ) ) . '%</span> Masz kask w koszyku – te gogle kupisz za <strong>' . wp_kses_post( ( $product->is_type( 'variable' ) ? 'od ' : '' ) . wc_price( $deal ) ) . '</strong>.</p>';

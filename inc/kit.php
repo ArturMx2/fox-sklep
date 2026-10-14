@@ -384,6 +384,10 @@ function fx_kit_resolve( $product_id ) {
 				}
 			}
 			$x = $have ? 0 : fx_kit_gear_for( $xt, $kkey );
+			// Strój moto – kask i gogle moto; rowerowy – rowerowe.
+			if ( $x && function_exists( 'fx_hg_same_world' ) && ! fx_hg_same_world( $out['parts'][0], $x ) ) {
+				$x = 0;
+			}
 			if ( $x && ! in_array( $x, $out['parts'], true ) ) {
 				$out['parts'][] = $x;
 				$out['extra'][] = $x;

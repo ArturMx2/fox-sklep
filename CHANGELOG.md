@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.12.3 – moto z moto, rower z rowerem
+- Kask motocyklowy dostaje tylko gogle moto, rowerowy – tylko rowerowe (propozycje w oknie, w koszyku, na karcie gogli). Świat rozpoznawany po kategoriach (Moto/Rower z Dostosuj, „off-road” / „rowerowy”), a gdy kategorie nie rozstrzygają – po nazwie.
+- Rabat −20% na gogle też tylko w parze z kaskiem z tego samego świata.
+- W kompletach: strój moto dobiera kask i gogle moto, rowerowy – rowerowe.
+
 ## 3.12.2 – gogle w trzech półkach cenowych
 - Oferta do kasku pokazuje po jednych goglach z każdego modelu: MAIN, AIRSPACE, VUE (od najtańszego), w każdym najlepiej pasujące do kasku (grafika, kolor, nazwa, czarne/białe). Nad nazwą podpis modelu.
 - Przy każdych goglach link „inne kolory MAIN/AIRSPACE/VUE →” (kategoria modelu), pod listą przycisk „Zobacz wszystkie gogle i kolory”.
