@@ -132,11 +132,13 @@ add_action( 'woocommerce_before_calculate_totals', function ( $cart ) {
 	}
 	// Najdroższe gogle najpierw – klient zyskuje najwięcej.
 	$lines = array();
+	$regs  = array();
 	foreach ( $st['goggles'] as $k => $q ) {
 		$item = $cart->cart_contents[ $k ];
 		$line = wc_get_product( $item['variation_id'] ? $item['variation_id'] : $item['product_id'] );
 		if ( $line ) {
 			$lines[ $k ] = (float) $line->get_price();
+			$regs[ $k ]  = (float) $line->get_regular_price();
 		}
 	}
 	arsort( $lines );
@@ -164,12 +166,16 @@ add_action( 'woocommerce_before_calculate_totals', function ( $cart ) {
 		if ( $units <= 0 ) {
 			continue;
 		}
-		$hg    = $orig * ( 1 - ( $pct / 100 ) * $units / $qty );
+		// −X% liczone od ceny REGULARNEJ: gogle w promocji kosztują wtedy reg × 0,8,
+		// a gdy promocja jest już głębsza – zostaje cena promocyjna (bez dodatkowego rabatu).
+		$reg   = ! empty( $regs[ $k ] ) ? $regs[ $k ] : $orig;
+		$unit  = min( $orig, $reg * ( 1 - $pct / 100 ) );
+		$hg    = ( $unit * $units + $orig * ( $qty - $units ) ) / $qty;
 		$now   = (float) $item['data']->get_price(); // po ewentualnym rabacie za komplet
 		if ( $hg < $now ) {
 			$item['data']->set_price( round( $hg, wc_get_price_decimals() ) );
 			$cart->cart_contents[ $k ]['fx_hg_units'] = $units;
-			$cart->cart_contents[ $k ]['fx_hg_orig']  = $orig;
+			$cart->cart_contents[ $k ]['fx_hg_orig']  = $reg;
 			$cart->cart_contents[ $k ]['fx_kit_units'] = 0; // bez podwójnego oznaczenia rabatu za komplet
 			if ( isset( $GLOBALS['fx_kit_saved'] ) ) {
 				$GLOBALS['fx_kit_saved'] = max( 0, $GLOBALS['fx_kit_saved'] - ( $orig - $now ) * $qty );
@@ -183,7 +189,7 @@ add_filter( 'woocommerce_cart_item_price', function ( $price, $item ) {
 	if ( empty( $item['fx_hg_units'] ) || empty( $item['fx_hg_orig'] ) ) {
 		return $price;
 	}
-	return '<del>' . wc_price( $item['fx_hg_orig'] ) . '</del> ' . $price . '<br><small class="fx-kit-badge fx-hg-badge">−' . esc_html( wc_format_localized_decimal( fx_hg_pct() ) ) . '% z kaskiem</small>';
+	return '<del>' . wc_price( $item['fx_hg_orig'] ) . '</del> ' . $price . '<br><small class="fx-kit-badge fx-hg-badge">−' . esc_html( wc_format_localized_decimal( fx_hg_pct() ) ) . '% od ceny regularnej z kaskiem</small>';
 }, 25, 2 );
 
 function fx_hg_saved_row() {
@@ -368,9 +374,27 @@ add_action( 'woocommerce_update_product', function () {
 } );
 
 /** Cena po rabacie (najniższa dostępna dla gogli z rozmiarami/wersjami). */
+/**
+ * [ cena regularna, cena z kaskiem ] – rabat od ceny regularnej, ale nigdy drożej niż obecna
+ * cena (głębsza promocja zostaje). Dla wariantów: najtańsza opcja.
+ */
 function fx_hg_prices( $p ) {
-	$reg = $p->is_type( 'variable' ) ? (float) $p->get_variation_price( 'min', true ) : (float) wc_get_price_to_display( $p );
-	return array( $reg, $reg * ( 1 - fx_hg_pct() / 100 ) );
+	$k = 1 - fx_hg_pct() / 100;
+	if ( $p->is_type( 'variable' ) ) {
+		$vp   = $p->get_variation_prices( true );
+		$best = null;
+		foreach ( (array) $vp['price'] as $vid => $now ) {
+			$r    = isset( $vp['regular_price'][ $vid ] ) && (float) $vp['regular_price'][ $vid ] > 0 ? (float) $vp['regular_price'][ $vid ] : (float) $now;
+			$deal = min( (float) $now, $r * $k );
+			if ( null === $best || $deal < $best[1] ) {
+				$best = array( $r, $deal );
+			}
+		}
+		return $best ? $best : array( 0, 0 );
+	}
+	$now = (float) wc_get_price_to_display( $p );
+	$r   = $p->get_regular_price() ? (float) wc_get_price_to_display( $p, array( 'price' => $p->get_regular_price() ) ) : $now;
+	return array( $r, min( $now, $r * $k ) );
 }
 
 /** Kafelki gogli z ceną po rabacie i przyciskiem dodania. */

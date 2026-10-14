@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.12.5 – rabat na gogle od ceny regularnej
+- Rabat −20% na gogle z kaskiem liczony od ceny REGULARNEJ, nie od promocyjnej: gogle 400 zł w promocji za 350 zł kosztują z kaskiem 320 zł (a nie 280 zł).
+- Gdy promocja jest już głębsza niż −20% od regularnej, zostaje cena promocyjna – rabaty się nie sumują.
+- W koszyku przekreślona cena regularna i dopisek „−20% od ceny regularnej z kaskiem”; kafelki z propozycjami gogli i zapowiedź na karcie gogli pokazują cenę liczoną tak samo.
+
 ## 3.12.4 – filtr rozmiarów tylko z widocznych produktów
 - Filtr „Rozmiar” w kategorii bierze rozmiary wyłącznie z produktów widocznych na liście (pomija ukryte w katalogu i – gdy sklep ukrywa niedostępne – wyprzedane).
 - Rozmiary przypisane „na sztywno” do produktu liczą się tylko w produktach prostych. Produkty z wariantami (np. gogle z wariantem OS, którym import przypisał całą listę rozmiarów) już nie dokładają do filtra pełnej listy YXS…42.
