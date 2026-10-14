@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.12.6 – lżej przy imporcie i pracy wtyczek w tle
+- Zapis produktu (import BaseLinkera, synchronizacja stanów, wtyczka kolorów, opisy zdjęć) nie czyści już pamięci podręcznej motywu po każdym produkcie: filtry kategorii, rodziny kolorów, komplety i propozycje kask+gogle odświeżają się zbiorczo, 90 s po pierwszej zmianie. Wcześniej przy setkach zapisów sklep co chwilę budował te dane od nowa przy wizytach klientów.
+- Ręczny zapis produktu w panelu odświeża dane od razu, jak dotąd.
+
 ## 3.12.5 – rabat na gogle od ceny regularnej
 - Rabat −20% na gogle z kaskiem liczony od ceny REGULARNEJ, nie od promocyjnej: gogle 400 zł w promocji za 350 zł kosztują z kaskiem 320 zł (a nie 280 zł).
 - Gdy promocja jest już głębsza niż −20% od regularnej, zostaje cena promocyjna – rabaty się nie sumują.

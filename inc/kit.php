@@ -222,9 +222,7 @@ function fx_kit_index() {
 	return $idx;
 }
 foreach ( array( 'woocommerce_update_product', 'woocommerce_new_product', 'trashed_post', 'deleted_post', 'untrashed_post' ) as $fx_hook ) {
-	add_action( $fx_hook, function () {
-		delete_transient( 'fx_kit_index_v3' );
-	} );
+	add_action( $fx_hook, 'fx_cache_touch' );
 }
 
 /** Czy produkt jest stroną kompletu (dawny „Smart Composite” albo nazwa „Strój…/Komplet…”). */

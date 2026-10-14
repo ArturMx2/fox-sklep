@@ -2,7 +2,7 @@
 /**
  * Plugin Name: FOX Smart Color GMC
  * Description: Inteligentne wykrywanie kolorów produktów WooCommerce z priorytetem jawnego koloru producenta. Zapisuje brakujący kolor jako globalny atrybut pa_kolor, z bezpieczną polityką kategorii dla Części i Akcesoria.
- * Version: 2.0.1
+ * Version: 2.1.0
  * Author: ENDURO.SKLEP.PL
  * Requires at least: 6.4
  * Requires PHP: 7.4
@@ -16,7 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class FOX_Smart_Color_GMC {
-    const VERSION       = '2.0.1';
+    const VERSION       = '2.1.0';
+    const OPTION_IMPORT = 'foxsc_import_at';
     const DB_VERSION    = '1.2.0';
     const OPTION_DB     = 'foxsc_db_version';
     const OPTION_CONFIG = 'foxsc_settings';
@@ -37,7 +38,10 @@ final class FOX_Smart_Color_GMC {
 
     public static function init() {
         add_action( 'plugins_loaded', array( __CLASS__, 'maybe_upgrade' ), 20 );
-        add_action( 'init', array( __CLASS__, 'ensure_settings' ), 30 );
+        add_action( 'init', array( __CLASS__, 'maybe_ensure_settings' ), 30 );
+        // Import z BaseLinkera (REST API WooCommerce) – rozpoznanie, żeby nie pracować w tym samym czasie.
+        add_filter( 'rest_pre_dispatch', array( __CLASS__, 'detect_import' ), 10, 3 );
+        add_action( 'woocommerce_api_request', array( __CLASS__, 'mark_import' ) );
         add_action( 'admin_menu', array( __CLASS__, 'admin_menu' ) );
         add_action( 'add_meta_boxes_product', array( __CLASS__, 'add_product_metabox' ) );
         add_action( 'admin_post_foxsc_admin_action', array( __CLASS__, 'handle_admin_action' ) );
@@ -61,6 +65,37 @@ final class FOX_Smart_Color_GMC {
             self::install_tables();
         }
         self::ensure_settings();
+    }
+
+    /**
+     * Ustawienia/kategorie sprawdzamy tylko w panelu, cronie i WP-CLI – nie przy każdej wizycie
+     * klienta (wcześniej: 2 zapytania o kategorie na każdej stronie sklepu).
+     */
+    public static function maybe_ensure_settings() {
+        if ( is_admin() || wp_doing_cron() || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
+            self::ensure_settings();
+        }
+    }
+
+    public static function mark_import() {
+        $last = (int) get_option( self::OPTION_IMPORT, 0 );
+        if ( time() - $last > 60 ) { // zapis najwyżej raz na minutę
+            update_option( self::OPTION_IMPORT, time(), false );
+        }
+    }
+
+    /** Zapis produktów przez REST API z zewnątrz (BaseLinker) = trwa import. */
+    public static function detect_import( $result, $server, $request ) {
+        if ( defined( 'REST_REQUEST' ) && REST_REQUEST && 'GET' !== $request->get_method() && preg_match( '#^/?wc/v[1-3]/#', $request->get_route() ) ) {
+            self::mark_import();
+        }
+        return $result;
+    }
+
+    /** Sekundy do końca przerwy po imporcie (10 min od ostatniego zapisu; uwzględnia też wtyczkę SEO zdjęć). */
+    public static function import_busy() {
+        $last = max( (int) get_option( self::OPTION_IMPORT, 0 ), (int) get_option( 'fxi_import_at', 0 ) );
+        return max( 0, $last + 10 * MINUTE_IN_SECONDS - time() );
     }
 
     private static function queue_table() {
@@ -926,33 +961,57 @@ final class FOX_Smart_Color_GMC {
         return $had_attribute || ! empty( $had_terms );
     }
 
+    /**
+     * Zapis produktu (także każda synchronizacja stanów z BaseLinkera) – tylko lekkie sprawdzenie.
+     * - produkt z kolorem (ręcznym albo nadanym wcześniej) NIE wraca do kolejki,
+     * - produkt bez koloru wraca najwyżej raz na 7 dni (import, który czyści atrybuty, nie wywoła
+     *   „przepychanki” kolor znika ↔ kolor wraca przy każdej synchronizacji),
+     * - pole GMC dla koloru ręcznego jest zapisywane tylko, gdy faktycznie się zmieniło,
+     * - zadanie w tle jest zlecane najwyżej raz na minutę i startuje z opóźnieniem.
+     */
     public static function maybe_auto_enqueue( $product_id ) {
         if ( self::$internal_save || ! function_exists( 'wc_get_product' ) ) {
             return;
         }
-        $settings = self::settings();
-        if ( empty( $settings['auto_enqueue'] ) ) {
+        $product_id = (int) $product_id;
+        $settings   = self::settings();
+        if ( empty( $settings['auto_enqueue'] ) || 'product' !== get_post_type( $product_id ) || 'publish' !== get_post_status( $product_id ) ) {
             return;
         }
-        $product = wc_get_product( (int) $product_id );
-        if ( ! $product || $product->is_type( 'variation' ) || 'publish' !== get_post_status( $product_id ) ) {
-            return;
-        }
-        if ( self::has_manual_color( $product ) ) {
-            // Ręczny pa_kolor jest źródłem nadrzędnym. Synchronizujemy go do pola GMC,
-            // żeby AdTribes nie tracił koloru nawet bez ponownej analizy zdjęcia.
-            $manual_colors = self::existing_color_names( $product );
-            if ( $manual_colors ) {
-                self::publish_result( (int) $product_id, implode( '/', array_slice( $manual_colors, 0, 3 ) ), 1.0, 'manual' );
+        $term_ids = taxonomy_exists( self::TAXONOMY ) ? wp_get_object_terms( $product_id, self::TAXONOMY, array( 'fields' => 'ids' ) ) : array();
+        if ( ! is_wp_error( $term_ids ) && $term_ids ) {
+            $product = wc_get_product( $product_id );
+            if ( $product && self::has_manual_color( $product ) ) {
+                // Ręczny pa_kolor jest nadrzędny – synchronizujemy go do pola GMC, ale tylko przy zmianie.
+                $manual = implode( '/', array_slice( self::existing_color_names( $product ), 0, 3 ) );
+                if ( $manual && $manual !== (string) get_post_meta( $product_id, '_foxsc_gmc_color', true ) ) {
+                    self::publish_result( $product_id, $manual, 1.0, 'manual' );
+                }
             }
+            return;
+        }
+        $last = strtotime( (string) get_post_meta( $product_id, '_foxsc_processed_at', true ) );
+        if ( $last && current_time( 'timestamp' ) - $last < 7 * DAY_IN_SECONDS ) {
+            return;
+        }
+        global $wpdb;
+        $state = $wpdb->get_var( $wpdb->prepare( 'SELECT status FROM ' . self::queue_table() . ' WHERE product_id=%d', $product_id ) );
+        if ( in_array( $state, array( 'pending', 'processing' ), true ) ) {
+            return;
+        }
+        $product = wc_get_product( $product_id );
+        if ( ! $product || $product->is_type( 'variation' ) ) {
             return;
         }
         $policy = self::category_policy( $product );
         if ( empty( $policy['allowed'] ) ) {
             return;
         }
-        self::enqueue_single( (int) $product_id, false );
-        self::schedule_worker( 5 );
+        self::enqueue_single( $product_id, false );
+        if ( false === get_transient( 'foxsc_kick' ) ) {
+            set_transient( 'foxsc_kick', 1, MINUTE_IN_SECONDS );
+            self::schedule_worker( 60 );
+        }
     }
 
     private static function enqueue_single( $product_id, $force = false, $run_id = '' ) {
@@ -1116,6 +1175,13 @@ final class FOX_Smart_Color_GMC {
                 @set_time_limit( 55 );
             }
 
+            // Trwa import z BaseLinkera – nie zapisujemy produktów równolegle, wracamy za 5 min.
+            if ( self::import_busy() ) {
+                self::schedule_worker( 300 );
+                return;
+            }
+
+            $started  = microtime( true );
             $queue    = self::queue_table();
             $settings = self::settings();
             $batch    = min( 20, max( 1, (int) $settings['batch_size'] ) );
@@ -1127,8 +1193,8 @@ final class FOX_Smart_Color_GMC {
             foreach ( $jobs as $job ) {
                 // Zatrzymanie jest kooperacyjne: bieżący produkt może się dokończyć,
                 // ale kolejny nie zostanie rozpoczęty.
-                if ( self::is_paused() ) {
-                    break;
+                if ( self::is_paused() || self::import_busy() || microtime( true ) - $started > 40 ) {
+                    break; // reszta w następnym zadaniu
                 }
 
                 $claimed = $wpdb->query(
@@ -2411,15 +2477,20 @@ final class FOX_Smart_Color_GMC {
     }
 
     private static function cleanup_product_legacy_meta( $product_id ) {
-        foreach ( array(
+        // Jedno zapytanie zamiast 17 osobnych usunięć przy każdym zapisie wyniku.
+        global $wpdb;
+        $keys = array(
             '_foxsc_taxonomy_autoset',
             '_foxsc_color_confidence', '_foxsc_color_source',
             '_foxsc_color_candidate', '_foxsc_candidate_confidence', '_foxsc_candidate_source',
             '_foxsc_detected_colors_json', '_foxsc_image_hash', '_foxsc_algorithm_version',
             '_foxak_gmc_color', '_foxak_color_confidence', '_foxak_color_source', '_foxak_color_candidate',
-            '_foxak_candidate_confidence', '_foxak_candidate_source', '_foxak_detected_colors_json', '_foxak_processed_at'
-        ) as $key ) {
-            delete_post_meta( (int) $product_id, $key );
+            '_foxak_candidate_confidence', '_foxak_candidate_source', '_foxak_detected_colors_json', '_foxak_processed_at',
+        );
+        $ph  = implode( ',', array_fill( 0, count( $keys ), '%s' ) );
+        $del = $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->postmeta} WHERE post_id=%d AND meta_key IN ({$ph})", array_merge( array( (int) $product_id ), $keys ) ) ); // phpcs:ignore
+        if ( $del ) {
+            wp_cache_delete( (int) $product_id, 'post_meta' );
         }
     }
 

@@ -1,4 +1,4 @@
-FOX Smart Color GMC 2.0.1 — FINAL
+FOX Smart Color GMC 2.1.0
 =================================
 
 Cel
@@ -75,3 +75,20 @@ W sekcji Feed / GMC jest przycisk „Wyczyść stare pola diagnostyczne 1.x”. 
 - Naprawiono zatrzymywanie kolejki po jednej partii (np. po 4 produktach).
 - Worker w tle sprawdza teraz wyłącznie oczekujące akcje Action Scheduler, a nie własną akcję będącą aktualnie w trakcie.
 - Strona panelu NIE musi pozostawać otwarta; przetwarzanie kontynuuje Action Scheduler / WP-Cron.
+
+
+2.1.0 — praca w tle bez konfliktów
+----------------------------------
+- Import z BaseLinkera: gdy BaseLinker zapisuje produkty przez REST API WooCommerce, kolejka czeka
+  (10 min od ostatniego zapisu; uwzględnia też wtyczkę „FOX – SEO zdjęć”). Bieżące zadanie przerywa
+  po skończonym produkcie i wraca za 5 min.
+- Synchronizacja stanów nie wrzuca już produktów z kolorem z powrotem do kolejki (wcześniej każdy
+  zapis produktu = ponowna analiza i zapis). Produkty bez koloru wracają najwyżej raz na 7 dni –
+  koniec „przepychanki”, gdy import czyści atrybuty.
+- Pole GMC dla koloru ręcznego zapisywane tylko przy zmianie (wcześniej ~20 zapytań przy każdej
+  synchronizacji produktu).
+- Zadanie w tle zlecane najwyżej raz na minutę, z opóźnieniem 60 s; jedno zadanie pracuje max 40 s.
+- Ustawienia/kategorie sprawdzane tylko w panelu i cronie (wcześniej 2 zapytania na każdej stronie sklepu).
+- Sprzątanie starych pól 1.x jednym zapytaniem zamiast 17.
+- Motyw FOX 3.12.6+: zapisy produktów przez wtyczkę nie czyszczą już pamięci podręcznej motywu
+  po każdym produkcie (zbiorczo co 90 s).

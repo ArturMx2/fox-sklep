@@ -497,3 +497,33 @@ add_filter( 'woocommerce_attribute_label', function ( $label, $name ) {
 	}
 	return $label;
 }, 20, 2 );
+
+/* ---------- Odświeżanie podręcznych danych motywu (filtry, rodziny kolorów, komplety, kask+gogle) ----------
+ * Przy imporcie z BaseLinkera i pracy wtyczek w tle produkty zapisują się setkami. Zamiast czyścić
+ * pamięć podręczną po KAŻDYM zapisie (i budować ją od nowa przy każdej wizycie), zbieramy zmiany
+ * i czyścimy raz, 90 s po pierwszej z nich. Ręczny zapis w panelu – od razu, jak dotąd. */
+function fx_cache_touch() {
+	static $done = false;
+	if ( $done ) {
+		return;
+	}
+	$done   = true;
+	$manual = is_admin() && ! wp_doing_ajax() && ! wp_doing_cron() && ! ( defined( 'REST_REQUEST' ) && REST_REQUEST ) && ! ( defined( 'WP_CLI' ) && WP_CLI );
+	if ( $manual ) {
+		add_action( 'shutdown', 'fx_flush_caches' );
+		return;
+	}
+	if ( ! wp_next_scheduled( 'fx_flush_caches' ) ) {
+		wp_schedule_single_event( time() + 90, 'fx_flush_caches' );
+	}
+}
+function fx_flush_caches() {
+	if ( function_exists( 'fx_cf_flush' ) ) {
+		fx_cf_flush(); // rodziny kolorów + listy filtrów
+	} elseif ( function_exists( 'fx_filters_flush' ) ) {
+		fx_filters_flush();
+	}
+	delete_transient( 'fx_kit_index_v3' );
+	delete_transient( 'fx_hg_pool2' );
+}
+add_action( 'fx_flush_caches', 'fx_flush_caches' );

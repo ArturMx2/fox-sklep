@@ -194,7 +194,10 @@ function fx_filter_options( $role, $term ) {
 }
 
 /* Zmiana produktów, stanów lub atrybutów czyści listy filtrów. */
-foreach ( array( 'woocommerce_update_product', 'woocommerce_new_product', 'woocommerce_product_set_stock_status', 'woocommerce_variation_set_stock_status', 'edited_term', 'created_term' ) as $fx_hook ) {
+foreach ( array( 'woocommerce_update_product', 'woocommerce_new_product', 'woocommerce_product_set_stock_status', 'woocommerce_variation_set_stock_status' ) as $fx_hook ) {
+	add_action( $fx_hook, 'fx_cache_touch' ); // zbiorczo, nie po każdym produkcie (import, wtyczki w tle)
+}
+foreach ( array( 'edited_term', 'created_term' ) as $fx_hook ) {
 	add_action( $fx_hook, 'fx_filters_flush' );
 }
 function fx_filters_flush() {

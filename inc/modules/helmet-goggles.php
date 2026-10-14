@@ -369,9 +369,7 @@ function fx_hg_cats( $id ) {
 	$one = get_term_link( $deep );
 	return array( is_wp_error( $one ) ? '' : $one, is_wp_error( $all ) ? '' : $all );
 }
-add_action( 'woocommerce_update_product', function () {
-	delete_transient( 'fx_hg_pool2' );
-} );
+add_action( 'woocommerce_update_product', 'fx_cache_touch' );
 
 /** Cena po rabacie (najniższa dostępna dla gogli z rozmiarami/wersjami). */
 /**

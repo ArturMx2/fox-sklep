@@ -107,7 +107,7 @@ function fx_cf_flush() {
 	}
 }
 foreach ( array( 'woocommerce_update_product', 'woocommerce_new_product', 'woocommerce_product_set_stock_status', 'trashed_post', 'untrashed_post', 'deleted_post' ) as $fx_hook ) {
-	add_action( $fx_hook, 'fx_cf_flush' );
+	add_action( $fx_hook, 'fx_cache_touch' );
 }
 
 /** Pozostałe produkty rodziny (z bieżącym), w stałej kolejności. */
