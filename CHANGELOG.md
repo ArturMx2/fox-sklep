@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.11.2
+- Atrybut „wariant” z BaseLinkera (pa_blvariant) wyświetlany klientom jako „Rozmiar” (karta produktu, koszyk, zamówienie, e-maile). W panelu nazwa bez zmian.
+
 ## 3.11.1 – komplety: gogle i kask
 - Do stroju dobierane są gogle i kask w tej samej grafice – gdy nazwa ma wspólne słowo grafiki (np. „Frame”, „Thorn”, „Nitro”, nie sam kolor), najlepiej też kolor. Bez wspólnej grafiki nic nie jest dobierane. Strój junior – tylko produkty junior. Wyłączenie: filtr fx_kit_add_gear.
 - W „Zbuduj komplet” gogle i kask są propozycją: domyślnie odznaczone (zaznacza się je kliknięciem albo wyborem rozmiaru). Rabat za komplet wymaga tylko części stroju; dobrane rękawice, gogle i kask w koszyku też dostają rabat.

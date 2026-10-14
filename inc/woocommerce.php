@@ -486,3 +486,14 @@ remove_action( 'woocommerce_shop_loop_item_title', 'woocommerce_template_loop_pr
 add_action( 'woocommerce_shop_loop_item_title', function () {
 	echo '<h3 class="' . esc_attr( apply_filters( 'woocommerce_product_loop_title_classes', 'woocommerce-loop-product__title' ) ) . '">' . get_the_title() . '</h3>'; // phpcs:ignore
 }, 10 );
+
+/* Atrybut z BaseLinkera „wariant” (pa_blvariant) wyświetlamy klientom jako „Rozmiar”. W panelu zostaje oryginał. */
+add_filter( 'woocommerce_attribute_label', function ( $label, $name ) {
+	if ( is_admin() && ! wp_doing_ajax() ) {
+		return $label;
+	}
+	if ( preg_match( '/blvariant/i', (string) $name ) || preg_match( '/^\s*wariant\s*$/iu', (string) $label ) ) {
+		return 'Rozmiar';
+	}
+	return $label;
+}, 20, 2 );
