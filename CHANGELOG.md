@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.12.4 – filtr rozmiarów tylko z widocznych produktów
+- Filtr „Rozmiar” w kategorii bierze rozmiary wyłącznie z produktów widocznych na liście (pomija ukryte w katalogu i – gdy sklep ukrywa niedostępne – wyprzedane).
+- Rozmiary przypisane „na sztywno” do produktu liczą się tylko w produktach prostych. Produkty z wariantami (np. gogle z wariantem OS, którym import przypisał całą listę rozmiarów) już nie dokładają do filtra pełnej listy YXS…42.
+- Efekt: w VUE (same rozmiary uniwersalne) filtr rozmiaru znika, tak jak w AIRSPACE.
+
 ## 3.12.3 – moto z moto, rower z rowerem
 - Kask motocyklowy dostaje tylko gogle moto, rowerowy – tylko rowerowe (propozycje w oknie, w koszyku, na karcie gogli). Świat rozpoznawany po kategoriach (Moto/Rower z Dostosuj, „off-road” / „rowerowy”), a gdy kategorie nie rozstrzygają – po nazwie.
 - Rabat −20% na gogle też tylko w parze z kaskiem z tego samego świata.

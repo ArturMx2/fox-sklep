@@ -75,10 +75,40 @@ function fx_filter_cat_products( $term ) {
 				'posts_per_page' => -1,
 				'fields'         => 'ids',
 				'no_found_rows'  => true,
-				'tax_query'      => array( array( 'taxonomy' => 'product_cat', 'terms' => $term->term_id, 'include_children' => true ) ), // phpcs:ignore
+				'tax_query'      => fx_filter_visible_tax( array( array( 'taxonomy' => 'product_cat', 'terms' => $term->term_id, 'include_children' => true ) ) ), // phpcs:ignore
 			)
 		)
 	);
+}
+
+/**
+ * Warunek „produkt widoczny na liście”: bez ukrytych w katalogu i – gdy sklep ukrywa
+ * niedostępne – bez wyprzedanych. Ukryte produkty nie mogą dokładać rozmiarów do filtra.
+ */
+function fx_filter_visible_tax( $tq ) {
+	$hide = array( 'exclude-from-catalog' );
+	if ( 'yes' === get_option( 'woocommerce_hide_out_of_stock_items' ) ) {
+		$hide[] = 'outofstock';
+	}
+	$tq[] = array( 'taxonomy' => 'product_visibility', 'field' => 'name', 'terms' => $hide, 'operator' => 'NOT IN' );
+	return $tq;
+}
+
+/**
+ * Spośród podanych ID tylko produkty proste. Produkt z wariantami, których rozmiary nie są
+ * ustawione (albo są wyłączone), ma często przypisaną całą listę rozmiarów (import) – pomijamy go.
+ */
+function fx_filter_only_simple( $ids ) {
+	static $simple = null;
+	if ( ! $ids ) {
+		return array();
+	}
+	if ( null === $simple ) {
+		$t      = get_term_by( 'slug', 'simple', 'product_type' );
+		$o      = $t ? get_objects_in_term( (int) $t->term_id, 'product_type' ) : array();
+		$simple = is_wp_error( $o ) ? array() : array_flip( array_map( 'intval', $o ) );
+	}
+	return array_values( array_filter( array_map( 'intval', $ids ), function ( $id ) use ( $simple ) { return isset( $simple[ $id ] ); } ) );
 }
 
 /** Produkty-rodzice, których warianty używają danego atrybutu (cache na żądanie). */
@@ -97,7 +127,7 @@ function fx_filter_var_parents( $tax ) {
  * Rozmiary: tylko dostępne na stanie warianty. Cache 12 h (czyszczony przy zmianie produktu).
  */
 function fx_filter_options( $role, $term ) {
-	$key   = 'fx_flt_' . md5( $role . '|' . $term->term_id . '|' . implode( ',', fx_filter_taxonomies()[ $role ] ) );
+	$key   = 'fx_flt_' . md5( 'v2|' . $role . '|' . $term->term_id . '|' . implode( ',', fx_filter_taxonomies()[ $role ] ) );
 	$cache = get_transient( $key );
 	if ( is_array( $cache ) ) {
 		return $cache;
@@ -116,7 +146,7 @@ function fx_filter_options( $role, $term ) {
 			}
 			// Produkty bez wariantów tego atrybutu – przypisane wartości.
 			$vp     = fx_filter_var_parents( $tax );
-			$simple = array_values( array_filter( $prod, function ( $id ) use ( $vp ) { return ! isset( $vp[ $id ] ); } ) );
+			$simple = fx_filter_only_simple( array_filter( $prod, function ( $id ) use ( $vp ) { return ! isset( $vp[ $id ] ); } ) );
 			if ( $simple ) {
 				foreach ( (array) wp_get_object_terms( $simple, $tax, array( 'fields' => 'slugs' ) ) as $s ) {
 					if ( is_string( $s ) ) {
@@ -229,7 +259,7 @@ function fx_filter_match_ids( $role, $slugs ) {
 		if ( $terms ) {
 			$vp  = fx_filter_var_parents( $tax );
 			$obj = get_objects_in_term( wp_list_pluck( $terms, 'term_id' ), $tax );
-			foreach ( is_wp_error( $obj ) ? array() : $obj as $id ) {
+			foreach ( fx_filter_only_simple( is_wp_error( $obj ) ? array() : $obj ) as $id ) {
 				if ( ! isset( $vp[ (int) $id ] ) ) {
 					$ids[] = (int) $id;
 				}
