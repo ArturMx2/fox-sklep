@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.11.1 – komplety: gogle i kask
+- Do stroju dobierane są gogle i kask w tej samej grafice – gdy nazwa ma wspólne słowo grafiki (np. „Frame”, „Thorn”, „Nitro”, nie sam kolor), najlepiej też kolor. Bez wspólnej grafiki nic nie jest dobierane. Strój junior – tylko produkty junior. Wyłączenie: filtr fx_kit_add_gear.
+- W „Zbuduj komplet” gogle i kask są propozycją: domyślnie odznaczone (zaznacza się je kliknięciem albo wyborem rozmiaru). Rabat za komplet wymaga tylko części stroju; dobrane rękawice, gogle i kask w koszyku też dostają rabat.
+- Podpisy kafelków: „Gogle”, „Kask”. „Dokończ komplet” w koszyku proponuje też gogle i kask.
+
 ## 3.11.0 – komplety: rękawice Dirtpaw i „Dokończ komplet” w koszyku
 - Strój bez rękawic tej samej grafiki dostaje rękawice FOX Dirtpaw w kolorze stroju (po słowach koloru w nazwie, np. „180 Frame Blue” → „Dirtpaw … Blue”; brak dopasowania → czarne; strój junior → rękawice junior). Dotyczy kompletów automatycznych i ze starej wtyczki; ręcznie ustawionych kompletów nie zmienia. Wyłączenie: filtr fx_kit_add_gloves.
 - Rabat za komplet liczy się jak dotąd (bluza + spodnie wystarczą); dobrane rękawice, jeśli są w koszyku, też dostają rabat.

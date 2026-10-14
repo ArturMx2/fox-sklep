@@ -358,7 +358,9 @@
 			var s = state();
 			var pct = parseFloat(kit.getAttribute('data-pct')) || 0;
 			var full = rows().filter(function (r) { return !r.classList.contains('is-out'); }).length;
-			var allIn = s.chosen === full && s.chosen === parseInt(kit.getAttribute('data-parts'), 10);
+			// Rabat: zaznaczone wszystkie części podstawowe (dobrane rękawice, gogle, kask są opcjonalne).
+			var core = rows().filter(function (r) { return r.getAttribute('data-core') !== '0'; });
+			var allIn = core.length > 1 && core.every(function (r) { var c = r.querySelector('input[type=checkbox]'); return !r.classList.contains('is-out') && c && c.checked; });
 			var sub = s.total + s.est;
 			var pay = allIn && pct > 0 ? sub * (1 - pct / 100) : sub;
 			var before = s.reg + s.est;
@@ -369,7 +371,7 @@
 			}
 			var note = [];
 			if (before > pay + 0.5) { note.push('Oszczędzasz ' + fmt(before - pay)); }
-			if (pct > 0 && !allIn && s.chosen) { note.push('zaznacz wszystkie części, żeby dostać −' + String(pct).replace('.', ',') + '%'); }
+			if (pct > 0 && !allIn && s.chosen) { note.push('zaznacz części stroju, żeby dostać −' + String(pct).replace('.', ',') + '%'); }
 			if (pct > 0 && allIn) { note.push('w tym −' + String(pct).replace('.', ',') + '% za zestaw'); }
 			kit.querySelector('[data-fx-kit-summary]').textContent = note.join(' · ');
 			var btn = kit.querySelector('[data-fx-kit-add]');

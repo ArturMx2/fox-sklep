@@ -83,7 +83,7 @@ add_action( 'woocommerce_admin_process_product_object', function ( $product ) {
 	}
 	if ( isset( $_POST['_fx_is_kit_sent'] ) ) {
 		$product->update_meta_data( '_fx_is_kit', isset( $_POST['_fx_is_kit'] ) ? 'yes' : 'no' );
-		delete_transient( 'fx_kit_index_v2' );
+		delete_transient( 'fx_kit_index_v3' );
 	}
 	if ( isset( $_POST['_fx_kit_title'] ) ) {
 		$product->update_meta_data( '_fx_kit_title', sanitize_text_field( wp_unslash( $_POST['_fx_kit_title'] ) ) );
@@ -121,6 +121,17 @@ function fx_kit_part_types() {
 	);
 }
 
+/** Dodatki do stroju (nie są wymagane do rabatu): gogle i kask w tej samej grafice. */
+function fx_kit_extra_types() {
+	return apply_filters(
+		'fx_kit_extra_types',
+		array(
+			'gogle' => array( 'gogl', 'goggle' ),
+			'kask'  => array( 'kask', 'helmet' ),
+		)
+	);
+}
+
 /** Słowa oznaczające stronę kompletu. */
 function fx_kit_page_words() {
 	return apply_filters( 'fx_kit_page_words', array( 'strój', 'stroj', 'komplet', 'zestaw' ) );
@@ -150,7 +161,7 @@ function fx_kit_parse_name( $name ) {
 				continue 2;
 			}
 		}
-		foreach ( fx_kit_part_types() as $slug => $stems ) {
+		foreach ( array_merge( fx_kit_part_types(), fx_kit_extra_types() ) as $slug => $stems ) {
 			foreach ( $stems as $st ) {
 				if ( 0 === mb_strpos( $w, $st ) ) {
 					$type = $slug;
@@ -189,7 +200,7 @@ function fx_kit_index() {
 	if ( null !== $idx ) {
 		return $idx;
 	}
-	$idx = get_transient( 'fx_kit_index_v2' );
+	$idx = get_transient( 'fx_kit_index_v3' );
 	if ( is_array( $idx ) ) {
 		return $idx;
 	}
@@ -207,12 +218,12 @@ function fx_kit_index() {
 			$idx[ $key ]['parts'][ $type ][] = (int) $r->ID;
 		}
 	}
-	set_transient( 'fx_kit_index_v2', $idx, DAY_IN_SECONDS );
+	set_transient( 'fx_kit_index_v3', $idx, DAY_IN_SECONDS );
 	return $idx;
 }
 foreach ( array( 'woocommerce_update_product', 'woocommerce_new_product', 'trashed_post', 'deleted_post', 'untrashed_post' ) as $fx_hook ) {
 	add_action( $fx_hook, function () {
-		delete_transient( 'fx_kit_index_v2' );
+		delete_transient( 'fx_kit_index_v3' );
 	} );
 }
 
@@ -351,7 +362,78 @@ function fx_kit_resolve( $product_id ) {
 			}
 		}
 	}
+	// Gogle i kask w tej samej grafice (np. „Thorn”, „Nitro”, „Frame”) – tylko przy wyraźnym dopasowaniu nazwy.
+	if ( $out['parts'] && apply_filters( 'fx_kit_add_gear', true, $product_id ) ) {
+		$kkey = '' !== $key ? $key : fx_kit_parse_name( get_the_title( $out['parts'][0] ) )[1];
+		foreach ( array_keys( fx_kit_extra_types() ) as $xt ) {
+			$have = false;
+			foreach ( $out['parts'] as $pid ) {
+				if ( fx_kit_parse_name( get_the_title( $pid ) )[0] === $xt ) {
+					$have = true;
+					break;
+				}
+			}
+			$x = $have ? 0 : fx_kit_gear_for( $xt, $kkey );
+			if ( $x && ! in_array( $x, $out['parts'], true ) ) {
+				$out['parts'][] = $x;
+				$out['extra'][] = $x;
+			}
+		}
+	}
 	return $cache[ $product_id ] = $out;
+}
+
+/** Słowa kolorów (dopasowanie samego koloru nie wystarcza do gogli/kasku). */
+function fx_kit_color_words() {
+	return array( 'black', 'white', 'blue', 'red', 'pink', 'purple', 'grey', 'gray', 'green', 'yellow', 'orange', 'fluo', 'fluorescent', 'camo', 'navy', 'lava', 'teal', 'gold', 'silver', 'brown', 'tan', 'olive', 'cobalt', 'steel', 'mint', 'flo', 'dark', 'light', 'multi', 'chrome', 'matte', 'ice', 'citrus', 'burgundy', 'maroon', 'blk', 'wht' );
+}
+
+/**
+ * Gogle albo kask do stroju: produkt tego typu, którego nazwa ma tę samą grafikę (słowo spoza kolorów i numerów
+ * modelu, np. „thorn”, „nitro”, „frame”) – im więcej wspólnych słów (grafika + kolor), tym lepiej.
+ * Bez wspólnej grafiki nic nie dobieramy. Strój junior/dziecięcy – tylko produkty junior/dziecięce.
+ */
+function fx_kit_gear_for( $type, $key ) {
+	$key = trim( (string) $key );
+	if ( '' === $key ) {
+		return 0;
+	}
+	$mods_all = array( 'junior', 'kids', 'lady' );
+	$tokens   = preg_split( '/\s+/u', $key );
+	$mods     = array_values( array_intersect( $tokens, $mods_all ) );
+	$words    = array_values( array_diff( $tokens, $mods_all ) );
+	$colors   = fx_kit_color_words();
+	$best     = array();
+	foreach ( fx_kit_index() as $k => $row ) {
+		if ( empty( $row['parts'][ $type ] ) ) {
+			continue;
+		}
+		$kt    = preg_split( '/\s+/u', $k );
+		$kmods = array_values( array_intersect( $kt, $mods_all ) );
+		if ( $kmods !== $mods ) {
+			continue;
+		}
+		$common  = array_intersect( array_diff( $kt, $mods_all ), $words );
+		$graphic = array_filter(
+			$common,
+			function ( $t ) use ( $colors ) {
+				return ! in_array( $t, $colors, true ) && ! preg_match( '/^\d+$/', $t ) && mb_strlen( $t ) > 2;
+			}
+		);
+		if ( ! $graphic ) {
+			continue;
+		}
+		$id = fx_kit_pick( $row['parts'][ $type ] );
+		$p  = $id ? wc_get_product( $id ) : null;
+		if ( ! $p || ! $p->is_visible() || ! $p->is_in_stock() ) {
+			continue;
+		}
+		$rank = array( count( $graphic ), count( $common ), -count( $kt ) );
+		if ( ! $best || $rank > $best[0] ) {
+			$best = array( $rank, $id );
+		}
+	}
+	return $best ? (int) $best[1] : 0;
 }
 
 /**
@@ -478,7 +560,7 @@ function fx_kit_options( $p ) {
 /** Typ części do etykiety nad nazwą: „Koszulka”, „Spodnie”, „Gogle”… */
 function fx_kit_part_label( $p ) {
 	list( $type ) = fx_kit_parse_name( $p->get_name() );
-	$labels       = array( 'koszulka' => 'Koszulka', 'spodnie' => 'Spodnie', 'rekawice' => 'Rękawice' );
+	$labels       = array( 'koszulka' => 'Koszulka', 'spodnie' => 'Spodnie', 'rekawice' => 'Rękawice', 'gogle' => 'Gogle', 'kask' => 'Kask' );
 	if ( 'koszulka' === $type && preg_match( '/^\s*bluz/iu', $p->get_name() ) ) {
 		return 'Bluza';
 	}
@@ -570,10 +652,12 @@ function fx_kit_section( $product, $inline = false ) {
 					$avail            = (bool) $opts;
 					$variable         = $p->is_type( 'variable' );
 					$single           = $avail && 1 === count( $opts );
+					// Gogle i kask to propozycja – domyślnie poza zestawem, klient zaznacza je sam (albo wybiera rozmiar).
+					$is_gear          = in_array( fx_kit_parse_name( $p->get_name() )[0], array_keys( fx_kit_extra_types() ), true );
 					?>
-					<div class="fx-kit__item<?php echo $avail ? '' : ' is-out'; ?>" data-product-id="<?php echo (int) $p->get_id(); ?>" data-name="<?php echo esc_attr( $p->get_name() ); ?>" data-category="<?php echo esc_attr( $cats ? $cats[0] : '' ); ?>">
+					<div class="fx-kit__item<?php echo $avail ? '' : ' is-out'; ?>" data-core="<?php echo in_array( $p->get_id(), isset( $kit['core'] ) ? $kit['core'] : $kit['parts'], true ) ? '1' : '0'; ?>" data-product-id="<?php echo (int) $p->get_id(); ?>" data-name="<?php echo esc_attr( $p->get_name() ); ?>" data-category="<?php echo esc_attr( $cats ? $cats[0] : '' ); ?>">
 						<label class="fx-kit__check" title="Dodaj do zestawu">
-							<input type="checkbox" id="<?php echo esc_attr( $fid ); ?>-on" <?php checked( $avail ); ?> <?php disabled( ! $avail ); ?>>
+							<input type="checkbox" id="<?php echo esc_attr( $fid ); ?>-on" <?php checked( $avail && ! $is_gear ); ?> <?php disabled( ! $avail ); ?>>
 							<span class="screen-reader-text">W zestawie: <?php echo esc_html( $p->get_name() ); ?></span>
 						</label>
 						<a class="fx-kit__img" href="<?php echo esc_url( $p->get_permalink() ); ?>"<?php echo $is_current ? ' aria-current="page"' : ''; ?>><?php echo $p->get_image( 'woocommerce_thumbnail' ); // phpcs:ignore ?></a>
