@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.11.2
+Version: 3.11.3
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -1428,3 +1428,8 @@ html.fx-added-open{overflow:hidden}
 @media (max-width:900px){.fx-kit-upsell ul.products{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 12px}.fx-kit-upsell .fx-row-head h2{font-size:24px}}
 .fx-kit-upsell .woocommerce{display:block!important;grid-template-columns:none!important}
 .fx-kit-upsell .woocommerce>*{grid-column:auto!important}
+
+/* Kolory na liście produktów o 20% większe – 3.11.3 */
+.fx-cf__sw,.fx-cf__more{width:48px;min-width:48px;height:48px}
+.fx-cf{gap:7px}
+@media (max-width:600px){.fx-cf__sw,.fx-cf__more{width:41px;min-width:41px;height:41px}.fx-cf{gap:6px}}

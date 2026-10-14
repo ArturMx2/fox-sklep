@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.11.3
+- Miniatury innych kolorów na liście produktów o 20% większe (komputer 48 px zamiast 40, telefon 41 px zamiast 34).
+
 ## 3.11.2
 - Atrybut „wariant” z BaseLinkera (pa_blvariant) wyświetlany klientom jako „Rozmiar” (karta produktu, koszyk, zamówienie, e-maile). W panelu nazwa bez zmian.
 
