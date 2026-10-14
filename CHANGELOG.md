@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.12.1 – gogle dopasowane do kasku
+- Propozycje gogli do kasku tylko pasujące: 1) ta sama grafika, 2) ten sam kolor (także polskie nazwy kolorów), 3) podobna nazwa, 4) czarne albo białe. Gogle w innych kolorach nie są proponowane. Kask junior – gogle junior, kask dorosły – gogle dorosłe.
+
 ## 3.12.0 – oferta „Kask + gogle −20%”
 - Na każdy kask w koszyku jedne gogle (najdroższe) tańsze o 20% – naliczane automatycznie, bez kodu. Nie łączy się z rabatem za komplet (liczy się korzystniejszy). Procent w Dostosuj → Narzędzia sklepu (0 = wyłączone).
 - Komunikacja na całej ścieżce: karta kasku („Kup kask z goglami – gogle 20% taniej”), okno po dodaniu kasku („Dorzuć gogle i zgarnij −20%” – 3 gogle: najpierw ta sama grafika, potem najczęściej kupowane; cena przekreślona i po rabacie; „Dodaj” bez wychodzenia z okna dla gogli bez wersji), karta gogli z kaskiem w koszyku (cena po rabacie), koszyk (przypomnienie z propozycjami, przy goglach „−20% z kaskiem” i wiersz „Rabat kask + gogle”).

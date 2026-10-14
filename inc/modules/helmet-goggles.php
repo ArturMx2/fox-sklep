@@ -136,24 +136,48 @@ add_action( 'woocommerce_review_order_before_order_total', 'fx_hg_saved_row', 6 
 
 /* ---------- Propozycje gogli ---------- */
 
-/** Do 3 gogli: najpierw ta sama grafika co kask, potem najczęściej kupowane dostępne gogle. */
-function fx_hg_suggest( $helmet_id = 0, $limit = 3 ) {
-	$ids = array();
-	if ( $helmet_id && function_exists( 'fx_kit_gear_for' ) && function_exists( 'fx_kit_parse_name' ) ) {
-		list( , $key ) = fx_kit_parse_name( get_the_title( $helmet_id ) );
-		$g = $key ? fx_kit_gear_for( 'gogle', $key ) : 0;
-		if ( $g ) {
-			$ids[] = $g;
+/** Słowa z nazwy (małe litery, bez „fox”, „gogle” itp.). */
+function fx_hg_words( $name ) {
+	$w = preg_split( '/[^\p{L}\p{N}]+/u', mb_strtolower( wp_strip_all_tags( (string) $name ), 'UTF-8' ), -1, PREG_SPLIT_NO_EMPTY );
+	return array_values( array_diff( $w, array( 'fox', 'racing', 'gogle', 'goggle', 'goggles', 'kask', 'helmet', 'motocyklowy', 'motocyklowe', 'rowerowy', 'rowerowe', 'crossowy', 'crossowe', 'mx', 'mtb', 'na', 'do', 'z', 'i' ) ) );
+}
+
+/** Kolory w słowach (angielskie i polskie nazwy sprowadzone do jednej). */
+function fx_hg_colors( $words ) {
+	$map = array(
+		'black' => 'black', 'blk' => 'black', 'czarny' => 'black', 'czarne' => 'black', 'czarna' => 'black',
+		'white' => 'white', 'wht' => 'white', 'biały' => 'white', 'białe' => 'white', 'biala' => 'white',
+		'blue' => 'blue', 'niebieski' => 'blue', 'niebieskie' => 'blue', 'navy' => 'blue', 'cobalt' => 'blue', 'granatowy' => 'blue',
+		'red' => 'red', 'czerwony' => 'red', 'czerwone' => 'red', 'burgundy' => 'red', 'maroon' => 'red',
+		'pink' => 'pink', 'różowy' => 'pink', 'różowe' => 'pink', 'purple' => 'purple', 'fioletowy' => 'purple', 'lava' => 'purple',
+		'grey' => 'grey', 'gray' => 'grey', 'szary' => 'grey', 'szare' => 'grey', 'steel' => 'grey', 'silver' => 'grey', 'chrome' => 'grey',
+		'green' => 'green', 'zielony' => 'green', 'olive' => 'green', 'mint' => 'green', 'teal' => 'green',
+		'yellow' => 'yellow', 'żółty' => 'yellow', 'fluo' => 'yellow', 'fluorescent' => 'yellow', 'citrus' => 'yellow', 'flo' => 'yellow',
+		'orange' => 'orange', 'pomarańczowy' => 'orange', 'gold' => 'gold', 'złoty' => 'gold', 'camo' => 'camo',
+	);
+	$out = array();
+	foreach ( $words as $w ) {
+		if ( isset( $map[ $w ] ) ) {
+			$out[ $map[ $w ] ] = true;
 		}
 	}
-	$pool = get_transient( 'fx_hg_pool' );
+	return array_keys( $out );
+}
+
+/**
+ * Do 3 gogli pasujących do kasku. Kolejność:
+ * 1. ta sama grafika (np. „Frame”, „Nitro”), 2. ten sam kolor, 3. podobna nazwa, 4. czarne albo białe (pasują do wszystkiego).
+ * Gogle bez żadnego z tych powiązań nie są proponowane.
+ */
+function fx_hg_suggest( $helmet_id = 0, $limit = 3 ) {
+	$pool = get_transient( 'fx_hg_pool2' );
 	if ( ! is_array( $pool ) ) {
 		$pool = array();
 		$q    = wc_get_products(
 			array(
 				'status'       => 'publish',
 				'stock_status' => 'instock',
-				'limit'        => 60,
+				'limit'        => 300,
 				'orderby'      => 'popularity',
 				'order'        => 'DESC',
 				'return'       => 'ids',
@@ -165,7 +189,7 @@ function fx_hg_suggest( $helmet_id = 0, $limit = 3 ) {
 				$pool[] = (int) $id;
 			}
 		}
-		set_transient( 'fx_hg_pool', $pool, 6 * HOUR_IN_SECONDS );
+		set_transient( 'fx_hg_pool2', $pool, 6 * HOUR_IN_SECONDS );
 	}
 	$in_cart = array();
 	if ( WC()->cart ) {
@@ -173,26 +197,47 @@ function fx_hg_suggest( $helmet_id = 0, $limit = 3 ) {
 			$in_cart[ (int) $item['product_id'] ] = true;
 		}
 	}
-	foreach ( $pool as $id ) {
-		if ( count( $ids ) >= $limit ) {
-			break;
-		}
-		if ( ! in_array( $id, $ids, true ) && empty( $in_cart[ $id ] ) ) {
-			$ids[] = $id;
-		}
+	$hw      = $helmet_id ? fx_hg_words( get_the_title( $helmet_id ) ) : array();
+	$hcolors = fx_hg_colors( $hw );
+	$hjunior = (bool) array_intersect( $hw, array( 'junior', 'youth', 'kids' ) );
+	$same    = 0;
+	if ( $helmet_id && function_exists( 'fx_kit_gear_for' ) && function_exists( 'fx_kit_parse_name' ) ) {
+		list( , $key ) = fx_kit_parse_name( get_the_title( $helmet_id ) );
+		$same          = $key ? (int) fx_kit_gear_for( 'gogle', $key ) : 0;
 	}
-	return array_values(
-		array_filter(
-			array_slice( $ids, 0, $limit ),
-			function ( $id ) use ( $in_cart ) {
-				$p = wc_get_product( $id );
-				return $p && $p->is_visible() && $p->is_in_stock() && $p->is_purchasable() && empty( $in_cart[ $id ] );
-			}
-		)
+	$scored = array();
+	foreach ( $pool as $rank => $id ) {
+		if ( ! empty( $in_cart[ $id ] ) ) {
+			continue;
+		}
+		$p = wc_get_product( $id );
+		if ( ! $p || ! $p->is_visible() || ! $p->is_in_stock() || ! $p->is_purchasable() ) {
+			continue;
+		}
+		$gw = fx_hg_words( $p->get_name() );
+		if ( (bool) array_intersect( $gw, array( 'junior', 'youth', 'kids' ) ) !== $hjunior ) {
+			continue; // junior do junior, dorośli do dorosłych
+		}
+		$gcolors = fx_hg_colors( $gw );
+		$color   = count( array_intersect( $gcolors, $hcolors ) );
+		$name    = count( array_filter( array_intersect( $gw, $hw ), function ( $t ) { return mb_strlen( $t ) > 2 && ! preg_match( '/^\d+$/', $t ); } ) ) - $color;
+		$bw      = ( in_array( 'black', $gcolors, true ) || in_array( 'white', $gcolors, true ) ) ? 1 : 0;
+		$graphic = ( $id === $same ) ? 1 : 0;
+		if ( ! $graphic && ! $color && $name <= 0 && ! $bw ) {
+			continue;
+		}
+		$scored[] = array( array( $graphic, $color, max( 0, $name ), $bw, -$rank ), $id );
+	}
+	usort(
+		$scored,
+		function ( $a, $b ) {
+			return $b[0] <=> $a[0];
+		}
 	);
+	return array_slice( array_map( function ( $r ) { return $r[1]; }, $scored ), 0, $limit );
 }
 add_action( 'woocommerce_update_product', function () {
-	delete_transient( 'fx_hg_pool' );
+	delete_transient( 'fx_hg_pool2' );
 } );
 
 /** Cena po rabacie (najniższa dostępna dla gogli z rozmiarami/wersjami). */
