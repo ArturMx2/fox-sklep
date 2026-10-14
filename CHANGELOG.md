@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.13.3 – bez napisu „Rozmiar: …”
+- Nad przyciskami rozmiarów zamiast napisu „Rozmiar: 46” jest sam przycisk „Tabela rozmiarów” (po lewej). Wybrany rozmiar widać na zaznaczonym przycisku. Produkty bez tabeli rozmiarów – napis zostaje.
+
 ## 3.13.2 – jedna cena i przycisk tabeli rozmiarów jak „Ulubione”
 - Karta produktu z wariantami o różnych cenach: po wyborze rozmiaru cena pod nazwą zmienia się na cenę tego wariantu (z przekreśloną ceną regularną przy promocji). Druga cena nad przyciskiem „Dodaj do koszyka” nie jest już pokazywana. Bez wybranego rozmiaru – zakres „od–do” jak dotąd.
 - Ramka „Oszczędzasz nawet…” po wyborze rozmiaru pokazuje oszczędność dla tego wariantu („Kupujesz taniej o … – cena detaliczna …”); gdy wariant nie jest w promocji – ramka się chowa.
