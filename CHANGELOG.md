@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.10.4 – komplety: bluza motocyklowa jako część stroju
+- „Bluza motocyklowa FOX …” jest teraz rozpoznawana jako góra stroju (jak „koszulka”), więc komplet łączy bluzę, spodnie i rękawice tej samej grafiki. Wcześniej bluza nie była częścią kompletu – na bluzie 180 BNKR komplet był z samych spodni i rękawic, a na 180 Frame Blue (bez rękawic) nie było go wcale.
+- Dopisek sezonu na końcu nazwy („… FRAME BLUE 26”) nie rozbija już kompletu.
+- W kafelku kompletu podpis „Bluza” zamiast „Koszulka” dla bluz.
+
 ## 3.10.3 – spójne sekcje pod produktem
 - „Produkty z tej samej serii” i „Sprawdź podobne produkty” w tej samej siatce: 4 równe kolumny (telefon: 2), te same odstępy, nagłówki i linie oddzielające. „Sprawdź podobne” pokazuje 8 produktów (2 rzędy po 4).
 

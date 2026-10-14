@@ -83,7 +83,7 @@ add_action( 'woocommerce_admin_process_product_object', function ( $product ) {
 	}
 	if ( isset( $_POST['_fx_is_kit_sent'] ) ) {
 		$product->update_meta_data( '_fx_is_kit', isset( $_POST['_fx_is_kit'] ) ? 'yes' : 'no' );
-		delete_transient( 'fx_kit_index' );
+		delete_transient( 'fx_kit_index_v2' );
 	}
 	if ( isset( $_POST['_fx_kit_title'] ) ) {
 		$product->update_meta_data( '_fx_kit_title', sanitize_text_field( wp_unslash( $_POST['_fx_kit_title'] ) ) );
@@ -114,7 +114,7 @@ function fx_kit_part_types() {
 	return apply_filters(
 		'fx_kit_part_types',
 		array(
-			'koszulka' => array( 'koszul', 'jersey' ),
+			'koszulka' => array( 'koszul', 'jersey', 'bluz' ), // „Bluza motocyklowa” = góra stroju na crossa.
 			'spodnie'  => array( 'spodn', 'pant' ),
 			'rekawice' => array( 'rękaw', 'rekaw', 'glove' ),
 		)
@@ -171,6 +171,10 @@ function fx_kit_parse_name( $name ) {
 		}
 		$tokens[] = $t;
 	}
+	// Dopisek sezonu na końcu („… FRAME BLUE 26”) – ta sama grafika co bez niego.
+	if ( count( $tokens ) > 2 && preg_match( '/^2[3-9]$/', end( $tokens ) ) ) {
+		array_pop( $tokens );
+	}
 	if ( count( $tokens ) < 2 ) {
 		return array( $type, '' ); // samo „FOX V1” to za mało, żeby łączyć
 	}
@@ -185,7 +189,7 @@ function fx_kit_index() {
 	if ( null !== $idx ) {
 		return $idx;
 	}
-	$idx = get_transient( 'fx_kit_index' );
+	$idx = get_transient( 'fx_kit_index_v2' );
 	if ( is_array( $idx ) ) {
 		return $idx;
 	}
@@ -203,12 +207,12 @@ function fx_kit_index() {
 			$idx[ $key ]['parts'][ $type ][] = (int) $r->ID;
 		}
 	}
-	set_transient( 'fx_kit_index', $idx, DAY_IN_SECONDS );
+	set_transient( 'fx_kit_index_v2', $idx, DAY_IN_SECONDS );
 	return $idx;
 }
 foreach ( array( 'woocommerce_update_product', 'woocommerce_new_product', 'trashed_post', 'deleted_post', 'untrashed_post' ) as $fx_hook ) {
 	add_action( $fx_hook, function () {
-		delete_transient( 'fx_kit_index' );
+		delete_transient( 'fx_kit_index_v2' );
 	} );
 }
 
@@ -415,6 +419,9 @@ function fx_kit_options( $p ) {
 function fx_kit_part_label( $p ) {
 	list( $type ) = fx_kit_parse_name( $p->get_name() );
 	$labels       = array( 'koszulka' => 'Koszulka', 'spodnie' => 'Spodnie', 'rekawice' => 'Rękawice' );
+	if ( 'koszulka' === $type && preg_match( '/^\s*bluz/iu', $p->get_name() ) ) {
+		return 'Bluza';
+	}
 	if ( isset( $labels[ $type ] ) ) {
 		return $labels[ $type ];
 	}
