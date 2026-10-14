@@ -234,7 +234,70 @@ function fx_hg_suggest( $helmet_id = 0, $limit = 3 ) {
 			return $b[0] <=> $a[0];
 		}
 	);
-	return array_slice( array_map( function ( $r ) { return $r[1]; }, $scored ), 0, $limit );
+	$ids = array_map( function ( $r ) { return $r[1]; }, $scored );
+	// Trzy półki cenowe: MAIN, AIRSPACE, VUE – z każdej najlepiej pasujące gogle (od najtańszej półki).
+	if ( apply_filters( 'fx_hg_by_model', true ) ) {
+		$tiers = array();
+		foreach ( $ids as $id ) {
+			$m = fx_hg_model( $id );
+			if ( $m && ! isset( $tiers[ $m ] ) ) {
+				$tiers[ $m ] = $id;
+			}
+		}
+		if ( count( $tiers ) >= 2 ) {
+			$out = array();
+			foreach ( array_keys( fx_hg_models() ) as $m ) {
+				if ( isset( $tiers[ $m ] ) ) {
+					$out[] = $tiers[ $m ];
+				}
+			}
+			return array_slice( $out, 0, $limit );
+		}
+	}
+	return array_slice( $ids, 0, $limit );
+}
+
+/** Modele gogli od najtańszego: klucz => nazwa wyświetlana. */
+function fx_hg_models() {
+	return apply_filters( 'fx_hg_models', array( 'main' => 'MAIN', 'airspace' => 'AIRSPACE', 'vue' => 'VUE' ) );
+}
+
+/** Model gogli z nazwy („GOGLE FOX AIRSPACE …” → airspace) albo ''. */
+function fx_hg_model( $id ) {
+	$w = fx_hg_words( get_the_title( $id ) );
+	foreach ( array_keys( fx_hg_models() ) as $m ) {
+		if ( in_array( $m, $w, true ) ) {
+			return $m;
+		}
+	}
+	return '';
+}
+
+/** Kategoria „inne kolory” dla gogli (najgłębsza kategoria produktu) i kategoria wszystkich gogli (przodek z „gogl” w nazwie). */
+function fx_hg_cats( $id ) {
+	$terms = get_the_terms( $id, 'product_cat' );
+	if ( ! $terms || is_wp_error( $terms ) ) {
+		return array( '', '' );
+	}
+	$deep = null;
+	$max  = -1;
+	foreach ( $terms as $t ) {
+		$d = count( get_ancestors( $t->term_id, 'product_cat', 'taxonomy' ) );
+		if ( $d > $max ) {
+			$max  = $d;
+			$deep = $t;
+		}
+	}
+	$all = '';
+	foreach ( array_merge( array( $deep->term_id ), get_ancestors( $deep->term_id, 'product_cat', 'taxonomy' ) ) as $tid ) {
+		$t = get_term( $tid, 'product_cat' );
+		if ( $t && preg_match( '/gogl/iu', $t->name ) && ! preg_match( '/\b(main|airspace|vue)\b/iu', $t->name ) ) {
+			$all = get_term_link( $t );
+			break;
+		}
+	}
+	$one = get_term_link( $deep );
+	return array( is_wp_error( $one ) ? '' : $one, is_wp_error( $all ) ? '' : $all );
 }
 add_action( 'woocommerce_update_product', function () {
 	delete_transient( 'fx_hg_pool2' );
@@ -251,23 +314,35 @@ function fx_hg_tiles( $ids, $context = 'modal' ) {
 	if ( ! $ids ) {
 		return '';
 	}
-	$h = '<ul class="fx-hg__list">';
+	$models = fx_hg_models();
+	$all    = '';
+	$h      = '<ul class="fx-hg__list">';
 	foreach ( $ids as $id ) {
 		$p = wc_get_product( $id );
 		if ( ! $p ) {
 			continue;
 		}
 		list( $reg, $deal ) = fx_hg_prices( $p );
+		list( $more, $any ) = fx_hg_cats( $id );
+		$all                = $all ? $all : $any;
+		$m                  = fx_hg_model( $id );
 		$simple             = $p->is_type( 'simple' );
 		$ajax               = 'modal' === $context ? ' ajax_add_to_cart add_to_cart_button' : '';
 		$btn                = $simple
 			? '<a href="' . esc_url( add_query_arg( 'add-to-cart', $id, wc_get_cart_url() ) ) . '" data-product_id="' . (int) $id . '" data-quantity="1" class="fx-hg__add' . $ajax . '" rel="nofollow">Dodaj</a>'
 			: '<a href="' . esc_url( $p->get_permalink() ) . '" class="fx-hg__add">Wybierz</a>';
 		$h .= '<li class="fx-hg__item"><a class="fx-hg__img" href="' . esc_url( $p->get_permalink() ) . '">' . $p->get_image( 'woocommerce_gallery_thumbnail' ) . '</a>'
-			. '<div class="fx-hg__info"><a class="fx-hg__name" href="' . esc_url( $p->get_permalink() ) . '">' . esc_html( $p->get_name() ) . '</a>'
-			. '<span class="fx-hg__price"><del>' . wc_price( $reg ) . '</del> <strong>' . wc_price( $deal ) . '</strong></span></div>' . $btn . '</li>';
+			. '<div class="fx-hg__info">' . ( $m ? '<span class="fx-hg__model">' . esc_html( $models[ $m ] ) . '</span>' : '' )
+			. '<a class="fx-hg__name" href="' . esc_url( $p->get_permalink() ) . '">' . esc_html( $p->get_name() ) . '</a>'
+			. '<span class="fx-hg__price"><del>' . wc_price( $reg ) . '</del> <strong>' . wc_price( $deal ) . '</strong></span>'
+			. ( $more ? '<a class="fx-hg__more" href="' . esc_url( $more ) . '">inne kolory' . ( $m ? ' ' . esc_html( $models[ $m ] ) : '' ) . ' →</a>' : '' )
+			. '</div>' . $btn . '</li>';
 	}
-	return $h . '</ul>';
+	$h .= '</ul>';
+	if ( $all ) {
+		$h .= '<a class="fx-hg__all" href="' . esc_url( $all ) . '">Zobacz wszystkie gogle i kolory</a>';
+	}
+	return $h;
 }
 
 /* 1. Karta kasku: zapowiedź oferty pod przyciskiem. */

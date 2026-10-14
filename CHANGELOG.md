@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.12.2 – gogle w trzech półkach cenowych
+- Oferta do kasku pokazuje po jednych goglach z każdego modelu: MAIN, AIRSPACE, VUE (od najtańszego), w każdym najlepiej pasujące do kasku (grafika, kolor, nazwa, czarne/białe). Nad nazwą podpis modelu.
+- Przy każdych goglach link „inne kolory MAIN/AIRSPACE/VUE →” (kategoria modelu), pod listą przycisk „Zobacz wszystkie gogle i kolory”.
+
 ## 3.12.1 – gogle dopasowane do kasku
 - Propozycje gogli do kasku tylko pasujące: 1) ta sama grafika, 2) ten sam kolor (także polskie nazwy kolorów), 3) podobna nazwa, 4) czarne albo białe. Gogle w innych kolorach nie są proponowane. Kask junior – gogle junior, kask dorosły – gogle dorosłe.
 
