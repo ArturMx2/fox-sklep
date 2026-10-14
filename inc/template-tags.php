@@ -21,10 +21,11 @@ function fx_mod( $key, $default = null ) {
 /**
  * Obraz z biblioteki mediów (ID) albo pusty blok-zastępnik.
  */
-function fx_media( $id, $size = 'large', $class = 'fx-cover', $alt = '' ) {
+function fx_media( $id, $size = 'large', $class = 'fx-cover', $alt = '', $eager = false ) {
 	$id = absint( $id );
 	if ( $id && wp_attachment_is_image( $id ) ) {
-		$attr = array( 'class' => $class, 'loading' => 'lazy', 'decoding' => 'async' );
+		// $eager: zdjęcie widoczne od razu po wejściu (baner) – bez leniwego ładowania, z wysokim priorytetem.
+		$attr = $eager ? array( 'class' => $class, 'loading' => 'eager', 'fetchpriority' => 'high', 'decoding' => 'async' ) : array( 'class' => $class, 'loading' => 'lazy', 'decoding' => 'async' );
 		if ( '' !== $alt ) {
 			$attr['alt'] = $alt;
 		}

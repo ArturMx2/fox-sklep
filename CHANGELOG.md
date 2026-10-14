@@ -1,5 +1,14 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.13.0 – wydajność (PageSpeed)
+- Przelewy24: skrypty płatności dla zamówienia blokowego (React + biblioteki WooCommerce Blocks, ok. 750 KB JS) ładują się tylko w koszyku i na stronie zamówienia, a nie na każdej stronie sklepu.
+- Instagram Feed: style tylko na stronach z kanałem Instagrama.
+- Style bloków edytora wyłączone na listach produktów.
+- Czcionki DM Sans i Outfit z serwera sklepu: motyw sam pobiera je raz z Google Fonts (tylko znaki łacińskie + polskie), wstawia krótki @font-face do strony i wstępnie ładuje czcionkę tekstu. Gdy pobranie się nie uda – zostaje Google Fonts jak dotąd.
+- Baner na stronie głównej (Moto/Rower lub zdjęcie główne) ładuje się od razu z wysokim priorytetem (wcześniej było leniwe ładowanie – opóźniało LCP).
+- Miniatury na listach produktów: właściwy atrybut sizes (telefon pobiera mniejszy plik zamiast 600 px), pierwsza miniatura bez leniwego ładowania.
+- Każdą zmianę można wyłączyć filtrem fx_perf_* (inc/modules/performance.php).
+
 ## 3.12.6 – lżej przy imporcie i pracy wtyczek w tle
 - Zapis produktu (import BaseLinkera, synchronizacja stanów, wtyczka kolorów, opisy zdjęć) nie czyści już pamięci podręcznej motywu po każdym produkcie: filtry kategorii, rodziny kolorów, komplety i propozycje kask+gogle odświeżają się zbiorczo, 90 s po pierwszej zmianie. Wcześniej przy setkach zapisów sklep co chwilę budował te dane od nowa przy wizytach klientów.
 - Ręczny zapis produktu w panelu odświeża dane od razu, jak dotąd.

@@ -38,7 +38,7 @@ $fx_w = function ( $w ) {
 		$cat_url = $cat_id ? get_term_link( $cat_id, 'product_cat' ) : '';
 		?>
 		<div class="fx-world fx-world--<?php echo esc_attr( $w ); ?> fx-shade">
-			<?php echo fx_media( fx_mod( "world_{$w}_img" ), 'full', 'fx-cover', fx_mod( "world_{$w}_title" ) ); // phpcs:ignore ?>
+			<?php echo fx_media( fx_mod( "world_{$w}_img" ), 'full', 'fx-cover', fx_mod( "world_{$w}_title" ), true ); // phpcs:ignore ?>
 			<div class="fx-world__body">
 				<span class="fx-world__chosen" aria-hidden="true">Wybrane</span>
 				<p class="fx-world__title"><?php echo esc_html( fx_mod( "world_{$w}_title" ) ); ?></p>
@@ -64,7 +64,7 @@ $fx_w = function ( $w ) {
 </div>
 <?php elseif ( fx_mod( 'hero_on' ) ) : ?>
 <section class="fx-hero fx-shade-flat">
-	<?php echo fx_media( fx_mod( 'hero_img' ), 'full', 'fx-cover', '' ); // phpcs:ignore ?>
+	<?php echo fx_media( fx_mod( 'hero_img' ), 'full', 'fx-cover', '', true ); // phpcs:ignore ?>
 	<div class="fx-hero__in">
 		<?php if ( fx_mod( 'hero_title' ) ) : ?>
 			<h2 class="fx-hero__title"><?php echo esc_html( fx_mod( 'hero_title' ) ); ?></h2>
