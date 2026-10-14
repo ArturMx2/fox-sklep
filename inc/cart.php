@@ -192,3 +192,54 @@ add_action( 'wp_footer', function () {
 	</script>
 	<?php
 }, 99 );
+
+/* ---------- Koszyk bez wyboru dostawy (wybór tylko w zamówieniu) ---------- */
+
+/* Na stronie koszyka WooCommerce nie liczy dostawy – nie pokazuje metod ani adresu. */
+add_filter( 'woocommerce_cart_ready_to_calc_shipping', function ( $ready ) {
+	return ( function_exists( 'is_cart' ) && is_cart() ) ? false : $ready;
+}, 99 );
+
+/** Najniższy koszt płatnej dostawy z ustawień stref (np. 15 zł) albo null. */
+function fx_ship_min_cost() {
+	$min = get_transient( 'fx_ship_min' );
+	if ( false !== $min ) {
+		return '' === $min ? null : (float) $min;
+	}
+	$costs = array();
+	$zones = class_exists( 'WC_Shipping_Zones' ) ? WC_Shipping_Zones::get_zones() : array();
+	$zones[] = array( 'shipping_methods' => ( new WC_Shipping_Zone( 0 ) )->get_shipping_methods( true ) );
+	foreach ( $zones as $z ) {
+		foreach ( (array) ( isset( $z['shipping_methods'] ) ? $z['shipping_methods'] : array() ) as $m ) {
+			if ( ! is_object( $m ) || 'yes' !== $m->enabled || in_array( $m->id, array( 'local_pickup', 'free_shipping', 'pickup_location' ), true ) ) {
+				continue;
+			}
+			$c = isset( $m->instance_settings['cost'] ) ? str_replace( ',', '.', (string) $m->instance_settings['cost'] ) : '';
+			if ( is_numeric( $c ) && (float) $c > 0 ) {
+				$costs[] = (float) $c;
+			}
+		}
+	}
+	$min = $costs ? min( $costs ) : null;
+	set_transient( 'fx_ship_min', null === $min ? '' : $min, HOUR_IN_SECONDS );
+	return $min;
+}
+add_action( 'woocommerce_update_options_shipping', function () {
+	delete_transient( 'fx_ship_min' );
+} );
+
+/* Zamiast wyboru: jedna linijka „Dostawa – wybierzesz w następnym kroku”. */
+add_action( 'woocommerce_cart_totals_before_order_total', function () {
+	if ( ! WC()->cart || ! WC()->cart->needs_shipping() ) {
+		return;
+	}
+	$free = fx_free_ship_threshold();
+	$sum  = (float) WC()->cart->get_displayed_subtotal() - (float) WC()->cart->get_discount_total();
+	if ( $free > 0 && $sum >= $free ) {
+		$txt = '<strong class="fx-ship-free">Gratis</strong>';
+	} else {
+		$min = fx_ship_min_cost();
+		$txt = $min ? 'od ' . wc_price( $min ) : '';
+	}
+	echo '<tr class="fx-ship-info"><th>Dostawa</th><td data-title="Dostawa">' . $txt . '<small>Sposób dostawy wybierzesz w następnym kroku</small></td></tr>'; // phpcs:ignore
+} );

@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.10.2 – koszyk bez wyboru dostawy
+- W koszyku nie ma już wyboru metody dostawy ani „Wysyłka do: …” – klient wybiera dostawę raz, w zamówieniu.
+- Zamiast tego jedna linijka „Dostawa: od 15,00 zł – sposób dostawy wybierzesz w następnym kroku” (najniższa płatna stawka ze stref wysyłki) albo „Gratis” po przekroczeniu progu darmowej dostawy.
+
 ## 3.10.1 – porządek w filtrze rozmiarów
 - „XL - DOSTAWA 24H”, „XL - DOSTAWA 24H - DOSTAWA 24H” i „XL” to w filtrze jeden przycisk „XL” (wybranie go pokazuje produkty ze wszystkimi tymi wariantami).
 - W filtrze tylko krótkie rozmiary (do 5 znaków) oraz Junior i Uniwersalny; pomijane listy typu „10|11|12”, kody „002” i długie zestawy („XS/SM/MD”, „XXL/3XL”). Limit można zmienić filtrem fx_size_filterable.
