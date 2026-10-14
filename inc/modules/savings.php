@@ -58,7 +58,8 @@ function fx_savings_box() {
 			}
 		}
 		if ( $best_amount > 0 ) {
-			echo '<div class="fx-savings fx-savings--variable">';
+			// Dane formatu ceny – po wyborze wariantu skrypt podmienia kwotę na oszczędność tego wariantu.
+			echo '<div class="fx-savings fx-savings--variable" data-dec="' . esc_attr( wc_get_price_decimal_separator() ) . '" data-th="' . esc_attr( wc_get_price_thousand_separator() ) . '" data-n="' . (int) wc_get_price_decimals() . '" data-sym="' . esc_attr( html_entity_decode( get_woocommerce_currency_symbol() ) ) . '" data-pos="' . esc_attr( get_option( 'woocommerce_currency_pos', 'right' ) ) . '">';
 			echo '<div class="fx-savings__title">🔥 Oszczędzasz nawet ' . wc_price( $best_amount ) . ' (' . esc_html( $best_percent ) . '%)</div>'; // phpcs:ignore
 			echo '<div class="fx-savings__sub">względem ceny detalicznej</div>';
 			echo '</div>';

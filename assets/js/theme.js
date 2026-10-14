@@ -706,6 +706,42 @@
 	$(document).on('click', '[data-fx-filters-close]', function () { document.body.classList.remove('fx-filters-open'); });
 	document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { document.body.classList.remove('fx-filters-open'); } });
 
+	/* Jedna cena: po wyborze wariantu cena pod nazwą = cena tego wariantu (zamiast zakresu
+	   „od–do” na górze i drugiej ceny przy przycisku). Bez wyboru – zakres jak dotąd. */
+	$(function () {
+		var $form = $('form.variations_form');
+		var $price = $('.summary > p.price, .summary .price').not('.woocommerce-variation-price .price').first();
+		if (!$form.length || !$price.length) { return; }
+		var orig = $price.html();
+		var $sav = $('.fx-savings--variable').first();
+		var savOrig = $sav.length ? $sav.html() : '';
+		function money(v) {
+			var d = $sav.data(), n = parseInt(d.n, 10) || 0;
+			var p = Number(v).toFixed(n).split('.');
+			p[0] = p[0].replace(/\B(?=(\d{3})+(?!\d))/g, d.th);
+			var num = p.join(d.dec), sym = d.sym || '';
+			return ({ left: sym + num, left_space: sym + ' ' + num, right_space: num + ' ' + sym })[d.pos] || (num + sym);
+		}
+		$form.on('found_variation', function (e, v) {
+			if (v && v.price_html) {
+				var h = $('<div>').html(v.price_html).find('.price').html();
+				if (h) { $price.html(h); }
+			}
+			if ($sav.length && v) {
+				var reg = parseFloat(v.display_regular_price), now = parseFloat(v.display_price);
+				if (reg > now) {
+					$sav.show().html('<div class="fx-savings__title">🔥 Kupujesz taniej o ' + money(reg - now) + ' (' + Math.round((reg - now) / reg * 100) + '%)</div><div class="fx-savings__sub">Cena detaliczna: <strong>' + money(reg) + '</strong></div>');
+				} else {
+					$sav.hide();
+				}
+			}
+		});
+		$form.on('reset_data', function () {
+			$price.html(orig);
+			if ($sav.length) { $sav.show().html(savOrig); }
+		});
+	});
+
 	/* Tabela rozmiarów: przycisk przy wyborze rozmiaru (w wierszu „Rozmiar: …”) */
 	$(function () {
 		var $sg = $('.summary .fx-sg-open').first();
