@@ -172,7 +172,7 @@ function fx_hc_section() {
 	$pool   = fx_hc_pool();
 	$keys   = array_keys( $models );
 	echo '<section class="fx-hc" aria-labelledby="fx-hc-title"><div class="fx-row-head"><h2 id="fx-hc-title">3 poziomy ochrony – porównanie kasków FOX</h2></div>';
-	echo '<p class="fx-hc__hint">Przesuń tabelę w bok, żeby zobaczyć wszystkie modele →</p><div class="fx-hc__scroll"><table class="fx-hc__table"><thead><tr><td class="fx-hc__lead"></td>';
+	echo '<div class="fx-hc__scroll"><table class="fx-hc__table"><thead><tr><td class="fx-hc__lead"></td>';
 	foreach ( $models as $m => $def ) {
 		$is   = $m === $cur;
 		// Zdjęcie: z Dostosuj → FOX.SKLEP.PL → Porównanie kasków; inaczej oglądany kask / kask tego modelu ze sklepu.
@@ -191,6 +191,8 @@ function fx_hc_section() {
 	}
 	echo '</tr></thead><tbody>';
 	foreach ( fx_hc_rows() as $label => $vals ) {
+		// Telefon: etykieta jako osobny wiersz nad wartościami (3 kolumny modeli bez przewijania w bok).
+		echo '<tr class="fx-hc__lab"><th colspan="' . ( count( $keys ) + 1 ) . '">' . esc_html( $label ) . '</th></tr>';
 		echo '<tr><th scope="row">' . esc_html( $label ) . '</th>';
 		foreach ( $keys as $i => $m ) {
 			$v = $vals[ $i ] ?? '';

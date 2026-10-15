@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.14.2
+Version: 3.14.3
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -1485,8 +1485,7 @@ html.fx-added-open{overflow:hidden}
 .fx-hc__table .fx-hc__lead{background:transparent;width:200px}
 .fx-hc__table tbody th{font-weight:700;background:#e4e2db;width:200px}
 .fx-hc__table .is-current{background:#fff;box-shadow:inset 0 0 0 1.5px var(--fx-ink)}
-.fx-hc__hint{display:none;margin:-12px 0 12px;color:var(--fx-muted);font-size:13px}
-.fx-hc__model{padding:0!important;vertical-align:bottom!important}
+.fx-hc__model{padding:0!important;vertical-align:top!important}
 .fx-hc__img{position:relative;aspect-ratio:1/1;background:#dcdad2;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .fx-hc__img img{width:88%;height:88%;object-fit:contain;mix-blend-mode:multiply}
 .fx-hc__badge{position:absolute;top:10px;left:10px;background:var(--fx-ink);color:#fff;font-size:12px;font-weight:600;padding:4px 10px;border-radius:var(--fx-pill)}
@@ -1498,11 +1497,23 @@ html.fx-added-open{overflow:hidden}
 .fx-hc__yes{font-size:20px;font-weight:700}
 .fx-hc__no{color:var(--fx-muted)}
 .fx-hc__table td small{color:var(--fx-muted);font-size:12px}
+/* Wiersz z etykietą – tylko na telefonie */
+.fx-hc__lab{display:none}
 @media (max-width:900px){
+  .fx-hc{margin-top:40px}
   .fx-hc .fx-row-head h2{font-size:24px}
-  .fx-hc__hint{display:block}
-  .fx-hc__table{min-width:640px;font-size:13px}
-  .fx-hc__table .fx-hc__lead,.fx-hc__table tbody th{width:120px;position:sticky;left:0;z-index:1}
-  .fx-hc__table th,.fx-hc__table td{padding:10px}
-  .fx-hc__name{font-size:20px;margin:12px 10px 4px}.fx-hc__tag,.fx-hc__from{margin-left:10px;margin-right:10px}.fx-hc__btn.fx-btn{margin:0 10px 12px}
+  .fx-hc__scroll{overflow:visible}
+  .fx-hc__table{min-width:0;table-layout:fixed;border-spacing:3px;font-size:12.5px;line-height:1.4}
+  .fx-hc__table .fx-hc__lead,.fx-hc__table tbody tr:not(.fx-hc__lab) > th{display:none}
+  .fx-hc__lab{display:table-row}
+  .fx-hc__lab th{background:transparent!important;padding:14px 2px 2px!important;font-size:13px;font-weight:700;width:auto!important}
+  .fx-hc__table th,.fx-hc__table td{padding:8px}
+  .fx-hc__model{width:33.33%}
+  .fx-hc__name{font-size:18px;margin:10px 8px 2px}
+  .fx-hc__tag{margin:0 8px 6px;font-size:12px;line-height:1.3}
+  .fx-hc__from{margin:0 8px 10px;font-size:12px}
+  .fx-hc__btn.fx-btn{margin:0 8px 10px;min-height:34px;height:auto;padding:6px 10px;font-size:12px;line-height:1.2;white-space:normal;text-align:center}
+  .fx-hc__badge{top:6px;left:6px;font-size:10px;padding:3px 7px}
+  .fx-hc__table td small{font-size:11px}
+}
 }

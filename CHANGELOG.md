@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.14.3 – porównanie kasków na telefonie
+- Telefon: wszystkie trzy modele widoczne naraz, bez przewijania w bok. Nazwa cechy jest osobnym wierszem nad wartościami, a kolumny modeli zajmują całą szerokość.
+- Nagłówki kolumn wyrównane do góry (zdjęcia w jednej linii także przy różnej długości opisu).
+
 ## 3.14.2 – waga kasków i poprawna cena „od”
 - Porównanie kasków: nowy wiersz „Waga (rozmiar M)” wg tabel rozmiarów FOX – V3 RS 1270 g, V3 1270 g, V1 1240 g (±50 g) oraz zakres XS–XXL.
 - „od … zł” liczone tylko z kasków za co najmniej 500 zł (filtr fx_hc_min_price) – wcześniej łapały się gąbki policzkowe do kasku V1 za 89 zł.
