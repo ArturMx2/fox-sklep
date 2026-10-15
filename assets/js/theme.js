@@ -527,6 +527,32 @@
 		});
 	})();
 
+	/* Telefon: pływające ikony z zewnątrz (cookies, czat Doofindera) nad paskiem „Zamawiam”, nie na nim */
+	(function () {
+		var lifted = typeof WeakSet !== 'undefined' ? new WeakSet() : null;
+		function lift() {
+			var bar = document.querySelector('.fx-mbar');
+			if (!bar || !lifted || window.innerWidth > 900 || !document.body.classList.contains('fx-has-mbar')) { return; }
+			var h = bar.getBoundingClientRect().height;
+			var list = [];
+			Array.prototype.forEach.call(document.body.children, function (el) { list.push(el); Array.prototype.forEach.call(el.children || [], function (c) { list.push(c); }); });
+			list.forEach(function (el) {
+				if (lifted.has(el) || el === bar || el.closest('.fx-mbar,.fx-added,dialog,#wpadminbar')) { return; }
+				var cs = getComputedStyle(el);
+				if (cs.position !== 'fixed' || cs.display === 'none') { return; }
+				var r = el.getBoundingClientRect();
+				// Tylko małe elementy przy dolnej krawędzi (ikony, dymki) – nie banery i okna na cały ekran.
+				if (r.width > window.innerWidth * 0.7 || r.height > window.innerHeight * 0.4 || r.bottom < window.innerHeight - h) { return; }
+				var b = parseFloat(cs.bottom) || 0;
+				el.style.setProperty('bottom', (b + h + 8) + 'px', 'important');
+				lifted.add(el);
+			});
+		}
+		var n = 0, t = setInterval(function () { lift(); if (++n > 12) { clearInterval(t); } }, 1500);
+		window.addEventListener('resize', lift);
+		$(document.body).on('wc_fragments_refreshed added_to_cart', function () { setTimeout(lift, 100); });
+	})();
+
 	/* Opis produktu: zwiń, jeśli bardzo długi */
 	document.querySelectorAll('[data-fx-more]').forEach(function (box) {
 		var body = box.querySelector('.fx-pdesc__body'), btn = box.querySelector('.fx-pdesc__more');

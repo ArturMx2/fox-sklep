@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.15.2
+Version: 3.15.3
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -1512,3 +1512,9 @@ html.fx-added-open{overflow:hidden}
 .fx-pdesc__main.is-clamped .fx-pdesc__body{max-height:640px;overflow:hidden;-webkit-mask-image:linear-gradient(#000 75%,transparent);mask-image:linear-gradient(#000 75%,transparent)}
 .fx-pdesc__more.fx-btn{margin-top:16px;min-height:44px;background:#fff}
 .fx-pdesc__more.fx-btn:hover{background:var(--fx-ink);color:#fff;opacity:1}
+
+/* Pływająca ikona cookies (Cookie-Script) i dymek Doofindera nad paskiem „Zamawiam” na telefonie, nie na nim */
+@media (max-width:900px){
+  body.fx-has-mbar #cookiescript_badge{bottom:calc(86px + env(safe-area-inset-bottom))!important}
+  body.fx-has-mbar [class*="dfd-"][class*="launcher"],body.fx-has-mbar [class*="dfd-"][class*="bubble"],body.fx-has-mbar [id*="dfd-"][id*="launcher"]{bottom:calc(86px + env(safe-area-inset-bottom))!important}
+}

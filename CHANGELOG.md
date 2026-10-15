@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.15.3 – ikona cookies nie zasłania paska „Zamawiam”
+- Telefon: pływająca ikona ustawień cookies (Cookie-Script) i inne małe pływające ikony z zewnątrz (np. czat Doofindera) są podnoszone nad dolny pasek z sumą koszyka i przyciskiem „Zamawiam”. Duże banery i okna nie są przesuwane.
+
 ## 3.15.2
 - Porównanie kasków V3 RS / V3 / V1 z powrotem pod opisem produktu (wyżej, przed opisem, zostaje tylko „Zbuduj komplet”).
 
