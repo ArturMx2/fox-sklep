@@ -38,37 +38,40 @@ function fx_hc_models() {
 	);
 }
 
-/** Wiersze porównania: etykieta => [ v3rs, v3, v1 ]; true = ✓, '' = —. */
+/**
+ * Wiersze porównania (jak na foxracing.com: bez kolumny z nazwami – każda komórka mówi sama za siebie).
+ * Każdy wiersz: [ V3 RS, V3, V1 ]; '' = „—” (model nie ma tej cechy).
+ */
 function fx_hc_rows() {
 	return apply_filters(
 		'fx_hc_rows',
 		array(
-			'Ochrona przed siłami rotacyjnymi' => array(
-				'Mips® Integra Split – dwie warstwy EPS ograniczają siły rotacyjne działające na głowę przy upadku',
-				'Mips® – warstwa o niskim tarciu między kaskiem a głową',
-				'Mips® – warstwa o niskim tarciu między kaskiem a głową',
+			'mips'    => array(
+				'System Mips® Integra Split – dwie warstwy EPS ograniczają siły rotacyjne działające na głowę przy upadku',
+				'System Mips® – warstwa o niskim tarciu między kaskiem a głową ogranicza siły rotacyjne',
+				'System Mips® – warstwa o niskim tarciu między kaskiem a głową ogranicza siły rotacyjne',
 			),
-			'Homologacje'                      => array( 'DOT i ECE 22.06', 'DOT i ECE 22.06', 'DOT i ECE 22.06' ),
+			'homolog' => array( 'Homologacje DOT i ECE 22.06', 'Homologacje DOT i ECE 22.06', 'Homologacje DOT i ECE 22.06' ),
 			// Wagi wg tabel rozmiarów FOX (foxracing.com), tolerancja ±50 g.
-			'Waga (rozmiar M)'                 => array(
-				'<strong>1270 g</strong> ±50 g<br><small>XS–XXL: 1180–1400 g</small>',
-				'<strong>1270 g</strong> ±50 g<br><small>XS–XXL: 1165–1400 g</small>',
-				'<strong>1240 g</strong> ±50 g<br><small>XS–XXL: 1080–1440 g</small>',
+			'waga'    => array(
+				'Waga <strong>1270 g</strong> (rozm. M, ±50 g)<br><small>XS–XXL: 1180–1400 g</small>',
+				'Waga <strong>1270 g</strong> (rozm. M, ±50 g)<br><small>XS–XXL: 1165–1400 g</small>',
+				'Waga <strong>1240 g</strong> (rozm. M, ±50 g)<br><small>XS–XXL: 1080–1440 g</small>',
 			),
-			'Rozmiary'                         => array(
-				'Dorosłe: XS–XXL',
-				'Młodzieżowe: YS–YL<br>Dorosłe: XS–XXL',
-				'Młodzieżowe: YS–YL<br>Dorosłe: XS–XXL',
+			'rozmiar' => array(
+				'Rozmiary dla dorosłych (XS–XXL)',
+				'Rozmiary młodzieżowe (YS–YL) i dla dorosłych (XS–XXL)',
+				'Rozmiary młodzieżowe (YS–YL) i dla dorosłych (XS–XXL)',
 			),
-			'Skorupa z włókna węglowego'       => array( 'Większa odporność na uderzenia przy mniejszej wadze', '', '' ),
-			'Wentylacja'                       => array( '4 otwory wylotowe na górze kasku – lepsze chłodzenie', '', '' ),
-			'Wyściółka'                        => array( 'Ionic+® odprowadza wilgoć, poduszki policzkowe z kamieniem Jade Stone Cold® dodatkowo chłodzą', '', '' ),
-			'Awaryjne zdejmowanie poduszek policzkowych' => array( true, true, '' ),
-			'Wnęki na głośniki interkomu'      => array( 'Pasują do większości systemów komunikacji', 'Pasują do większości systemów komunikacji', '' ),
-			'Prowadzenie rurki do picia'       => array( 'Pij w trakcie jazdy', 'Pij w trakcie jazdy', '' ),
-			'W zestawie'                       => array(
-				'Zapasowy daszek z mocowaniem, nakładka przedłużająca daszek, daszek błotny z pianką, ustnik do systemu nawadniania, zapasowe poduszki policzkowe (grube i cienkie)',
-				'Nakładka przedłużająca daszek, zapasowe mocowanie daszka, ustnik do systemu nawadniania',
+			'karbon'  => array( 'Skorupa z włókna węglowego – większa odporność na uderzenia przy mniejszej wadze', '', '' ),
+			'wentyl'  => array( '4 otwory wylotowe na górze kasku, rozmieszczone dla lepszego chłodzenia', '', '' ),
+			'wyscio'  => array( 'Wyściółka Ionic+® odprowadzająca wilgoć, poduszki policzkowe z kamieniem Jade Stone Cold® dla dodatkowego chłodzenia', '', '' ),
+			'awaryj'  => array( 'System awaryjnego zdejmowania poduszek policzkowych', 'System awaryjnego zdejmowania poduszek policzkowych', '' ),
+			'interk'  => array( 'Wnęki na głośniki – pasują do większości interkomów', 'Wnęki na głośniki – pasują do większości interkomów', '' ),
+			'rurka'   => array( 'Prowadzenie rurki systemu nawadniania – pij w trakcie jazdy', 'Prowadzenie rurki systemu nawadniania – pij w trakcie jazdy', '' ),
+			'zestaw'  => array(
+				'W zestawie: zapasowy daszek z mocowaniem, nakładka przedłużająca daszek, daszek błotny z pianką, ustnik do systemu nawadniania, zapasowe poduszki policzkowe (grube i cienkie)',
+				'W zestawie: nakładka przedłużająca daszek, zapasowe mocowanie daszka, ustnik do systemu nawadniania',
 				'',
 			),
 		)
@@ -172,7 +175,7 @@ function fx_hc_section() {
 	$pool   = fx_hc_pool();
 	$keys   = array_keys( $models );
 	echo '<section class="fx-hc" aria-labelledby="fx-hc-title"><div class="fx-row-head"><h2 id="fx-hc-title">3 poziomy ochrony – porównanie kasków FOX</h2></div>';
-	echo '<div class="fx-hc__scroll"><table class="fx-hc__table"><thead><tr><td class="fx-hc__lead"></td>';
+	echo '<div class="fx-hc__scroll"><table class="fx-hc__table"><thead><tr>';
 	foreach ( $models as $m => $def ) {
 		$is   = $m === $cur;
 		// Zdjęcie: z Dostosuj → FOX.SKLEP.PL → Porównanie kasków; inaczej oglądany kask / kask tego modelu ze sklepu.
@@ -189,20 +192,20 @@ function fx_hc_section() {
 		echo '<a class="fx-btn fx-btn--outline fx-hc__btn" href="' . esc_url( $url ) . '">' . ( $is ? 'Inne grafiki ' : 'Zobacz kaski ' ) . esc_html( $def['name'] ) . '</a>';
 		echo '</th>';
 	}
-	echo '</tr></thead><tbody>';
-	foreach ( fx_hc_rows() as $label => $vals ) {
-		// Telefon: etykieta jako osobny wiersz nad wartościami (3 kolumny modeli bez przewijania w bok).
-		echo '<tr class="fx-hc__lab"><th colspan="' . ( count( $keys ) + 1 ) . '">' . esc_html( $label ) . '</th></tr>';
-		echo '<tr><th scope="row">' . esc_html( $label ) . '</th>';
+	echo '</tr></thead><tbody><tr class="fx-hc__det">';
+	foreach ( $keys as $m ) {
+		echo '<th scope="col"' . ( $m === $cur ? ' class="is-current"' : '' ) . '>Szczegóły</th>';
+	}
+	echo '</tr>';
+	foreach ( fx_hc_rows() as $vals ) {
+		echo '<tr>';
 		foreach ( $keys as $i => $m ) {
 			$v = $vals[ $i ] ?? '';
 			$c = $m === $cur ? ' class="is-current"' : '';
-			if ( true === $v ) {
-				echo '<td' . $c . '><span class="fx-hc__yes" aria-label="Tak">✓</span></td>'; // phpcs:ignore
-			} elseif ( '' === $v ) {
-				echo '<td' . $c . '><span class="fx-hc__no" aria-label="Nie">—</span></td>'; // phpcs:ignore
+			if ( '' === $v || false === $v ) {
+				echo '<td' . $c . '><span class="fx-hc__no" aria-label="Brak">—</span></td>'; // phpcs:ignore
 			} else {
-				echo '<td' . $c . '>' . wp_kses( $v, array( 'br' => array(), 'strong' => array(), 'small' => array() ) ) . '</td>'; // phpcs:ignore
+				echo '<td' . $c . '>' . wp_kses( (string) $v, array( 'br' => array(), 'strong' => array(), 'small' => array() ) ) . '</td>'; // phpcs:ignore
 			}
 		}
 		echo '</tr>';

@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.14.4 – porównanie kasków jak na foxracing.com
+- Trzy kolumny (V3 RS, V3, V1) bez kolumny z nazwami cech – pod zdjęciami wiersz „Szczegóły”, a każda komórka to pełne zdanie (np. „Homologacje DOT i ECE 22.06”, „Waga 1270 g (rozm. M)”); brak cechy = „—”. Ten sam układ na komputerze i telefonie.
+- Filtr fx_hc_rows: wiersze jako [ V3 RS, V3, V1 ] (bez etykiet).
+
 ## 3.14.3 – porównanie kasków na telefonie
 - Telefon: wszystkie trzy modele widoczne naraz, bez przewijania w bok. Nazwa cechy jest osobnym wierszem nad wartościami, a kolumny modeli zajmują całą szerokość.
 - Nagłówki kolumn wyrównane do góry (zdjęcia w jednej linii także przy różnej długości opisu).
