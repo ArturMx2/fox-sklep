@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.14.0 – porównanie kasków V3 RS / V3 / V1
+- Na kartach kasków motocyklowych FOX V1, V3 i V3 RS (rozpoznanie po nazwie) pod opisem pojawia się sekcja „3 poziomy ochrony – porównanie kasków FOX”: zdjęcie każdego modelu, krótki opis, cena „od …” (najtańszy dostępny kask modelu), przycisk do kategorii modelu (albo wyszukiwania) i tabela różnic po polsku (Mips, homologacje, rozmiary, skorupa, wentylacja, wyściółka, interkom, nawadnianie, zawartość zestawu).
+- Oglądany model wyróżniony („Oglądasz”), na telefonie tabela przesuwana w bok z przyklejoną pierwszą kolumną.
+- Treść i modele można zmienić filtrami fx_hc_models / fx_hc_rows (inc/modules/helmet-compare.php).
+
 ## 3.13.4 – rozmiary i nazwa koloru
 - Przyciski rozmiarów z dłuższą nazwą („Uniwersalny”, „Junior”) są szersze – tekst nie jest ucinany.
 - „Kolor: …” przy rodzinie kolorów: gdy nazwa produktu nie zawiera osobnej nazwy koloru (np. „Gogle … Vue Arc – Vivid”), pokazuje kolor z atrybutu albo z wtyczki FOX Smart Color, a w ostateczności ostatnie słowo nazwy – zamiast całej nazwy produktu.
