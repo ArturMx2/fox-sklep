@@ -167,7 +167,10 @@ function fx_hc_section() {
 	echo '<p class="fx-hc__hint">Przesuń tabelę w bok, żeby zobaczyć wszystkie modele →</p><div class="fx-hc__scroll"><table class="fx-hc__table"><thead><tr><td class="fx-hc__lead"></td>';
 	foreach ( $models as $m => $def ) {
 		$is   = $m === $cur;
-		$img  = $is && $product->get_image_id() ? (int) $product->get_image_id() : (int) ( $pool[ $m ]['img'] ?? 0 );
+		// Zdjęcie: z Dostosuj → FOX.SKLEP.PL → Porównanie kasków; inaczej oglądany kask / kask tego modelu ze sklepu.
+		$img  = (int) fx_mod( 'hc_img_' . $m );
+		$img  = $img ? $img : ( $is && $product->get_image_id() ? (int) $product->get_image_id() : (int) ( $pool[ $m ]['img'] ?? 0 ) );
+		$url  = fx_mod( 'hc_url_' . $m ) ? fx_mod( 'hc_url_' . $m ) : ( $pool[ $m ]['url'] ?? '#' );
 		$from = (float) ( $pool[ $m ]['min'] ?? 0 );
 		echo '<th scope="col" class="fx-hc__model' . ( $is ? ' is-current' : '' ) . '">';
 		echo '<div class="fx-hc__img">' . ( $img ? wp_get_attachment_image( $img, 'woocommerce_thumbnail', false, array( 'loading' => 'lazy', 'alt' => 'Kask FOX ' . $def['name'] ) ) : '' ) . ( $is ? '<span class="fx-hc__badge">Oglądasz</span>' : '' ) . '</div>'; // phpcs:ignore
@@ -175,7 +178,7 @@ function fx_hc_section() {
 		if ( $from > 0 ) {
 			echo '<p class="fx-hc__from">od <strong>' . wp_kses_post( wc_price( $from ) ) . '</strong></p>';
 		}
-		echo '<a class="fx-btn fx-btn--outline fx-hc__btn" href="' . esc_url( $pool[ $m ]['url'] ?? '#' ) . '">' . ( $is ? 'Inne grafiki ' : 'Zobacz kaski ' ) . esc_html( $def['name'] ) . '</a>';
+		echo '<a class="fx-btn fx-btn--outline fx-hc__btn" href="' . esc_url( $url ) . '">' . ( $is ? 'Inne grafiki ' : 'Zobacz kaski ' ) . esc_html( $def['name'] ) . '</a>';
 		echo '</th>';
 	}
 	echo '</tr></thead><tbody>';

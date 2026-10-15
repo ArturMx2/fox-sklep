@@ -291,6 +291,13 @@ function fx_customize( $wp ) {
 	$add( 'trust_3', 'fx_general', 'Karta produktu – informacja 3 (zwroty)' );
 	$add( 'delivery_text', 'fx_general', 'Akordeon „Dostawa i zwroty” na karcie produktu', 'html' );
 
+	/* Porównanie kasków */
+	$section( 'fx_hc', 'Porównanie kasków V3 RS / V3 / V1', 'Sekcja „3 poziomy ochrony” na kartach kasków FOX V1, V3 i V3 RS. Zdjęcia najlepiej kwadratowe, z boku, na jednolitym jasnym tle (np. 1000×1000 px). Puste zdjęcie = zdjęcie kasku tego modelu z Waszych produktów. Pusty adres = kategoria modelu albo wyszukiwanie.' );
+	foreach ( array( 'v3rs' => 'V3 RS', 'v3' => 'V3', 'v1' => 'V1' ) as $fx_k => $fx_n ) {
+		$add( 'hc_img_' . $fx_k, 'fx_hc', 'Zdjęcie: ' . $fx_n, 'image' );
+		$add( 'hc_url_' . $fx_k, 'fx_hc', 'Przycisk „Zobacz kaski ' . $fx_n . '” – adres', 'url' );
+	}
+
 	/* Kod */
 	$section( 'fx_code', 'Kod: Google Tag Manager i skrypty', 'Wklej tu kod GTM lub inne skrypty, jeśli były wpisane w ustawieniach starego motywu. Jeśli GTM dodaje wtyczka, zostaw puste – inaczej zdarzenia policzą się podwójnie.' );
 	$add( 'code_head', 'fx_code', 'Kod w <head>', 'code' );

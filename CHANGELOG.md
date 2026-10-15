@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.14.1 – zdjęcia i linki do porównania kasków
+- Wygląd → Dostosuj → FOX.SKLEP.PL → „Porównanie kasków V3 RS / V3 / V1”: własne zdjęcie i adres przycisku dla każdego modelu. Puste pola = jak dotąd (zdjęcie z produktów, kategoria modelu / wyszukiwanie).
+
 ## 3.14.0 – porównanie kasków V3 RS / V3 / V1
 - Na kartach kasków motocyklowych FOX V1, V3 i V3 RS (rozpoznanie po nazwie) pod opisem pojawia się sekcja „3 poziomy ochrony – porównanie kasków FOX”: zdjęcie każdego modelu, krótki opis, cena „od …” (najtańszy dostępny kask modelu), przycisk do kategorii modelu (albo wyszukiwania) i tabela różnic po polsku (Mips, homologacje, rozmiary, skorupa, wentylacja, wyściółka, interkom, nawadnianie, zawartość zestawu).
 - Oglądany model wyróżniony („Oglądasz”), na telefonie tabela przesuwana w bok z przyklejoną pierwszą kolumną.
