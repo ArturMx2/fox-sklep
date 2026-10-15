@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.15.2
+- Porównanie kasków V3 RS / V3 / V1 z powrotem pod opisem produktu (wyżej, przed opisem, zostaje tylko „Zbuduj komplet”).
+
 ## 3.15.1 – komplet: wszystko zaznaczone
 - „Zbuduj komplet”: wszystkie dostępne części (także kask, gogle) są domyślnie zaznaczone – klient odznacza to, czego nie chce. Rabat za zestaw liczy się jak dotąd z części stroju.
 - Gdy brakuje rozmiaru: „Wybierz rozmiar: Kask – albo odznacz, jeśli nie potrzebujesz.”

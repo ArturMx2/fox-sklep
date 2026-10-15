@@ -161,7 +161,7 @@ add_action( 'fx_flush_caches', function () {
 	delete_transient( 'fx_hc_pool2' );
 }, 20 );
 
-add_action( 'woocommerce_after_single_product_summary', 'fx_hc_section', 3 ); // przed opisem produktu
+add_action( 'woocommerce_after_single_product_summary', 'fx_hc_section', 14 ); // pod opisem produktu
 function fx_hc_section() {
 	global $product;
 	if ( ! $product instanceof WC_Product || ! apply_filters( 'fx_hc_enabled', true, $product ) ) {
