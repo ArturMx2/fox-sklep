@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.15.1 – komplet: wszystko zaznaczone
+- „Zbuduj komplet”: wszystkie dostępne części (także kask, gogle) są domyślnie zaznaczone – klient odznacza to, czego nie chce. Rabat za zestaw liczy się jak dotąd z części stroju.
+- Gdy brakuje rozmiaru: „Wybierz rozmiar: Kask – albo odznacz, jeśli nie potrzebujesz.”
+
 ## 3.15.0 – komplet i porównanie wyżej, długi opis zwinięty
 - „Zbuduj komplet” zaraz pod zdjęciami i ceną – przed opisem produktu (wcześniej długie opisy spychały go daleko w dół).
 - Porównanie kasków V3 RS / V3 / V1 także przed opisem.

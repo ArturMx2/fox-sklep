@@ -389,7 +389,7 @@
 			msg.classList.remove('is-error');
 			if (s.missing.length) {
 				var names = s.missing.map(function (r) { r.classList.add('is-missing'); return (r.querySelector('.fx-kit__type') || {}).textContent || ''; });
-				msg.textContent = 'Wybierz rozmiar: ' + names.join(', ').replace(/ · ten produkt/g, '') + '.';
+				msg.textContent = 'Wybierz rozmiar: ' + names.join(', ').replace(/ · ten produkt/g, '') + ' – albo odznacz, jeśli nie potrzebujesz.';
 				msg.classList.add('is-error');
 				var first = s.missing[0].querySelector('.fx-kit__sz');
 				if (first) { first.focus(); s.missing[0].scrollIntoView({ behavior: 'smooth', block: 'center' }); }

@@ -669,7 +669,7 @@ function fx_kit_section( $product, $inline = false ) {
 					?>
 					<div class="fx-kit__item<?php echo $avail ? '' : ' is-out'; ?>" data-core="<?php echo in_array( $p->get_id(), isset( $kit['core'] ) ? $kit['core'] : $kit['parts'], true ) ? '1' : '0'; ?>" data-product-id="<?php echo (int) $p->get_id(); ?>" data-name="<?php echo esc_attr( $p->get_name() ); ?>" data-category="<?php echo esc_attr( $cats ? $cats[0] : '' ); ?>">
 						<label class="fx-kit__check" title="Dodaj do zestawu">
-							<input type="checkbox" id="<?php echo esc_attr( $fid ); ?>-on" <?php checked( $avail && ! $is_gear ); ?> <?php disabled( ! $avail ); ?>>
+							<input type="checkbox" id="<?php echo esc_attr( $fid ); ?>-on" <?php checked( $avail ); // wszystkie dostępne części zaznaczone – klient odznacza, czego nie chce ?> <?php disabled( ! $avail ); ?>>
 							<span class="screen-reader-text">W zestawie: <?php echo esc_html( $p->get_name() ); ?></span>
 						</label>
 						<a class="fx-kit__img" href="<?php echo esc_url( $p->get_permalink() ); ?>"<?php echo $is_current ? ' aria-current="page"' : ''; ?>><?php echo $p->get_image( 'woocommerce_thumbnail' ); // phpcs:ignore ?></a>
