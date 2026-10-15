@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.14.2 – waga kasków i poprawna cena „od”
+- Porównanie kasków: nowy wiersz „Waga (rozmiar M)” wg tabel rozmiarów FOX – V3 RS 1270 g, V3 1270 g, V1 1240 g (±50 g) oraz zakres XS–XXL.
+- „od … zł” liczone tylko z kasków za co najmniej 500 zł (filtr fx_hc_min_price) – wcześniej łapały się gąbki policzkowe do kasku V1 za 89 zł.
+- Rozpoznawanie kasku tylko po nazwie zaczynającej się od „Kask” (części typu „gąbki do kasku V1” nie dostają już porównania).
+
 ## 3.14.1 – zdjęcia i linki do porównania kasków
 - Wygląd → Dostosuj → FOX.SKLEP.PL → „Porównanie kasków V3 RS / V3 / V1”: własne zdjęcie i adres przycisku dla każdego modelu. Puste pola = jak dotąd (zdjęcie z produktów, kategoria modelu / wyszukiwanie).
 

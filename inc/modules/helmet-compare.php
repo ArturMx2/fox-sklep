@@ -49,6 +49,12 @@ function fx_hc_rows() {
 				'Mips® – warstwa o niskim tarciu między kaskiem a głową',
 			),
 			'Homologacje'                      => array( 'DOT i ECE 22.06', 'DOT i ECE 22.06', 'DOT i ECE 22.06' ),
+			// Wagi wg tabel rozmiarów FOX (foxracing.com), tolerancja ±50 g.
+			'Waga (rozmiar M)'                 => array(
+				'<strong>1270 g</strong> ±50 g<br><small>XS–XXL: 1180–1400 g</small>',
+				'<strong>1270 g</strong> ±50 g<br><small>XS–XXL: 1165–1400 g</small>',
+				'<strong>1240 g</strong> ±50 g<br><small>XS–XXL: 1080–1440 g</small>',
+			),
 			'Rozmiary'                         => array(
 				'Dorosłe: XS–XXL',
 				'Młodzieżowe: YS–YL<br>Dorosłe: XS–XXL',
@@ -76,7 +82,8 @@ function fx_hc_model( $product ) {
 		return '';
 	}
 	$n = ' ' . mb_strtolower( $p->get_name() ) . ' ';
-	if ( ! preg_match( '/\bkask/u', $n ) || preg_match( '/rower|mtb|bike|\bwizjer|daszek|poduszk|szybk|część|czesc/u', $n ) ) {
+	// Tylko same kaski: nazwa zaczyna się od „Kask”; bez części („gąbki do kasku”, daszki, wizjery…).
+	if ( ! preg_match( '/^\s*kask/u', $n ) || preg_match( '/rower|mtb|bike|wizjer|daszek|poduszk|gąbk|gabk|szybk|część|czesc|do kasku/u', $n ) ) {
 		return '';
 	}
 	if ( preg_match( '/\bv3\s*-?\s*rs\b/u', $n ) ) {
@@ -93,7 +100,7 @@ function fx_hc_model( $product ) {
 
 /** Dane modeli: dostępne kaski, cena od, link. Cache 12 h (czyszczony z pamięcią motywu). */
 function fx_hc_pool() {
-	$pool = get_transient( 'fx_hc_pool' );
+	$pool = get_transient( 'fx_hc_pool2' );
 	if ( is_array( $pool ) ) {
 		return $pool;
 	}
@@ -114,7 +121,8 @@ function fx_hc_pool() {
 		}
 		$in    = $p->is_in_stock();
 		$price = $p->is_type( 'variable' ) ? (float) $p->get_variation_price( 'min', true ) : (float) wc_get_price_to_display( $p );
-		if ( $in && $price > 0 && ( ! $pool[ $m ]['min'] || $price < $pool[ $m ]['min'] ) ) {
+		// „od … zł”: tylko pełnoprawne kaski – progiem odcinamy akcesoria/części z „V1/V3” w nazwie.
+		if ( $in && $price >= (float) apply_filters( 'fx_hc_min_price', 500 ) && ( ! $pool[ $m ]['min'] || $price < $pool[ $m ]['min'] ) ) {
 			$pool[ $m ]['min'] = $price;
 		}
 		// Zdjęcie modelu: dostępny kask, najchętniej spokojna grafika (Solid / Black).
@@ -143,11 +151,11 @@ function fx_hc_pool() {
 			$pool[ $m ]['url'] = add_query_arg( array( 's' => $def['q'], 'post_type' => 'product' ), home_url( '/' ) );
 		}
 	}
-	set_transient( 'fx_hc_pool', $pool, 12 * HOUR_IN_SECONDS );
+	set_transient( 'fx_hc_pool2', $pool, 12 * HOUR_IN_SECONDS );
 	return $pool;
 }
 add_action( 'fx_flush_caches', function () {
-	delete_transient( 'fx_hc_pool' );
+	delete_transient( 'fx_hc_pool2' );
 }, 20 );
 
 add_action( 'woocommerce_after_single_product_summary', 'fx_hc_section', 14 );
@@ -192,7 +200,7 @@ function fx_hc_section() {
 			} elseif ( '' === $v ) {
 				echo '<td' . $c . '><span class="fx-hc__no" aria-label="Nie">—</span></td>'; // phpcs:ignore
 			} else {
-				echo '<td' . $c . '>' . wp_kses( $v, array( 'br' => array() ) ) . '</td>'; // phpcs:ignore
+				echo '<td' . $c . '>' . wp_kses( $v, array( 'br' => array(), 'strong' => array(), 'small' => array() ) ) . '</td>'; // phpcs:ignore
 			}
 		}
 		echo '</tr>';
