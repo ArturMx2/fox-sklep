@@ -352,9 +352,10 @@ function fx_product_accordion() {
 
 	// Lewa kolumna: pełny opis produktu, zawsze rozwinięty.
 	if ( $post && '' !== trim( $post->post_content ) ) {
-		echo '<div class="fx-pdesc__main"><h2 class="fx-pdesc__title">Opis produktu</h2><div class="fx-pdesc__body fx-content fx-prose">';
+		// Długi opis zwinięty do ~2 ekranów z „Czytaj cały opis” – treść jest w kodzie strony (SEO bez zmian).
+		echo '<div class="fx-pdesc__main" data-fx-more><h2 class="fx-pdesc__title">Opis produktu</h2><div class="fx-pdesc__body fx-content fx-prose">';
 		echo fx_clean_html( apply_filters( 'the_content', get_the_content() ) ); // phpcs:ignore
-		echo '</div></div>';
+		echo '</div><button type="button" class="fx-pdesc__more fx-btn fx-btn--outline" hidden aria-expanded="false">Czytaj cały opis</button></div>';
 	}
 
 	// Prawa kolumna: szczegóły w akordeonie.
@@ -413,7 +414,7 @@ add_action( 'woocommerce_after_single_product_summary', function () {
 	if ( function_exists( 'fx_kit_section' ) && ! fx_kit_is_page( $product ) ) {
 		fx_kit_section( $product );
 	}
-}, 5 );
+}, 2 ); // zaraz pod zdjęciami i ceną – przed opisem (długie opisy spychały komplet daleko w dół)
 
 /* Krótki opis – te same porządki co w opisie (jeden H1, bez wklejonych czcionek). */
 add_filter( 'woocommerce_short_description', 'fx_clean_html', 20 );

@@ -527,6 +527,21 @@
 		});
 	})();
 
+	/* Opis produktu: zwiń, jeśli bardzo długi */
+	document.querySelectorAll('[data-fx-more]').forEach(function (box) {
+		var body = box.querySelector('.fx-pdesc__body'), btn = box.querySelector('.fx-pdesc__more');
+		if (!body || !btn) { return; }
+		box.classList.add('is-clamped');
+		if (body.scrollHeight <= body.clientHeight + 80) { box.classList.remove('is-clamped'); return; }
+		btn.hidden = false;
+		btn.addEventListener('click', function () {
+			var open = box.classList.toggle('is-clamped') === false;
+			btn.textContent = open ? 'Zwiń opis' : 'Czytaj cały opis';
+			btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+			if (!open) { box.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+		});
+	});
+
 	/* Wstęp kategorii: zwiń, jeśli dłuższy niż ~3 linie */
 	document.querySelectorAll('[data-fx-clamp]').forEach(function (box) {
 		var text = box.querySelector('.fx-cat-intro__text'), btn = box.querySelector('.fx-cat-intro__toggle');

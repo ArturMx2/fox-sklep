@@ -1,5 +1,11 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.15.0 – komplet i porównanie wyżej, długi opis zwinięty
+- „Zbuduj komplet” zaraz pod zdjęciami i ceną – przed opisem produktu (wcześniej długie opisy spychały go daleko w dół).
+- Porównanie kasków V3 RS / V3 / V1 także przed opisem.
+- Długi opis produktu zwinięty do ok. 640 px z przyciskiem „Czytaj cały opis” / „Zwiń opis”. Cała treść zostaje w kodzie strony – Google widzi ją jak dotąd.
+- Poprawka CSS: usunięte dwa nadmiarowe nawiasy po stylach porównania kasków (mogły blokować kolejne reguły).
+
 ## 3.14.4 – porównanie kasków jak na foxracing.com
 - Trzy kolumny (V3 RS, V3, V1) bez kolumny z nazwami cech – pod zdjęciami wiersz „Szczegóły”, a każda komórka to pełne zdanie (np. „Homologacje DOT i ECE 22.06”, „Waga 1270 g (rozm. M)”); brak cechy = „—”. Ten sam układ na komputerze i telefonie.
 - Filtr fx_hc_rows: wiersze jako [ V3 RS, V3, V1 ] (bez etykiet).
