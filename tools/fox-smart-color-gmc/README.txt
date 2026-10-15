@@ -1,4 +1,4 @@
-FOX Smart Color GMC 2.1.0
+FOX Smart Color GMC 2.1.1
 =================================
 
 Cel
@@ -92,3 +92,10 @@ W sekcji Feed / GMC jest przycisk „Wyczyść stare pola diagnostyczne 1.x”. 
 - Sprzątanie starych pól 1.x jednym zapytaniem zamiast 17.
 - Motyw FOX 3.12.6+: zapisy produktów przez wtyczkę nie czyszczą już pamięci podręcznej motywu
   po każdym produkcie (zbiorczo co 90 s).
+
+2.1.1 — PILNA POPRAWKA
+----------------------
+- Naprawiono zapis produktów: ramka „FOX Smart Color GMC” w edycji produktu zawierała własny
+  formularz, który podmieniał pole „action” formularza produktu. Po kliknięciu „Aktualizuj”
+  WordPress nie zapisywał zmian (np. części kompletu) i przenosił do listy wpisów.
+  Przycisk „Przeanalizuj ponownie” jest teraz zwykłym linkiem.

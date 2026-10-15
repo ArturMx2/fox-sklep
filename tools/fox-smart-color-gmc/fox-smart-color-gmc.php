@@ -2,7 +2,7 @@
 /**
  * Plugin Name: FOX Smart Color GMC
  * Description: Inteligentne wykrywanie kolorów produktów WooCommerce z priorytetem jawnego koloru producenta. Zapisuje brakujący kolor jako globalny atrybut pa_kolor, z bezpieczną polityką kategorii dla Części i Akcesoria.
- * Version: 2.1.0
+ * Version: 2.1.1
  * Author: ENDURO.SKLEP.PL
  * Requires at least: 6.4
  * Requires PHP: 7.4
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class FOX_Smart_Color_GMC {
-    const VERSION       = '2.1.0';
+    const VERSION       = '2.1.1';
     const OPTION_IMPORT = 'foxsc_import_at';
     const DB_VERSION    = '1.2.0';
     const OPTION_DB     = 'foxsc_db_version';
@@ -457,13 +457,21 @@ final class FOX_Smart_Color_GMC {
         }
         echo '<p><strong>Zakres:</strong><br>' . esc_html( $policy['message'] ) . '</p>';
 
-        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-        wp_nonce_field( 'foxsc_admin_action' );
-        echo '<input type="hidden" name="action" value="foxsc_admin_action">';
-        echo '<input type="hidden" name="foxsc_op" value="analyze_single">';
-        echo '<input type="hidden" name="product_id" value="' . (int) $post->ID . '">';
-        echo '<button class="button" type="submit">Przeanalizuj ponownie</button>';
-        echo '</form>';
+        // UWAGA: bez <form> – ramka jest WEWNĄTRZ formularza edycji produktu. Zagnieżdżony formularz
+        // podmieniał pole „action” i po kliknięciu „Aktualizuj” WordPress nie zapisywał produktu,
+        // tylko przenosił do listy wpisów (błąd wersji ≤ 2.1.0). Teraz zwykły link z zabezpieczeniem.
+        $url = wp_nonce_url(
+            add_query_arg(
+                array(
+                    'action'     => 'foxsc_admin_action',
+                    'foxsc_op'   => 'analyze_single',
+                    'product_id' => (int) $post->ID,
+                ),
+                admin_url( 'admin-post.php' )
+            ),
+            'foxsc_admin_action'
+        );
+        echo '<a class="button" href="' . esc_url( $url ) . '">Przeanalizuj ponownie</a>';
     }
 
     private static function category_label( $term_id ) {
@@ -676,6 +684,11 @@ final class FOX_Smart_Color_GMC {
         check_admin_referer( 'foxsc_admin_action' );
 
         $op       = isset( $_POST['foxsc_op'] ) ? sanitize_key( wp_unslash( $_POST['foxsc_op'] ) ) : '';
+        // Z linku (GET) dozwolona jest tylko analiza pojedynczego produktu z ramki w edycji produktu.
+        if ( ! $op && isset( $_GET['foxsc_op'] ) && 'analyze_single' === sanitize_key( wp_unslash( $_GET['foxsc_op'] ) ) ) {
+            $op = 'analyze_single';
+            $_POST['product_id'] = isset( $_GET['product_id'] ) ? absint( $_GET['product_id'] ) : 0;
+        }
         $redirect = admin_url( 'admin.php?page=fox-smart-color-gmc' );
         $message  = '';
         $error    = '';
