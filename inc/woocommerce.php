@@ -366,7 +366,7 @@ function fx_product_accordion() {
 		echo '<details><summary>Technologia i materiały</summary><div class="fx-acc__body">' . fx_rich( $tech ) . '</div></details>'; // phpcs:ignore
 	}
 
-	if ( $product->has_attributes() || $product->has_weight() || $product->has_dimensions() ) {
+	if ( $product->has_attributes() || $product->has_weight() || $product->has_dimensions() || fx_hidden_info_attrs( $product ) ) {
 		echo '<details><summary>Informacje dodatkowe</summary><div class="fx-acc__body">';
 		wc_display_product_attributes( $product );
 		echo '</div></details>';
@@ -528,3 +528,34 @@ function fx_flush_caches() {
 	delete_transient( 'fx_hg_pool2' );
 }
 add_action( 'fx_flush_caches', 'fx_flush_caches' );
+
+/* =====================================================================
+ * „Informacje dodatkowe”: kolor zawsze widoczny
+ * Import (BaseLinker) i ręczne dodawanie często zostawiają przy atrybucie „Kolor” odznaczone
+ * „Widoczny na stronie produktu” – klient nie widział koloru, choć produkt go ma (i filtr go używa).
+ * ===================================================================== */
+function fx_hidden_info_attrs( $product ) {
+	$out = array();
+	if ( ! $product instanceof WC_Product ) {
+		return $out;
+	}
+	foreach ( (array) apply_filters( 'fx_always_visible_attrs', array( 'pa_kolor' ) ) as $tax ) {
+		$attrs = $product->get_attributes();
+		if ( isset( $attrs[ $tax ] ) && $attrs[ $tax ] instanceof WC_Product_Attribute && ! $attrs[ $tax ]->get_visible() && ! $attrs[ $tax ]->get_variation() ) {
+			$names = wc_get_product_terms( $product->get_id(), $tax, array( 'fields' => 'names' ) );
+			if ( $names && ! is_wp_error( $names ) ) {
+				$out[ $tax ] = $names;
+			}
+		}
+	}
+	return $out;
+}
+add_filter( 'woocommerce_display_product_attributes', function ( $rows, $product ) {
+	foreach ( fx_hidden_info_attrs( $product ) as $tax => $names ) {
+		$rows[ 'attribute_' . $tax ] = array(
+			'label' => wc_attribute_label( $tax ),
+			'value' => esc_html( implode( ', ', $names ) ),
+		);
+	}
+	return $rows;
+}, 20, 2 );

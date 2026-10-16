@@ -127,7 +127,7 @@ function fx_filter_var_parents( $tax ) {
  * Rozmiary: tylko dostępne na stanie warianty. Cache 12 h (czyszczony przy zmianie produktu).
  */
 function fx_filter_options( $role, $term ) {
-	$key   = 'fx_flt_' . md5( 'v2|' . $role . '|' . $term->term_id . '|' . implode( ',', fx_filter_taxonomies()[ $role ] ) );
+	$key   = 'fx_flt_' . md5( 'v3|' . $role . '|' . $term->term_id . '|' . implode( ',', fx_filter_taxonomies()[ $role ] ) );
 	$cache = get_transient( $key );
 	if ( is_array( $cache ) ) {
 		return $cache;
@@ -146,7 +146,10 @@ function fx_filter_options( $role, $term ) {
 			}
 			// Produkty bez wariantów tego atrybutu – przypisane wartości.
 			$vp     = fx_filter_var_parents( $tax );
-			$simple = fx_filter_only_simple( array_filter( $prod, function ( $id ) use ( $vp ) { return ! isset( $vp[ $id ] ); } ) );
+			$simple = array_filter( $prod, function ( $id ) use ( $vp ) { return ! isset( $vp[ $id ] ); } );
+			// Rozmiar przypisany „na sztywno” liczy się tylko w produktach prostych (import dokleja całą listę
+			// rozmiarów do produktów z wariantami). Kolor przypisany do produktu z wariantami (rozmiarami) jest prawdziwy.
+			$simple = 'size' === $role ? fx_filter_only_simple( $simple ) : array_values( $simple );
 			if ( $simple ) {
 				foreach ( (array) wp_get_object_terms( $simple, $tax, array( 'fields' => 'slugs' ) ) as $s ) {
 					if ( is_string( $s ) ) {
@@ -262,7 +265,8 @@ function fx_filter_match_ids( $role, $slugs ) {
 		if ( $terms ) {
 			$vp  = fx_filter_var_parents( $tax );
 			$obj = get_objects_in_term( wp_list_pluck( $terms, 'term_id' ), $tax );
-			foreach ( fx_filter_only_simple( is_wp_error( $obj ) ? array() : $obj ) as $id ) {
+			$obj = is_wp_error( $obj ) ? array() : $obj;
+			foreach ( 'size' === $role ? fx_filter_only_simple( $obj ) : $obj as $id ) {
 				if ( ! isset( $vp[ (int) $id ] ) ) {
 					$ids[] = (int) $id;
 				}

@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.15.4 – filtr koloru dla produktów z wariantami
+- Naprawa (błąd z 3.12.4): filtr „Kolor” pomijał produkty z wariantami (np. buty z rozmiarami), w których kolor jest przypisany do produktu. W kategoriach pokazywały się tylko kolory produktów prostych. Zasada „tylko produkty proste” dotyczy już wyłącznie rozmiarów (tam import dokleja całą listę).
+- „Informacje dodatkowe”: kolor pokazuje się zawsze, także gdy przy atrybucie „Kolor” jest odznaczone „Widoczny na stronie produktu” (filtr fx_always_visible_attrs).
+
 ## 3.15.3 – ikona cookies nie zasłania paska „Zamawiam”
 - Telefon: pływająca ikona ustawień cookies (Cookie-Script) i inne małe pływające ikony z zewnątrz (np. czat Doofindera) są podnoszone nad dolny pasek z sumą koszyka i przyciskiem „Zamawiam”. Duże banery i okna nie są przesuwane.
 
