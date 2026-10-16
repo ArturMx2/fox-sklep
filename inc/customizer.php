@@ -305,6 +305,9 @@ function fx_customize( $wp ) {
 
 	/* Menu główne */
 	$section( 'fx_menu', 'Menu główne (automatyczne)', 'Pasek górny (CASUAL, MOTO, ROWER…) ustawiasz jak dotąd w Wygląd → Menu. Gdy włączysz tryb automatyczny, każda pozycja prowadząca do kategorii produktów dostaje rozwijany panel zbudowany sam z podkategorii, w których są produkty do kupienia. Puste kategorie znikają. Pozycje, które nie są kategoriami (np. Poradniki), zostają bez zmian. Podgląd bez włączania (tylko dla administratora): dodaj do adresu ?fx_menu=auto. Nazwę w menu albo ukrycie ustawisz w edycji kategorii.' );
+	// Przełącznik w panelu „Menu” (tam, gdzie układa się menu), na samej górze.
+	$wp->get_section( 'fx_menu' )->panel    = 'nav_menus';
+	$wp->get_section( 'fx_menu' )->priority = 1;
 	$add( 'menu_auto', 'fx_menu', 'Buduj panele menu automatycznie z kategorii', 'checkbox' );
 	$add( 'menu_auto_l3', 'fx_menu', 'Ile linków pod nagłówkiem kolumny (potem „Więcej →”)', 'number', array( 'input_attrs' => array( 'min' => 3, 'max' => 20 ) ) );
 	$add( 'menu_auto_append', 'fx_menu', 'Dopisuj na końcu paska kategorie główne, których w nim nie ma', 'checkbox' );

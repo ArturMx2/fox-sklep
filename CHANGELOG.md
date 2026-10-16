@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.16.1
+- Przełącznik automatycznego menu przeniesiony do Dostosuj → Menu (pierwsza pozycja: „Menu główne (automatyczne)”), tam gdzie układa się menu.
+
 ## 3.16.0
 - Nowość (do przetestowania): automatyczne menu główne z kategorii. Pasek górny zostaje z Wygląd → Menu, a pozycje będące kategoriami dostają panel zbudowany sam z podkategorii z produktami dostępnymi do kupienia (puste i wyprzedane znikają, także z paska). Kolumny w kolejności z Produkty → Kategorie, do 8 linków pod kolumną + „Więcej →”, 4. poziom (np. Proframe) gdy jest go mało. Nazwy skracane z powtórzeń („Koszulki rowerowe FOX” → „Koszulki”).
 - Włączenie: Dostosuj → FOX.SKLEP.PL → Menu główne (automatyczne). Podgląd bez włączania dla administratora: ?fx_menu=auto.
