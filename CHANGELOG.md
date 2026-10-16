@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.15.5 – bez pustych podkategorii w pigułkach
+- Pigułki podkategorii nad listą produktów pokazują tylko kategorie, w których klient coś zobaczy: jest choć jeden opublikowany, nieukryty produkt (a gdy sklep ukrywa wyprzedane – dostępny). Kategorie z samymi wyprzedanymi lub ukrytymi produktami znikają z pigułek (adresy kategorii bez zmian).
+- Wynik zapamiętywany na 6 h, odświeżany przy zmianach produktów i kategorii.
+
 ## 3.15.4 – filtr koloru dla produktów z wariantami
 - Naprawa (błąd z 3.12.4): filtr „Kolor” pomijał produkty z wariantami (np. buty z rozmiarami), w których kolor jest przypisany do produktu. W kategoriach pokazywały się tylko kolory produktów prostych. Zasada „tylko produkty proste” dotyczy już wyłącznie rozmiarów (tam import dokleja całą listę).
 - „Informacje dodatkowe”: kolor pokazuje się zawsze, także gdy przy atrybucie „Kolor” jest odznaczone „Widoczny na stronie produktu” (filtr fx_always_visible_attrs).

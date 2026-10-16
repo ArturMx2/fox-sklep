@@ -294,6 +294,13 @@ function fx_subcategory_chips() {
 	if ( empty( $children ) || is_wp_error( $children ) ) {
 		return;
 	}
+	// Bez kategorii, w których klient nic nie zobaczy (same wyprzedane / ukryte produkty).
+	$children = array_values( array_filter( $children, function ( $c ) use ( $term ) {
+		return $c->term_id === $term->term_id || fx_cat_has_visible( $c->term_id );
+	} ) );
+	if ( count( $children ) < 1 ) {
+		return;
+	}
 	echo '<nav class="fx-chips" aria-label="Podkategorie">';
 	echo '<a class="fx-chip' . ( $parent ? '' : ' is-active' ) . '" href="' . esc_url( $parent ? $parent : get_term_link( $term ) ) . '">Wszystkie</a>';
 	foreach ( $children as $c ) {
@@ -559,3 +566,35 @@ add_filter( 'woocommerce_display_product_attributes', function ( $rows, $product
 	}
 	return $rows;
 }, 20, 2 );
+
+/**
+ * Czy w kategorii (z podkategoriami) jest choć jeden produkt widoczny na liście
+ * (opublikowany, nieukryty w katalogu, a gdy sklep ukrywa niedostępne – na stanie).
+ * Wynik dla wszystkich kategorii w jednym zapisie, odświeżany z pamięcią motywu (fx_flush_caches).
+ */
+function fx_cat_has_visible( $term_id ) {
+	static $map = null;
+	if ( null === $map ) {
+		$map = get_transient( 'fx_cat_vis' );
+		$map = is_array( $map ) ? $map : array();
+	}
+	$term_id = (int) $term_id;
+	if ( ! isset( $map[ $term_id ] ) ) {
+		$tq = array( array( 'taxonomy' => 'product_cat', 'terms' => $term_id, 'include_children' => true ) );
+		if ( function_exists( 'fx_filter_visible_tax' ) ) {
+			$tq = fx_filter_visible_tax( $tq );
+		}
+		$ids              = get_posts( array( 'post_type' => 'product', 'post_status' => 'publish', 'posts_per_page' => 1, 'fields' => 'ids', 'no_found_rows' => true, 'tax_query' => $tq ) ); // phpcs:ignore
+		$map[ $term_id ]  = $ids ? 1 : 0;
+		set_transient( 'fx_cat_vis', $map, 6 * HOUR_IN_SECONDS );
+	}
+	return (bool) $map[ $term_id ];
+}
+add_action( 'fx_flush_caches', function () {
+	delete_transient( 'fx_cat_vis' );
+}, 20 );
+foreach ( array( 'created_product_cat', 'edited_product_cat', 'delete_product_cat' ) as $fx_hook ) {
+	add_action( $fx_hook, function () {
+		delete_transient( 'fx_cat_vis' );
+	} );
+}
