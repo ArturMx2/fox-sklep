@@ -27,6 +27,11 @@ function fx_defaults() {
 		'trust_1'         => 'Darmowa dostawa od 300 zł · InPost lub DPD',
 		'trust_2'         => 'Przymierz w sklepie w Mokronosie Dolnym',
 		'trust_3'         => '14 dni na zwrot lub wymianę rozmiaru',
+		// Menu główne.
+		'menu_auto'        => false,
+		'menu_auto_l3'     => 8,
+		'menu_auto_append' => false,
+		'menu_auto_skip'   => 'prezenty',
 		// Kod.
 		'code_head'       => '',
 		'code_body'       => '',
@@ -297,6 +302,13 @@ function fx_customize( $wp ) {
 		$add( 'hc_img_' . $fx_k, 'fx_hc', 'Zdjęcie: ' . $fx_n, 'image' );
 		$add( 'hc_url_' . $fx_k, 'fx_hc', 'Przycisk „Zobacz kaski ' . $fx_n . '” – adres', 'url' );
 	}
+
+	/* Menu główne */
+	$section( 'fx_menu', 'Menu główne (automatyczne)', 'Pasek górny (CASUAL, MOTO, ROWER…) ustawiasz jak dotąd w Wygląd → Menu. Gdy włączysz tryb automatyczny, każda pozycja prowadząca do kategorii produktów dostaje rozwijany panel zbudowany sam z podkategorii, w których są produkty do kupienia. Puste kategorie znikają. Pozycje, które nie są kategoriami (np. Poradniki), zostają bez zmian. Podgląd bez włączania (tylko dla administratora): dodaj do adresu ?fx_menu=auto. Nazwę w menu albo ukrycie ustawisz w edycji kategorii.' );
+	$add( 'menu_auto', 'fx_menu', 'Buduj panele menu automatycznie z kategorii', 'checkbox' );
+	$add( 'menu_auto_l3', 'fx_menu', 'Ile linków pod nagłówkiem kolumny (potem „Więcej →”)', 'number', array( 'input_attrs' => array( 'min' => 3, 'max' => 20 ) ) );
+	$add( 'menu_auto_append', 'fx_menu', 'Dopisuj na końcu paska kategorie główne, których w nim nie ma', 'checkbox' );
+	$add( 'menu_auto_skip', 'fx_menu', 'Pomiń przy dopisywaniu (adresy kategorii, po przecinku, np. prezenty,wyprzedaz)' );
 
 	/* Kod */
 	$section( 'fx_code', 'Kod: Google Tag Manager i skrypty', 'Wklej tu kod GTM lub inne skrypty, jeśli były wpisane w ustawieniach starego motywu. Jeśli GTM dodaje wtyczka, zostaw puste – inaczej zdarzenia policzą się podwójnie.' );
