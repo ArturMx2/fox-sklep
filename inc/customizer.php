@@ -100,6 +100,7 @@ function fx_defaults() {
 		'seo_text'        => '',
 		// Salon.
 		'store_on'        => true,
+		'store_map'       => true,
 		'store_title'     => "Przymierz,\nzanim kupisz",
 		'store_text'      => 'Sklep stacjonarny: ul. Stawowa 33A, Mokronos Dolny k. Wrocławia, zjazd z A8. Pon–pt 11:00–17:00. Telefon +48 71 880 85 54.',
 		'store_btn_label' => 'Wyznacz trasę',
@@ -421,6 +422,7 @@ function fx_customize( $wp ) {
 	/* Salon */
 	$section( 'fx_home_store', 'Strona główna – sklep stacjonarny' );
 	$add( 'store_on', 'fx_home_store', 'Pokaż sekcję', 'checkbox' );
+	$add( 'store_map', 'fx_home_store', 'Animowana mapa dojazdu (z Rynku, lotniska, stadionu, A4)', 'checkbox' );
 	$add( 'store_title', 'fx_home_store', 'Tytuł', 'textarea' );
 	$add( 'store_text', 'fx_home_store', 'Tekst', 'html' );
 	$add( 'store_btn_label', 'fx_home_store', 'Przycisk – tekst' );

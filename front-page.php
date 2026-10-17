@@ -360,7 +360,9 @@ endif;
 
 <?php /* ---------- Sklep stacjonarny (lokalne SEO) ---------- */ ?>
 <?php if ( fx_mod( 'store_on' ) ) : ?>
-<section id="salon" class="fx-store fx-wrap">
+<?php $fx_smap = fx_mod( 'store_map' ) && function_exists( 'fx_store_map' ) ? fx_store_map() : ''; ?>
+<section id="salon" class="fx-store fx-wrap<?php echo $fx_smap ? ' fx-store--map' : ''; ?>">
+	<div class="fx-store__main">
 	<div class="fx-store__title"><?php echo nl2br( esc_html( fx_mod( 'store_title' ) ) ); ?></div>
 	<div class="fx-store__info">
 		<h2 class="fx-store__h">Sklep stacjonarny FOX pod Wrocławiem</h2>
@@ -376,6 +378,8 @@ endif;
 	<?php if ( fx_mod( 'store_btn_label' ) && fx_mod( 'store_btn_url' ) ) : ?>
 		<a class="fx-btn fx-btn--white" href="<?php echo esc_url( fx_mod( 'store_btn_url' ) ); ?>"><?php echo esc_html( fx_mod( 'store_btn_label' ) ); ?></a>
 	<?php endif; ?>
+	</div>
+	<?php echo $fx_smap; // phpcs:ignore WordPress.Security.EscapeOutput -- zbudowane w fx_store_map() ?>
 </section>
 <?php endif; ?>
 

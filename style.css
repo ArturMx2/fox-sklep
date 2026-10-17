@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.16.1
+Version: 3.17.0
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -241,6 +241,52 @@ button,input,select,textarea{font:inherit;color:inherit}
 .fx-store{background:var(--fx-ink);color:#fff;display:flex;flex-wrap:wrap;gap:24px 48px;align-items:center;justify-content:space-between;padding-top:40px;padding-bottom:40px}
 .fx-store__title{font-family:var(--fx-display);font-weight:500;font-size:34px;line-height:1.05}
 .fx-store p{margin:0;flex:1 1 360px;color:#e6e4df}
+.fx-store__main{display:contents}
+.fx-store--map{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:32px 56px;align-items:center;padding-top:56px;padding-bottom:56px}
+.fx-store--map .fx-store__main{display:flex;flex-direction:column;align-items:flex-start;gap:22px}
+.fx-store--map .fx-store__title{font-size:44px}
+.fx-store--map .fx-store__info{flex:none}
+.fx-smap{color:#fff;min-width:0}
+.fx-smap__stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.fx-smap__stat{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border:1px solid rgba(255,255,255,.16);border-radius:12px}
+.fx-smap__stat strong{font-family:var(--fx-display);font-weight:600;font-size:26px;line-height:1.1;white-space:nowrap}
+.fx-smap__stat>span{font-size:13px;color:#bdbab3}
+.fx-smap__tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.fx-smap__tab{appearance:none;border:1px solid rgba(255,255,255,.28);background:transparent;color:#fff;border-radius:999px;padding:8px 14px;font:inherit;font-size:14px;cursor:pointer;transition:background .2s,color .2s}
+.fx-smap__tab:hover{border-color:#fff}
+.fx-smap__tab[aria-selected="true"]{background:#fff;color:var(--fx-ink);border-color:#fff}
+.fx-smap__svg{display:block;width:100%;height:auto;overflow:hidden;border-radius:14px}
+.fx-smap__city{fill:rgba(255,255,255,.05);stroke:rgba(255,255,255,.35);stroke-width:2;stroke-dasharray:7 7;stroke-linejoin:round}
+.fx-smap__dots{color:#fff;stroke:none}
+.fx-smap__cityname{font-family:var(--fx-display);font-weight:600;font-size:64px;letter-spacing:.14em;fill:rgba(255,255,255,.16)}
+.fx-smap__road{fill:none;stroke:#77746d;stroke-width:6;stroke-linecap:round;stroke-linejoin:round}
+.fx-smap__shield rect{fill:#2d2c29;stroke:#77746d;stroke-width:2}
+.fx-smap__shield text{font-family:var(--fx-body);font-weight:700;font-size:18px;fill:#fff}
+.fx-smap__route{opacity:0;transition:opacity .25s}
+.fx-smap__route.is-on{opacity:1}
+.fx-smap__line{fill:none;stroke:#fff;stroke-width:6;stroke-linecap:round;stroke-linejoin:round}
+.fx-smap.is-js .fx-smap__line{stroke-dasharray:1;stroke-dashoffset:1}
+.fx-smap__from{fill:var(--fx-ink);stroke:#fff;stroke-width:4}
+.fx-smap__place{font-family:var(--fx-body);font-weight:700;font-size:22px;fill:#fff;paint-order:stroke;stroke:var(--fx-ink);stroke-width:6px;stroke-linejoin:round}
+.fx-smap__car{fill:#fff;opacity:0;filter:drop-shadow(0 0 8px rgba(255,255,255,.8))}
+.fx-smap__dot{fill:var(--fx-sale,#e1251b);stroke:#fff;stroke-width:4}
+.fx-smap__pulse{fill:var(--fx-sale,#e1251b);opacity:0;transform-origin:center;transform-box:fill-box;animation:fx-smap-pulse 2.4s ease-out infinite}
+.fx-smap__pulse--2{animation-delay:1.2s}
+.fx-smap.is-arrived .fx-smap__dot{animation:fx-smap-pop .6s ease-out}
+@keyframes fx-smap-pulse{0%{opacity:.55;transform:scale(1)}100%{opacity:0;transform:scale(3.6)}}
+@keyframes fx-smap-pop{0%,100%{transform:scale(1)}40%{transform:scale(1.5)}}
+.fx-smap__dot{transform-origin:center;transform-box:fill-box}
+.fx-smap__tag rect{fill:#fff}
+.fx-smap__tag-h{font-family:var(--fx-display);font-weight:600;font-size:24px;fill:var(--fx-ink)}
+.fx-smap__tag-s{font-family:var(--fx-body);font-size:17px;fill:#55524c}
+.fx-smap__scale path{fill:none;stroke:#bdbab3;stroke-width:2}
+.fx-smap__scale text{font-family:var(--fx-body);font-size:16px;fill:#bdbab3}
+.fx-smap__note{margin:8px 0 0!important;font-size:12px;color:#8f8c85!important}
+.fx-smap__note a{color:inherit}
+@media (prefers-reduced-motion:reduce){.fx-smap__pulse{animation:none}}
+.fx-smap.is-zoom .fx-smap__cityname,.fx-smap.is-zoom .fx-smap__scale{display:none}
+.fx-smap.is-zoom .fx-smap__place{font-size:17px}
+@media (max-width:900px){.fx-store--map{grid-template-columns:1fr;padding-top:40px;padding-bottom:40px}.fx-store--map .fx-store__title{font-size:34px}.fx-smap__stat{padding:10px}.fx-smap__stat strong{font-size:20px}.fx-smap__stat>span{font-size:12px}.fx-smap__tab{padding:7px 12px;font-size:13px}}
 
 /* ---------- Stopka ---------- */
 .fx-footer{background:var(--fx-soft);padding-top:56px;padding-bottom:32px;font-size:14px}
