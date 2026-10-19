@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.19.0
+- Karta produktu: „Kod produktu” i „EAN” pod nazwą produktu. EAN z pola WooCommerce „GTIN, UPC, EAN lub ISBN” (produktu albo wariantu). Przy wariantach po wyborze rozmiaru kod i EAN zmieniają się na wybrany wariant; bez wyboru widać kod modelu. Kliknięcie kopiuje kod. Linijka „SKU:” na dole karty ukryta (bez dublowania).
+
 ## 3.18.0
 - Zaślepka ładowania z głową lisa: po kliknięciu w link do innej strony sklepu (albo wyszukaniu) na środku pojawia się lisek, który wypełnia się od dołu, i napis „Ładujemy stronę…”. Pokazuje się dopiero po ~0,3 s, więc szybkie przejścia nie migają. Pomija nowe karty, kotwice, telefon/e-mail, pobieranie, linki zewnętrzne i dodawanie do koszyka. Znika po „Wstecz” i awaryjnie po 12 s. Logo jako SVG w kodzie – bez dodatkowych plików.
 - Wyłącznik i tekst: Dostosuj → FOX.SKLEP.PL → Ogólne.

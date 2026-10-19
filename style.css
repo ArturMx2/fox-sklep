@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.18.0
+Version: 3.19.0
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -424,6 +424,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .woocommerce div.product form.cart table.variations select{min-width:220px;height:48px;border:1.5px solid #cfccc5;padding:0 14px;background-color:#fff}
 .woocommerce div.product .product_meta{font-size:13px;color:var(--fx-muted)}
 .woocommerce div.product .product_meta>span{display:block}
+.woocommerce div.product .product_meta>.sku_wrapper{display:none}
 .woocommerce div.product .stock{font-size:14px;font-weight:500;color:var(--fx-ink)}
 .woocommerce div.product .stock.out-of-stock{color:var(--fx-sale)}
 .woocommerce div.product .stock.fx-low-stock{color:var(--fx-sale);font-weight:700}
@@ -1578,3 +1579,10 @@ html.fx-added-open{overflow:hidden}
 @keyframes fx-loader-fill{0%{clip-path:inset(100% 0 0 0)}55%{clip-path:inset(0 0 0 0)}80%{clip-path:inset(0 0 0 0);opacity:1}100%{clip-path:inset(0 0 0 0);opacity:0}}
 @keyframes fx-loader-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 @media (prefers-reduced-motion:reduce){.fx-loader__fox,.fx-loader__fill{animation:none}}
+
+/* ---------- Kod produktu i EAN pod nazwą ---------- */
+.fx-pcodes{display:flex;flex-wrap:wrap;gap:4px 18px;margin:-2px 0 14px;font-size:13px;color:var(--fx-muted)}
+.fx-pcodes__item.fx-hide{display:none}
+.fx-pcodes__val{appearance:none;background:none;border:0;padding:0;font:inherit;font-variant-numeric:tabular-nums;color:var(--fx-ink);cursor:copy;border-bottom:1px dotted transparent}
+.fx-pcodes__val:hover{border-bottom-color:currentColor}
+.fx-pcodes__val.is-copied::after{content:" ✓ skopiowano";color:var(--fx-muted)}
