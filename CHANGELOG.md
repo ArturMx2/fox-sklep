@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.19.1
+- EAN pod nazwą produktu pobierany najpierw z pola „_woosea_ean” (Product Feed PRO), także dla każdego wariantu; zapasowo z pola WooCommerce „GTIN, UPC, EAN lub ISBN”.
+
 ## 3.19.0
 - Karta produktu: „Kod produktu” i „EAN” pod nazwą produktu. EAN z pola WooCommerce „GTIN, UPC, EAN lub ISBN” (produktu albo wariantu). Przy wariantach po wyborze rozmiaru kod i EAN zmieniają się na wybrany wariant; bez wyboru widać kod modelu. Kliknięcie kopiuje kod. Linijka „SKU:” na dole karty ukryta (bez dublowania).
 

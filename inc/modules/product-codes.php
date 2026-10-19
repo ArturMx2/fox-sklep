@@ -2,8 +2,8 @@
 /**
  * Kod produktu (SKU) i EAN pod nazwą produktu na karcie produktu.
  *
- * - EAN z pola WooCommerce „GTIN, UPC, EAN lub ISBN” (zakładka Magazyn, także w każdym wariancie);
- *   gdy puste – z popularnych pól wtyczek (filtr „fx_pcodes_ean_keys”),
+ * - EAN z pola „_woosea_ean” (Product Feed PRO; także w każdym wariancie), zapasowo z pola WooCommerce
+ *   „GTIN, UPC, EAN lub ISBN” i pól innych wtyczek (filtr „fx_pcodes_ean_keys”),
  * - produkt z wariantami: po wyborze rozmiaru/koloru kod i EAN zmieniają się na wariant,
  *   bez wyboru widać kod modelu (a EAN dopiero po wyborze, bo każdy rozmiar ma inny),
  * - kliknięcie w kod kopiuje go do schowka (przydatne przy telefonie do sklepu),
@@ -14,20 +14,24 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/** EAN/GTIN produktu lub wariantu. */
+/**
+ * EAN produktu lub wariantu.
+ * Najpierw pole „_woosea_ean” (Product Feed PRO – to samo, które idzie do Google Merchant),
+ * potem pole WooCommerce „GTIN, UPC, EAN lub ISBN”, na końcu pola innych wtyczek.
+ * Wariant nie dziedziczy EAN-u po produkcie głównym – każdy rozmiar ma własny kod.
+ */
 function fx_pcodes_ean( $product ) {
 	if ( ! $product instanceof WC_Product ) {
 		return '';
 	}
-	$ean = method_exists( $product, 'get_global_unique_id' ) ? (string) $product->get_global_unique_id() : '';
-	if ( '' === $ean ) {
-		$keys = apply_filters( 'fx_pcodes_ean_keys', array( '_global_unique_id', '_gtin', '_ean', 'ean', 'gtin', '_wpm_gtin_code', 'hwp_product_gtin', 'hwp_var_gtin', '_alg_ean', '_wepos_barcode' ) );
-		foreach ( $keys as $k ) {
-			$v = trim( (string) get_post_meta( $product->get_id(), $k, true ) );
-			if ( '' !== $v ) {
-				$ean = $v;
-				break;
-			}
+	$id   = $product->get_id();
+	$keys = apply_filters( 'fx_pcodes_ean_keys', array( '_woosea_ean', '_woosea_variable_ean', '_global_unique_id', '_gtin', '_ean', 'ean', 'gtin', '_wpm_gtin_code', 'hwp_product_gtin', 'hwp_var_gtin', '_alg_ean' ) );
+	$ean  = '';
+	foreach ( $keys as $k ) {
+		$v = trim( (string) get_post_meta( $id, $k, true ) );
+		if ( '' !== $v ) {
+			$ean = $v;
+			break;
 		}
 	}
 	return preg_replace( '/[^0-9A-Za-z\-]/', '', $ean );
