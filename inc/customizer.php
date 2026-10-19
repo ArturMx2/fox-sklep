@@ -20,6 +20,8 @@ function fx_defaults() {
 		// Ogólne.
 		'announce'        => 'Darmowa dostawa od 300 zł · 14 dni na zwrot · <a href="#salon">Przymierz w sklepie pod Wrocławiem</a>',
 		'fonts'           => 'google',
+		'loader_on'       => true,
+		'loader_text'     => 'Ładujemy stronę…',
 		'footer_note'     => 'Autoryzowany sklep FOX Racing',
 		'size_chart_url'  => $home . 'tabela-rozmiarow/',
 		'size_help'       => 'Nie wiesz, jaki rozmiar? Zadzwoń <a href="tel:+48718808554">+48 71 880 85 54</a> albo przymierz w sklepie.',
@@ -289,6 +291,8 @@ function fx_customize( $wp ) {
 	$section( 'fx_general', 'Ogólne' );
 	$add( 'announce', 'fx_general', 'Czarny pasek pod nagłówkiem (HTML dozwolony, puste = ukryty)', 'html' );
 	$add( 'fonts', 'fx_general', 'Fonty', 'fonts', array( 'description' => 'Dla pełnej zgodności z RODO zostaw Google Fonts i zainstaluj wtyczkę OMGF – przeniesie fonty na Twój serwer.' ) );
+	$add( 'loader_on', 'fx_general', 'Lisek „Ładujemy stronę…” przy przechodzeniu między stronami', 'checkbox' );
+	$add( 'loader_text', 'fx_general', 'Tekst pod liskiem (puste = bez tekstu)' );
 	$add( 'footer_note', 'fx_general', 'Tekst w stopce obok ©' );
 	$add( 'size_chart_url', 'fx_general', 'Adres strony z tabelą rozmiarów', 'url' );
 	$add( 'size_help', 'fx_general', 'Pomoc przy rozmiarze na karcie produktu (HTML)', 'html' );

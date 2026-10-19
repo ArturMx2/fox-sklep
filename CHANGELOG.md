@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.18.0
+- Zaślepka ładowania z głową lisa: po kliknięciu w link do innej strony sklepu (albo wyszukaniu) na środku pojawia się lisek, który wypełnia się od dołu, i napis „Ładujemy stronę…”. Pokazuje się dopiero po ~0,3 s, więc szybkie przejścia nie migają. Pomija nowe karty, kotwice, telefon/e-mail, pobieranie, linki zewnętrzne i dodawanie do koszyka. Znika po „Wstecz” i awaryjnie po 12 s. Logo jako SVG w kodzie – bez dodatkowych plików.
+- Wyłącznik i tekst: Dostosuj → FOX.SKLEP.PL → Ogólne.
+
 ## 3.17.0
 - Strona główna, sekcja „Przymierz, zanim kupisz”: animowana mapa dojazdu do sklepu. Granica Wrocławia, A8, A4 i trasy samochodem z danych OpenStreetMap; trasa rysuje się po dojechaniu do sekcji, zakładki: z Rynku (10,1 km, ok. 20 min), z lotniska, ze stadionu, z A4 (każda ok. 15 min). Liczniki km/min i „< 1 km od granicy Wrocławia”. Lekki SVG – bez Google Maps, bez ciasteczek, bez zewnętrznych skryptów. Na telefonie mapa przybliża się do tras.
 - Wyłącznik: Dostosuj → FOX.SKLEP.PL → Strona główna – sklep stacjonarny → „Animowana mapa dojazdu”.

@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.17.0
+Version: 3.18.0
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -1565,3 +1565,16 @@ html.fx-added-open{overflow:hidden}
   body.fx-has-mbar #cookiescript_badge{bottom:calc(86px + env(safe-area-inset-bottom))!important}
   body.fx-has-mbar [class*="dfd-"][class*="launcher"],body.fx-has-mbar [class*="dfd-"][class*="bubble"],body.fx-has-mbar [id*="dfd-"][id*="launcher"]{bottom:calc(86px + env(safe-area-inset-bottom))!important}
 }
+
+/* ---------- Zaślepka ładowania (lisek) ---------- */
+.fx-loader{position:fixed;inset:0;z-index:100000;display:grid;place-items:center;background:rgba(255,255,255,.86);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);opacity:0;visibility:hidden;transition:opacity .25s ease,visibility 0s linear .25s;pointer-events:none}
+.fx-loader.is-on{opacity:1;visibility:visible;transition:opacity .25s ease;pointer-events:auto;cursor:progress}
+.fx-loader__box{display:flex;flex-direction:column;align-items:center;gap:18px;transform:translateY(8px) scale(.96);transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+.fx-loader.is-on .fx-loader__box{transform:none}
+.fx-loader__fox{width:76px;height:auto;overflow:visible;animation:fx-loader-bob 1.6s ease-in-out infinite}
+.fx-loader__ghost{fill:#cdc8be}
+.fx-loader__fill{fill:var(--fx-ink,#111);animation:fx-loader-fill 1.6s cubic-bezier(.6,0,.3,1) infinite}
+.fx-loader__txt{font-family:var(--fx-body);font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--fx-ink,#111)}
+@keyframes fx-loader-fill{0%{clip-path:inset(100% 0 0 0)}55%{clip-path:inset(0 0 0 0)}80%{clip-path:inset(0 0 0 0);opacity:1}100%{clip-path:inset(0 0 0 0);opacity:0}}
+@keyframes fx-loader-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@media (prefers-reduced-motion:reduce){.fx-loader__fox,.fx-loader__fill{animation:none}}
