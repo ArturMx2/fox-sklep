@@ -27,7 +27,7 @@ function fx_kit_box( $post ) {
 	<div class="fx-kit-admin" style="display:grid;gap:14px;max-width:900px">
 		<p style="margin:0">
 			<label><input type="checkbox" name="_fx_is_kit" value="yes" <?php checked( $is_page ); ?>> <strong>To jest strona kompletu</strong> (np. „Strój na crossa FOX 180 Frame Red”)</label><br>
-			<span class="description">Klient nie kupuje tego produktu, tylko wybrane części z rozmiarami – trafiają do koszyka jako osobne produkty. Cena wyliczy się sama z części<?php echo fx_kit_discount() ? ' (z rabatem ' . esc_html( wc_format_localized_decimal( fx_kit_discount() ) ) . '% za komplet)' : ''; ?>. Adres, opis i zdjęcia tej strony zostają bez zmian.</span>
+			<span class="description">Klient nie kupuje tego produktu, tylko wybrane części z rozmiarami – trafiają do koszyka jako osobne produkty. Cena wyliczy się sama z części<?php echo fx_kit_discount( $post->ID ) ? ' (z rabatem ' . esc_html( wc_format_localized_decimal( fx_kit_discount( $post->ID ) ) ) . '% za komplet)' : ''; ?>. Adres, opis i zdjęcia tej strony zostają bez zmian.</span>
 			<input type="hidden" name="_fx_is_kit_sent" value="1">
 		</p>
 		<div>
@@ -67,6 +67,9 @@ function fx_kit_box( $post ) {
 			<p style="margin:0"><label for="_fx_kit_title"><strong>Tytuł sekcji</strong> (na kartach części)</label><br><input type="text" class="widefat" id="_fx_kit_title" name="_fx_kit_title" value="<?php echo esc_attr( get_post_meta( $post->ID, '_fx_kit_title', true ) ); ?>" placeholder="<?php echo $is_page ? esc_attr( get_the_title( $post ) ) : 'Cała grafika jednym kliknięciem'; ?>"></p>
 			<p style="margin:0"><label for="_fx_kit_img"><strong>Zdjęcie całego kompletu</strong> (adres z biblioteki mediów)</label><br><input type="url" class="widefat" id="_fx_kit_img" name="_fx_kit_img" value="<?php echo esc_attr( get_post_meta( $post->ID, '_fx_kit_img', true ) ); ?>" placeholder="puste = zdjęcie główne"></p>
 		</div>
+		<p style="margin:0"><label for="_fx_kit_pct"><strong>Rabat za ten komplet (%)</strong></label><br>
+			<input type="number" id="_fx_kit_pct" name="_fx_kit_pct" min="0" max="50" step="0.5" style="width:110px" value="<?php echo esc_attr( get_post_meta( $post->ID, '_fx_kit_pct', true ) ); ?>" placeholder="<?php echo esc_attr( wc_format_localized_decimal( fx_kit_discount() ) ); ?>"> %
+			<span class="description">Puste = rabat domyślny (<?php echo esc_html( wc_format_localized_decimal( fx_kit_discount() ) ); ?>%, zmienisz go w Wygląd → Dostosuj → FOX.SKLEP.PL → Narzędzia sklepu). 0 = ten komplet bez rabatu. Działa dla całego kompletu, w którym jest ten produkt.<?php echo null !== fx_kit_own_discount( $post->ID ) && '' === get_post_meta( $post->ID, '_fx_kit_pct', true ) ? ' Teraz: ' . esc_html( wc_format_localized_decimal( fx_kit_discount( $post->ID ) ) ) . '% (ustawione na innej części kompletu).' : ''; ?></span></p>
 	</div>
 	<?php
 }
@@ -87,6 +90,14 @@ add_action( 'woocommerce_admin_process_product_object', function ( $product ) {
 	}
 	if ( isset( $_POST['_fx_kit_title'] ) ) {
 		$product->update_meta_data( '_fx_kit_title', sanitize_text_field( wp_unslash( $_POST['_fx_kit_title'] ) ) );
+	}
+	if ( isset( $_POST['_fx_kit_pct'] ) ) {
+		$pct = trim( str_replace( ',', '.', sanitize_text_field( wp_unslash( $_POST['_fx_kit_pct'] ) ) ) );
+		if ( '' === $pct || ! is_numeric( $pct ) ) {
+			$product->delete_meta_data( '_fx_kit_pct' );
+		} else {
+			$product->update_meta_data( '_fx_kit_pct', (string) max( 0, min( 50, (float) $pct ) ) );
+		}
 	}
 	if ( isset( $_POST['_fx_kit_img'] ) ) {
 		$product->update_meta_data( '_fx_kit_img', esc_url_raw( wp_unslash( $_POST['_fx_kit_img'] ) ) );
@@ -513,9 +524,39 @@ function fx_kit_host( $product_id ) {
 	return $found ? (int) $found[0] : 0;
 }
 
-/** Rabat za komplet w procentach (0 = brak). */
-function fx_kit_discount() {
-	return max( 0, min( 50, (float) fx_tool( 'kit_discount' ) ) );
+/**
+ * Rabat za komplet w procentach (0 = brak).
+ * Bez argumentu: rabat domyślny (Dostosuj → Narzędzia sklepu, standardowo 5%).
+ * Z ID produktu: rabat tego kompletu – pole „Rabat za ten komplet” na stronie kompletu
+ * albo na którejś z jego części; puste pole = rabat domyślny.
+ */
+function fx_kit_discount( $product_id = 0 ) {
+	$pct = (float) fx_tool( 'kit_discount' );
+	if ( $product_id ) {
+		$own = fx_kit_own_discount( $product_id );
+		if ( null !== $own ) {
+			$pct = $own;
+		}
+	}
+	return max( 0, min( 50, $pct ) );
+}
+
+/** Rabat ustawiony dla kompletu, do którego należy produkt (null = brak własnego). */
+function fx_kit_own_discount( $product_id ) {
+	static $cache = array();
+	$product_id = (int) $product_id;
+	if ( array_key_exists( $product_id, $cache ) ) {
+		return $cache[ $product_id ];
+	}
+	$kit  = fx_kit_resolve( $product_id );
+	$from = array_filter( array_merge( array( (int) $kit['page'], $product_id, (int) fx_kit_host( $product_id ) ), array_map( 'intval', (array) $kit['parts'] ) ) );
+	foreach ( array_unique( $from ) as $id ) {
+		$v = get_post_meta( $id, '_fx_kit_pct', true );
+		if ( '' !== $v && is_numeric( $v ) ) {
+			return $cache[ $product_id ] = (float) $v;
+		}
+	}
+	return $cache[ $product_id ] = null;
 }
 
 /**
@@ -613,7 +654,7 @@ function fx_kit_section( $product, $inline = false ) {
 	}
 	$page     = $kit['page'] ? wc_get_product( $kit['page'] ) : null;
 	$title    = $kit['title'] ? $kit['title'] : ( $page && $page->get_id() !== $product->get_id() ? $page->get_name() : 'Cała grafika jednym kliknięciem' );
-	$pct      = fx_kit_discount();
+	$pct      = fx_kit_discount( $product->get_id() );
 	$photo_id = $page && $page->get_image_id() ? $page->get_image_id() : $items[0][0]->get_image_id();
 	$custom   = get_post_meta( $kit['page'] ? $kit['page'] : $items[0][0]->get_id(), '_fx_kit_img', true );
 	// Największa możliwa oszczędność (promocje części + rabat za komplet) do etykiety „do −X%”.
@@ -767,7 +808,7 @@ function fx_kit_page_prices( $product_id ) {
 		return array( 0, 0 );
 	}
 	$sum = array_sum( $found );
-	return array( $sum, $sum * ( 1 - fx_kit_discount() / 100 ) );
+	return array( $sum, $sum * ( 1 - fx_kit_discount( $product_id ) / 100 ) );
 }
 
 add_filter( 'woocommerce_get_price_html', function ( $html, $product ) {
@@ -798,11 +839,8 @@ function fx_kit_cart_discount( $cart ) {
 		return;
 	}
 	$GLOBALS['fx_kit_saved'] = 0;
-	$pct = fx_kit_discount();
-	if ( $pct <= 0 ) {
-		return;
-	}
 	$qty = array();
+	$rate = array(); // rabat (%) dla części – każdy komplet może mieć własny
 	foreach ( $cart->get_cart() as $k => $item ) {
 		$pid         = (int) $item['product_id'];
 		$qty[ $pid ] = ( isset( $qty[ $pid ] ) ? $qty[ $pid ] : 0 ) + (int) $item['quantity'];
@@ -821,6 +859,10 @@ function fx_kit_cart_discount( $cart ) {
 			continue;
 		}
 		$seen[ $sig ] = true;
+		$kpct         = fx_kit_discount( $pid );
+		if ( $kpct <= 0 ) {
+			continue;
+		}
 		$n            = PHP_INT_MAX;
 		foreach ( $parts as $part ) {
 			$left = ( isset( $qty[ $part ] ) ? $qty[ $part ] : 0 ) - ( isset( $units[ $part ] ) ? $units[ $part ] : 0 );
@@ -829,12 +871,14 @@ function fx_kit_cart_discount( $cart ) {
 		if ( $n > 0 && PHP_INT_MAX !== $n ) {
 			foreach ( $parts as $part ) {
 				$units[ $part ] = ( isset( $units[ $part ] ) ? $units[ $part ] : 0 ) + $n;
+				$rate[ $part ]  = $kpct;
 			}
 			// Dobrane rękawice też z rabatem, jeśli są w koszyku.
 			foreach ( ( isset( $kit['extra'] ) ? $kit['extra'] : array() ) as $ex ) {
 				$left = ( isset( $qty[ $ex ] ) ? $qty[ $ex ] : 0 ) - ( isset( $units[ $ex ] ) ? $units[ $ex ] : 0 );
 				if ( $left > 0 ) {
 					$units[ $ex ] = ( isset( $units[ $ex ] ) ? $units[ $ex ] : 0 ) + min( $n, $left );
+					$rate[ $ex ]  = $kpct;
 				}
 			}
 		}
@@ -848,13 +892,16 @@ function fx_kit_cart_discount( $cart ) {
 		$orig = (float) $line->get_price();
 		$cart->cart_contents[ $k ]['fx_kit_orig'] = $orig;
 		$cart->cart_contents[ $k ]['fx_kit_units'] = 0;
+		$cart->cart_contents[ $k ]['fx_kit_pct']   = 0;
 		if ( empty( $units[ $pid ] ) || $orig <= 0 ) {
 			$item['data']->set_price( $orig );
 			continue;
 		}
 		$du = min( $units[ $pid ], (int) $item['quantity'] );
 		$units[ $pid ] -= $du;
+		$pct = isset( $rate[ $pid ] ) ? $rate[ $pid ] : fx_kit_discount( $pid );
 		$new = $orig * ( 1 - ( $pct / 100 ) * $du / max( 1, (int) $item['quantity'] ) );
+		$cart->cart_contents[ $k ]['fx_kit_pct'] = $pct;
 		$item['data']->set_price( round( $new, wc_get_price_decimals() ) );
 		$cart->cart_contents[ $k ]['fx_kit_units'] = $du;
 		$GLOBALS['fx_kit_saved'] += ( $orig - $new ) * (int) $item['quantity'];
@@ -865,7 +912,7 @@ add_filter( 'woocommerce_cart_item_price', function ( $price, $item ) {
 	if ( empty( $item['fx_kit_units'] ) || empty( $item['fx_kit_orig'] ) ) {
 		return $price;
 	}
-	return '<del>' . wc_price( $item['fx_kit_orig'] ) . '</del> ' . $price . '<br><small class="fx-kit-badge">w komplecie −' . esc_html( wc_format_localized_decimal( fx_kit_discount() ) ) . '%</small>';
+	return '<del>' . wc_price( $item['fx_kit_orig'] ) . '</del> ' . $price . '<br><small class="fx-kit-badge">w komplecie −' . esc_html( wc_format_localized_decimal( ! empty( $item['fx_kit_pct'] ) ? $item['fx_kit_pct'] : fx_kit_discount( $item['product_id'] ) ) ) . '%</small>';
 }, 20, 2 );
 
 add_action( 'woocommerce_cart_totals_before_order_total', 'fx_kit_saved_row' );
@@ -894,7 +941,7 @@ add_action( 'wp_enqueue_scripts', function () {
 			'currency'  => get_woocommerce_currency(),
 			'symbol'    => html_entity_decode( get_woocommerce_currency_symbol(), ENT_QUOTES, 'UTF-8' ),
 			'pos'       => get_option( 'woocommerce_currency_pos', 'right_space' ),
-		'pct'       => fx_kit_discount(),
+		'pct'       => fx_kit_discount( get_queried_object_id() ),
 			'dec'       => wc_get_price_decimals(),
 			'ds'        => wc_get_price_decimal_separator(),
 			'ts'        => wc_get_price_thousand_separator(),
@@ -1016,7 +1063,7 @@ add_action( 'woocommerce_after_cart', function () {
 	if ( ! $ids ) {
 		return;
 	}
-	$pct = fx_kit_discount();
+	$pct = fx_kit_discount( (int) $ids[0] );
 	echo '<section class="fx-kit-upsell"><div class="fx-row-head"><h2>Dokończ komplet</h2></div>';
 	echo '<p class="fx-kit-upsell__lead">' . ( $pct > 0 ? 'Dobierz brakujące części tej samej grafiki – za pełny komplet w koszyku dostaniesz <strong>−' . esc_html( wc_format_localized_decimal( $pct ) ) . '%</strong> na każdą część.' : 'Dobierz brakujące części tej samej grafiki.' ) . '</p>';
 	echo do_shortcode( '[products ids="' . implode( ',', array_map( 'intval', $ids ) ) . '" orderby="post__in" columns="4" limit="4"]' ); // phpcs:ignore

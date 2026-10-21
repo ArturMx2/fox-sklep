@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.20.0
+- Komplety: własny rabat dla każdego kompletu – pole „Rabat za ten komplet (%)” w edycji produktu (sekcja „Komplet (zestaw)”), na stronie kompletu albo na dowolnej jego części. Puste = rabat domyślny 5% (Dostosuj → FOX.SKLEP.PL → Narzędzia sklepu). Działa w sekcji „Zbuduj komplet”, cenie „Komplet od”, koszyku i etykiecie „w komplecie −X%”.
+- Okruszki i „Wróć do…” na karcie produktu: ścieżka zawsze z działu głównego (OFF ROAD, ROWEROWY, CASUAL, Części…), nigdy z kategorii pomocniczych (Prezenty, Pomysł na prezent, Wyprzedaż, Nowości FOX). Produkt w kilku działach trafia tam, gdzie ma więcej kategorii; przy remisie OFF ROAD przed ROWEROWY. Listy do zmiany w Narzędziach sklepu. Adresy produktów bez zmian. Menu podświetla dział produktu.
+
 ## 3.19.1
 - EAN pod nazwą produktu pobierany najpierw z pola „_woosea_ean” (Product Feed PRO), także dla każdego wariantu; zapasowo z pola WooCommerce „GTIN, UPC, EAN lub ISBN”.
 

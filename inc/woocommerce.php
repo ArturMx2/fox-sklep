@@ -448,10 +448,17 @@ add_action( 'woocommerce_after_single_product_summary', function () {
 
 /* =====================================================================
  * KARTA PRODUKTU: „Wróć do kategorii” nad okruszkami
- * Domyślnie kategoria główna produktu (Yoast „Ustaw jako główną”), inaczej najgłębsza.
+ * Domyślnie kategoria główna produktu (fx_main_category: dział OFF ROAD / ROWEROWY…, bez Prezentów), inaczej najgłębsza.
  * Skrypt podmienia link na listę, z której klient przyszedł (z filtrami i miejscem na liście).
  * ===================================================================== */
 function fx_product_back_term( $product_id ) {
+	// Ta sama kategoria co w okruszkach (dział OFF ROAD / ROWEROWY…, bez Prezentów i Wyprzedaży).
+	if ( function_exists( 'fx_main_category' ) ) {
+		$main = fx_main_category( $product_id );
+		if ( $main ) {
+			return $main;
+		}
+	}
 	if ( function_exists( 'yoast_get_primary_term_id' ) ) {
 		$pid = (int) yoast_get_primary_term_id( 'product_cat', $product_id );
 		if ( $pid ) {

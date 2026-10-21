@@ -243,6 +243,9 @@ add_filter( 'wp_nav_menu_objects', function ( $items, $args ) {
 	// Podświetlenie bieżącej kategorii i jej przodków.
 	if ( is_product_category() || is_product() ) {
 		$cur = is_product_category() ? array( get_queried_object_id() ) : wc_get_product_cat_ids( get_queried_object_id() );
+		if ( is_product() && function_exists( 'fx_main_category' ) && fx_main_category( get_queried_object_id() ) ) {
+			$cur = array( fx_main_category( get_queried_object_id() )->term_id ); // podświetl tylko dział produktu, nie Prezenty
+		}
 		$anc = array();
 		foreach ( $cur as $c ) {
 			$anc = array_merge( $anc, get_ancestors( $c, 'product_cat', 'taxonomy' ) );
