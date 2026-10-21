@@ -203,7 +203,7 @@ endif;
 	<h2 class="fx-h-section fx-wrap" style="margin-bottom:24px"><?php echo esc_html( fx_mod( 'explore_title' ) ); ?></h2>
 	<div class="fx-scroller">
 		<?php
-		for ( $i = 1; $i <= min( 12, max( 1, (int) fx_mod( 'explore_count' ) ) ); $i++ ) :
+		for ( $i = 1; $i <= min( FX_EXPLORE_MAX, max( 1, (int) fx_mod( 'explore_count' ) ) ); $i++ ) :
 			$label = fx_mod( "explore_{$i}_label" );
 			if ( ! $label ) {
 				continue;

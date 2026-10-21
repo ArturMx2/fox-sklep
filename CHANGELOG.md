@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.20.1
+- Dostosuj → Strona główna – Odkrywaj: przyciski „+ Dodaj kafel” i „− Usuń ostatni” pod listą kafli (pola nowego kafla pokazują się od razu). Limit kafli 12 → 20. Nowy kafel domyślnie „Zawsze (moto i rower)”.
+
 ## 3.20.0
 - Komplety: własny rabat dla każdego kompletu – pole „Rabat za ten komplet (%)” w edycji produktu (sekcja „Komplet (zestaw)”), na stronie kompletu albo na dowolnej jego części. Puste = rabat domyślny 5% (Dostosuj → FOX.SKLEP.PL → Narzędzia sklepu). Działa w sekcji „Zbuduj komplet”, cenie „Komplet od”, koszyku i etykiecie „w komplecie −X%”.
 - Okruszki i „Wróć do…” na karcie produktu: ścieżka zawsze z działu głównego (OFF ROAD, ROWEROWY, CASUAL, Części…), nigdy z kategorii pomocniczych (Prezenty, Pomysł na prezent, Wyprzedaż, Nowości FOX). Produkt w kilku działach trafia tam, gdzie ma więcej kategorii; przy remisie OFF ROAD przed ROWEROWY. Listy do zmiany w Narzędziach sklepu. Adresy produktów bez zmian. Menu podświetla dział produktu.

@@ -124,6 +124,9 @@ function fx_defaults() {
 		$d[ "explore_{$n}_label" ] = $e[0];
 		$d[ "explore_{$n}_url" ]   = $e[1] ? $home . $e[1] : '';
 	}
+	for ( $n = count( $explore ) + 1; $n <= 20; $n++ ) { // nowe kafle: domyślnie dla moto i roweru
+		$d[ "explore_{$n}_world" ] = 'all';
+	}
 
 	$tiles = array(
 		array( 'Kaski', "Motocross | {$home}kategoria-produktu/off-road/kaski/\nRower | {$home}kategoria-produktu/rowerowy/kaski-odziez-mtb/" ),
@@ -356,14 +359,15 @@ function fx_customize( $wp ) {
 	$section( 'fx_home_explore', 'Strona główna – Odkrywaj', 'Rząd pionowych kafli przewijany w bok. Puste kafle (bez nazwy) są pomijane.' );
 	$add( 'explore_on', 'fx_home_explore', 'Pokaż sekcję', 'checkbox' );
 	$add( 'explore_title', 'fx_home_explore', 'Tytuł sekcji' );
-	$add( 'explore_count', 'fx_home_explore', 'Liczba kafli (1–12) – po zmianie pojawią się pola kolejnych kafli', 'number', array( 'input_attrs' => array( 'min' => 1, 'max' => 12 ) ) );
-	for ( $i = 1; $i <= 12; $i++ ) {
+	$add( 'explore_count', 'fx_home_explore', 'Liczba kafli (1–20) – albo przyciski „+ Dodaj kafel” na dole', 'number', array( 'input_attrs' => array( 'min' => 1, 'max' => FX_EXPLORE_MAX ) ) );
+	for ( $i = 1; $i <= FX_EXPLORE_MAX; $i++ ) {
 		$on = fx_count_cb( 'explore_count', $i );
 		$add( "explore_{$i}_img", 'fx_home_explore', "Kafel {$i} – zdjęcie (pionowe 5:7)", 'image', array( 'active_callback' => $on ) );
 		$add( "explore_{$i}_label", 'fx_home_explore', "Kafel {$i} – nazwa", 'text', array( 'active_callback' => $on ) );
 		$add( "explore_{$i}_url", 'fx_home_explore', "Kafel {$i} – link", 'url', array( 'active_callback' => $on ) );
 		$add( "explore_{$i}_world", 'fx_home_explore', "Kafel {$i} – pokazuj dla", 'world', array( 'active_callback' => $on ) );
 	}
+	$wp->add_control( new FX_Count_Buttons_Control( $wp, 'fx_explore_add', array( 'section' => 'fx_home_explore', 'settings' => array(), 'count' => 'fx_explore_count', 'prefix' => 'fx_explore_', 'max' => FX_EXPLORE_MAX ) ) );
 
 	/* Kafle */
 	$section( 'fx_home_tiles', 'Strona główna – duże kafle', 'Linki w kaflu: jedna linia na przycisk, w formacie „Etykieta | adres”.' );
@@ -453,6 +457,53 @@ function fx_world_cat( $world ) {
 }
 
 /** Pole kafla widoczne w Dostosuj tylko, gdy jego numer mieści się w ustawionej liczbie kafli. */
+/** Ile kafli „Odkrywaj” można dodać. */
+if ( ! defined( 'FX_EXPLORE_MAX' ) ) {
+	define( 'FX_EXPLORE_MAX', 20 );
+}
+
+/**
+ * Przyciski „+ Dodaj kafel” / „− Usuń ostatni” pod listą kafli w Dostosuj.
+ * Zmieniają pole „Liczba kafli” i od razu pokazują / chowają pola kolejnego kafla.
+ */
+add_action( 'customize_register', function () {
+	if ( class_exists( 'FX_Count_Buttons_Control' ) ) {
+		return;
+	}
+	class FX_Count_Buttons_Control extends WP_Customize_Control {
+		public $type   = 'fx_count_buttons';
+		public $count  = '';
+		public $prefix = '';
+		public $max    = 20;
+		public function render_content() {
+			?>
+			<div class="fx-count-btns" data-count="<?php echo esc_attr( $this->count ); ?>" data-prefix="<?php echo esc_attr( $this->prefix ); ?>" data-max="<?php echo (int) $this->max; ?>" style="display:flex;gap:8px;flex-wrap:wrap;padding-top:6px;border-top:1px solid #dcdcde">
+				<button type="button" class="button button-primary" data-add>+ Dodaj kafel</button>
+				<button type="button" class="button" data-del>− Usuń ostatni</button>
+				<p class="description" style="flex-basis:100%;margin:4px 0 0">„Usuń ostatni” tylko chowa kafel ze strony – jego zdjęcie i link zostają zapamiętane.</p>
+			</div>
+			<?php
+		}
+	}
+}, 1 );
+
+add_action( 'customize_controls_print_footer_scripts', function () {
+	?>
+	<script>
+	(function(api){api.bind('ready',function(){
+		document.addEventListener('click',function(e){
+			var b=e.target.closest('.fx-count-btns [data-add], .fx-count-btns [data-del]');if(!b)return;
+			var box=b.closest('.fx-count-btns'),key=box.dataset.count,pre=box.dataset.prefix,max=+box.dataset.max,s=api(key);if(!s)return;
+			var n=parseInt(s.get(),10)||0,m=b.hasAttribute('data-add')?Math.min(max,n+1):Math.max(1,n-1);if(m===n)return;
+			s.set(m);
+			api.control.each(function(c){var r=new RegExp('^'+pre+'(\\d+)_');var x=c.id.match(r);if(x){c.active.set(+x[1]<=m)}});
+			if(m>n){var first=api.control(pre+m+'_img')||api.control(pre+m+'_label');if(first){setTimeout(function(){first.focus()},150)}}
+		});
+	})})(wp.customize);
+	</script>
+	<?php
+} );
+
 function fx_count_cb( $count_key, $i ) {
 	return function () use ( $count_key, $i ) {
 		return $i <= (int) fx_mod( $count_key );
