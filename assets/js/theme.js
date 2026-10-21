@@ -264,7 +264,21 @@
 				if (next && loader.isConnected) { io.unobserve(loader); io.observe(loader); }
 			});
 		}, { rootMargin: '800px 0px' });
-		io.observe(loader);
+		// Kolejna strona dopiero po załadowaniu bieżącej i pierwszym przewinięciu – wcześniej
+		// na telefonie /page/2/ pobierała się od razu i spowalniała pierwsze wyświetlenie (PageSpeed).
+		var started = false;
+		function start() {
+			if (started) { return; }
+			started = true;
+			window.removeEventListener('scroll', onScroll);
+			io.observe(loader);
+		}
+		function onScroll() { if (document.readyState === 'complete') { start(); } }
+		window.addEventListener('scroll', onScroll, { passive: true });
+		window.addEventListener('load', function () {
+			// Już przewinięte albo lista krótsza niż ekran (nie ma czego przewijać) – startujemy.
+			if (window.scrollY > 0 || document.documentElement.scrollHeight <= window.innerHeight + 200) { start(); }
+		});
 	})();
 
 	/* ---------- Filtry: zamykanie listy po kliknięciu obok i otwieranie jednej naraz ---------- */

@@ -232,3 +232,53 @@ add_filter( 'wp_get_attachment_image_attributes', function ( $attr, $att, $size 
 	}
 	return $attr;
 }, 30, 3 );
+
+/* =====================================================================
+ * 4. Style WooCommerce w kodzie strony zamiast 3 osobnych plików (3.20.1)
+ *    PageSpeed: woocommerce.css, -layout.css i -smallscreen.css blokowały wyświetlenie
+ *    (ok. 1 s na telefonie). Te same reguły, ten sam porządek – tylko bez 3 zapytań.
+ * ================================================================== */
+function fx_perf_wc_css_inline() {
+	static $css = null;
+	if ( null !== $css ) {
+		return $css;
+	}
+	$css = get_transient( 'fx_wc_css_inline' );
+	$ver = defined( 'WC_VERSION' ) ? WC_VERSION : '';
+	if ( is_array( $css ) && ( $css['v'] ?? '' ) === $ver ) {
+		return $css;
+	}
+	$dir   = WC()->plugin_path() . '/assets/css/';
+	$base  = WC()->plugin_url() . '/assets/';
+	$parts = array();
+	foreach ( array( 'woocommerce-layout' => '', 'woocommerce-smallscreen' => 'only screen and (max-width: 768px)', 'woocommerce' => '' ) as $file => $media ) {
+		$raw = is_readable( $dir . $file . '.css' ) ? (string) file_get_contents( $dir . $file . '.css' ) : ''; // phpcs:ignore WordPress.WP.AlternativeFunctions
+		if ( '' === $raw ) {
+			$css = array( 'v' => $ver, 'css' => '' ); // Brak pliku – zostawiamy zwykłe ładowanie.
+			return $css;
+		}
+		$raw     = str_replace( array( 'url("../', "url('../", 'url(../' ), array( 'url("' . $base, "url('" . $base, 'url(' . $base ), $raw );
+		$parts[] = $media ? '@media ' . $media . '{' . $raw . '}' : $raw;
+	}
+	$css = array( 'v' => $ver, 'css' => implode( "\n", $parts ) );
+	set_transient( 'fx_wc_css_inline', $css, DAY_IN_SECONDS );
+	return $css;
+}
+add_action( 'wp_enqueue_scripts', function () {
+	if ( is_admin() || ! apply_filters( 'fx_perf_inline_wc_css', true ) || ! function_exists( 'WC' ) ) {
+		return;
+	}
+	if ( ! wp_style_is( 'woocommerce-general', 'enqueued' ) || '' === fx_perf_wc_css_inline()['css'] ) {
+		return;
+	}
+	wp_dequeue_style( 'woocommerce-layout' );
+	wp_dequeue_style( 'woocommerce-smallscreen' );
+	wp_dequeue_style( 'woocommerce-general' );
+	$GLOBALS['fx_wc_css_inlined'] = true;
+}, 1000 );
+// Przed stylami motywu (wp_print_styles = priorytet 8), więc kolejność reguł jak dotąd.
+add_action( 'wp_head', function () {
+	if ( ! empty( $GLOBALS['fx_wc_css_inlined'] ) ) {
+		echo '<style id="fx-wc-css">' . fx_perf_wc_css_inline()['css'] . '</style>' . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput
+	}
+}, 7 );

@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.20.1 – szybsze kategorie (PageSpeed)
+- Style WooCommerce (woocommerce.css, -layout.css, -smallscreen.css) w kodzie strony zamiast 3 plików blokujących wyświetlenie – PageSpeed liczył na nich ok. 1 s na telefonie. Te same reguły i ta sama kolejność; odświeżają się same po aktualizacji WooCommerce. Wyłączenie: filtr fx_perf_inline_wc_css.
+- Doładowywanie kolejnych stron listy rusza dopiero po załadowaniu strony i pierwszym przewinięciu. Wcześniej /page/2/ pobierała się od razu przy wejściu na kategorię (najdłuższy łańcuch zapytań w PageSpeed, 1,2 s).
+
 ## 3.20.0
 - Komplety: własny rabat dla każdego kompletu – pole „Rabat za ten komplet (%)” w edycji produktu (sekcja „Komplet (zestaw)”), na stronie kompletu albo na dowolnej jego części. Puste = rabat domyślny 5% (Dostosuj → FOX.SKLEP.PL → Narzędzia sklepu). Działa w sekcji „Zbuduj komplet”, cenie „Komplet od”, koszyku i etykiecie „w komplecie −X%”.
 - Okruszki i „Wróć do…” na karcie produktu: ścieżka zawsze z działu głównego (OFF ROAD, ROWEROWY, CASUAL, Części…), nigdy z kategorii pomocniczych (Prezenty, Pomysł na prezent, Wyprzedaż, Nowości FOX). Produkt w kilku działach trafia tam, gdzie ma więcej kategorii; przy remisie OFF ROAD przed ROWEROWY. Listy do zmiany w Narzędziach sklepu. Adresy produktów bez zmian. Menu podświetla dział produktu.
