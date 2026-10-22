@@ -769,46 +769,74 @@ add_filter( 'woocommerce_is_purchasable', function ( $ok, $product ) {
 	return ( $product instanceof WC_Product && ! $product->is_type( 'variation' ) && fx_kit_is_page( $product ) ) ? false : $ok;
 }, 20, 2 );
 
-/** Cena kompletu: suma najniższych cen części (z rabatem za komplet). [ pełna, po rabacie ] */
+/** Najniższa cena dostępnego rozmiaru części (0 = niedostępna). */
+function fx_kit_part_min_price( $id ) {
+	$p = wc_get_product( $id );
+	if ( ! $p || ! $p->is_in_stock() ) {
+		return 0;
+	}
+	if ( ! $p->is_type( 'variable' ) ) {
+		return (float) wc_get_price_to_display( $p );
+	}
+	$min = 0;
+	foreach ( $p->get_available_variations( 'objects' ) as $v ) {
+		if ( $v && $v->is_in_stock() && $v->is_purchasable() ) {
+			$price = (float) wc_get_price_to_display( $v );
+			if ( $price > 0 && ( ! $min || $price < $min ) ) {
+				$min = $price;
+			}
+		}
+	}
+	return $min;
+}
+
+/**
+ * Cena „Komplet od” na stronie kompletu i na listach produktów. [ pełna, po rabacie ]
+ *  - strój (góra + spodnie w komplecie): góra + spodnie, najtańsze dostępne rozmiary, z rabatem za komplet,
+ *  - inne komplety (np. ochraniacze): dwie najtańsze dostępne części; rabat liczony tylko wtedy,
+ *    gdy te dwie części to cały komplet (rabat w koszyku jest za komplet, więc cena musi być uczciwa).
+ */
 function fx_kit_page_prices( $product_id ) {
 	$kit = fx_kit_resolve( $product_id );
 	if ( ! $kit['parts'] ) {
 		return array( 0, 0 );
 	}
-	// Tylko góra stroju + spodnie, najtańszy dostępny rozmiar każdej z nich. Gdy którejś nie ma – brak ceny „od”.
-	$sum   = 0;
+	$pct = fx_kit_discount( $product_id );
+
+	// Strój: góra + spodnie.
 	$found = array();
 	foreach ( $kit['parts'] as $id ) {
 		$type = fx_kit_parse_name( get_the_title( $id ) )[0];
 		if ( ! in_array( $type, array( 'koszulka', 'spodnie' ), true ) || isset( $found[ $type ] ) ) {
 			continue;
 		}
-		$p = wc_get_product( $id );
-		if ( ! $p || ! $p->is_in_stock() ) {
-			continue;
-		}
-		$min = 0;
-		if ( $p->is_type( 'variable' ) ) {
-			foreach ( $p->get_available_variations( 'objects' ) as $v ) {
-				if ( $v && $v->is_in_stock() && $v->is_purchasable() ) {
-					$price = (float) wc_get_price_to_display( $v );
-					if ( $price > 0 && ( ! $min || $price < $min ) ) {
-						$min = $price;
-					}
-				}
-			}
-		} else {
-			$min = (float) wc_get_price_to_display( $p );
-		}
+		$min = fx_kit_part_min_price( $id );
 		if ( $min > 0 ) {
 			$found[ $type ] = $min;
 		}
 	}
-	if ( count( $found ) < 2 ) {
+	if ( 2 === count( $found ) ) {
+		$sum = array_sum( $found );
+		return array( $sum, $sum * ( 1 - $pct / 100 ) );
+	}
+
+	// Pozostałe komplety: dwie najtańsze dostępne części.
+	$prices = array();
+	foreach ( $kit['parts'] as $id ) {
+		$min = fx_kit_part_min_price( $id );
+		if ( $min > 0 ) {
+			$prices[ $id ] = $min;
+		}
+	}
+	if ( count( $prices ) < 2 ) {
 		return array( 0, 0 );
 	}
-	$sum = array_sum( $found );
-	return array( $sum, $sum * ( 1 - fx_kit_discount( $product_id ) / 100 ) );
+	asort( $prices );
+	$two  = array_slice( $prices, 0, 2, true );
+	$sum  = array_sum( $two );
+	$core = isset( $kit['core'] ) ? $kit['core'] : $kit['parts'];
+	$all  = ! array_diff( array_map( 'intval', $core ), array_map( 'intval', array_keys( $two ) ) );
+	return array( $sum, $all ? $sum * ( 1 - $pct / 100 ) : $sum );
 }
 
 add_filter( 'woocommerce_get_price_html', function ( $html, $product ) {

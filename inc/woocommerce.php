@@ -359,10 +359,10 @@ function fx_product_accordion() {
 
 	// Lewa kolumna: pełny opis produktu, zawsze rozwinięty.
 	if ( $post && '' !== trim( $post->post_content ) ) {
-		// Długi opis zwinięty do ~2 ekranów z „Czytaj cały opis” – treść jest w kodzie strony (SEO bez zmian).
-		echo '<div class="fx-pdesc__main" data-fx-more><h2 class="fx-pdesc__title">Opis produktu</h2><div class="fx-pdesc__body fx-content fx-prose">';
+		// Opis zawsze w całości, bez zwijania („Czytaj cały opis” usunięte na życzenie sklepu).
+		echo '<div class="fx-pdesc__main"><h2 class="fx-pdesc__title">Opis produktu</h2><div class="fx-pdesc__body fx-content fx-prose">';
 		echo fx_clean_html( apply_filters( 'the_content', get_the_content() ) ); // phpcs:ignore
-		echo '</div><button type="button" class="fx-pdesc__more fx-btn fx-btn--outline" hidden aria-expanded="false">Czytaj cały opis</button></div>';
+		echo '</div></div>';
 	}
 
 	// Prawa kolumna: szczegóły w akordeonie.

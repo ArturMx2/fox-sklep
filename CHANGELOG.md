@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.20.2
+- Cena „Komplet od” (strona kompletu i listy produktów): strój jak dotąd (góra + spodnie z rabatem); pozostałe komplety (np. ochraniacze) – suma dwóch najtańszych dostępnych części. Rabat za komplet wliczony tylko, gdy te dwie części to cały komplet (rabat w koszyku jest za pełny komplet). Wcześniej takie komplety pokazywały „Sprawdź dostępne części”.
+- Opis produktu zawsze w całości – usunięte zwijanie i przycisk „Czytaj cały opis”.
+
 ## 3.20.1
 - Dostosuj → Strona główna – Odkrywaj: przyciski „+ Dodaj kafel” i „− Usuń ostatni” pod listą kafli (pola nowego kafla pokazują się od razu). Limit kafli 12 → 20. Nowy kafel domyślnie „Zawsze (moto i rower)”.
 
