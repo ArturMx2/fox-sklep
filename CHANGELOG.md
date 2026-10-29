@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.20.3
+- Dostawa: gdy klient ma darmową dostawę, płatne metody znikają (np. „Kurier InPost: 18,45 zł” obok „Kurier InPost darmowa dostawa”). Pobranie zostaje (lista wyjątków w Narzędziach sklepu).
+- „E-Bon na email” tylko, gdy w koszyku są wyłącznie bony podarunkowe (produkt ID 25473 albo „voucher / bon podarunkowy” w nazwie). Bon z innym produktem = zwykła wysyłka.
+
 ## 3.20.2
 - Cena „Komplet od” (strona kompletu i listy produktów): strój jak dotąd (góra + spodnie z rabatem); pozostałe komplety (np. ochraniacze) – suma dwóch najtańszych dostępnych części. Rabat za komplet wliczony tylko, gdy te dwie części to cały komplet (rabat w koszyku jest za pełny komplet). Wcześniej takie komplety pokazywały „Sprawdź dostępne części”.
 - Opis produktu zawsze w całości – usunięte zwijanie i przycisk „Czytaj cały opis”.
