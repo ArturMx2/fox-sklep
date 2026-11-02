@@ -2,13 +2,12 @@
 /**
  * Komunikat o wysyłce nad przyciskiem „Dodaj do koszyka” (jak w „FOX – Termin wysyłki i dostawy” 1.2.1).
  *
- * - dzień roboczy przed godziną graniczną (domyślnie 15:00): „Zamów do 15:00 – większość
- *   produktów wysyłamy jeszcze dziś” + licznik czasu,
- * - po godzinie granicznej, w weekend i w święta: neutralny komunikat zachęcający do sprawdzenia
- *   terminu w koszyku,
+ * - konkretny dzień: towar w sklepie stacjonarnym (lista z synchronizacji Base) – „Wyślemy jeszcze dziś”
+ *   przed godziną graniczną, pozostałe – „Wyślemy jutro (środa)”; plus przewidywana dostawa i licznik,
+ * - produkt z rozmiarami: przed wyborem „Część rozmiarów wyślemy jeszcze dziś”, po wyborze – termin rozmiaru,
  * - produkty proste i wariantowe; ukryty dla niedostępnego wariantu,
  * - czas zawsze polski (Europe/Warsaw), polskie święta ustawowe liczone automatycznie,
- * - bez zapytań do BaseLinkera – dokładny termin liczy koszyk.
+ * - bez zapytań do BaseLinkera – ta sama lista i te same zasady co koszyk.
  *
  * @package foxsklep
  */
@@ -64,13 +63,16 @@ function fx_ship_cta_conf() {
 		$conf['on']      = ! empty( $s['show_product_cta'] );
 		$conf['cutoff']  = $s['cutoff_time'];
 		$conf['blocked'] = function_exists( 'fox_bl_delivery_parse_blocked_dates' ) ? array_keys( fox_bl_delivery_parse_blocked_dates( $s['blocked_dates'] ) ) : array();
+		$conf['days_local'] = (int) ( $s['days_local'] ?? 0 );
+		$conf['days_other'] = (int) ( $s['days_other'] ?? 1 );
 	}
+	$conf += array( 'days_local' => 0, 'days_other' => 1 );
 	$y               = (int) wp_date( 'Y' );
 	$conf['blocked'] = array_values( array_unique( array_merge( $conf['blocked'], fx_pl_holidays( $y ), fx_pl_holidays( $y + 1 ) ) ) );
 	return $conf;
 }
 
-/* Nad wyborem ilości i przyciskiem (jak w „FOX – Termin wysyłki i dostawy” 1.2.1). */
+/* Nad wyborem ilości i przyciskiem: konkretny dzień wysyłki i dostawy dla produktu / wybranego rozmiaru. */
 add_action( 'woocommerce_before_add_to_cart_button', function () {
 	if ( ! is_product() ) {
 		return;
@@ -83,13 +85,27 @@ add_action( 'woocommerce_before_add_to_cart_button', function () {
 	if ( ! $product instanceof WC_Product || ! $product->is_purchasable() ) {
 		return;
 	}
-	$ok = $product->is_in_stock();
+	$ok    = $product->is_in_stock();
+	$local = array();
+	if ( function_exists( 'fx_ls_data' ) ) {
+		$st = (array) ( fx_ls_data()['store'] ?? array() );
+		if ( $product->is_type( 'variable' ) ) {
+			foreach ( $product->get_children() as $vid ) {
+				if ( (int) ( $st[ $vid ] ?? 0 ) > 0 ) {
+					$local[] = $vid;
+				}
+			}
+		} elseif ( (int) ( $st[ $product->get_id() ] ?? 0 ) > 0 ) {
+			$local[] = $product->get_id();
+		}
+	}
+	$state = $product->is_type( 'variable' ) ? ( $local ? 'some' : 'none' ) : ( $local ? 'all' : 'none' );
 	?>
-	<div class="fx-ship" id="fx-ship" data-cutoff="<?php echo esc_attr( $conf['cutoff'] ); ?>" data-holidays="<?php echo esc_attr( implode( ',', $conf['blocked'] ) ); ?>" data-available="<?php echo $ok ? '1' : '0'; ?>" aria-live="polite"<?php echo $ok ? '' : ' hidden'; ?>>
+	<div class="fx-ship" id="fx-ship" data-cutoff="<?php echo esc_attr( $conf['cutoff'] ); ?>" data-holidays="<?php echo esc_attr( implode( ',', $conf['blocked'] ) ); ?>" data-available="<?php echo $ok ? '1' : '0'; ?>" data-local="<?php echo esc_attr( $state ); ?>" data-days-local="<?php echo (int) $conf['days_local']; ?>" data-days-other="<?php echo (int) $conf['days_other']; ?>" aria-live="polite"<?php echo $ok ? '' : ' hidden'; ?>>
 		<span class="fx-ship__icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6.5h10v9h-10zM13.5 9h3.4l3.1 3.2v3.3h-6.5z"/><circle cx="7" cy="17.3" r="1.7"/><circle cx="17" cy="17.3" r="1.7"/></svg></span>
 		<div class="fx-ship__body">
-			<div class="fx-ship__top"><p class="fx-ship__title" data-fx-ship-title>Sprawdź dokładny termin dostawy</p><span class="fx-ship__badge" data-fx-ship-badge>w koszyku</span></div>
-			<p class="fx-ship__desc" data-fx-ship-desc>Dodaj produkt do koszyka — od razu pokażemy przewidywaną datę wysyłki i dostawy.</p>
+			<div class="fx-ship__top"><p class="fx-ship__title" data-fx-ship-title>Wysyłka w 1–2 dni robocze</p><span class="fx-ship__badge" data-fx-ship-badge hidden></span></div>
+			<p class="fx-ship__desc" data-fx-ship-desc></p>
 			<p class="fx-ship__count" data-fx-ship-count hidden></p>
 		</div>
 	</div>
@@ -107,42 +123,60 @@ add_action( 'wp_footer', function () {
 		if (!box) { return; }
 		var t = box.querySelector('[data-fx-ship-title]'), d = box.querySelector('[data-fx-ship-desc]'), c = box.querySelector('[data-fx-ship-count]'), bdg = box.querySelector('[data-fx-ship-badge]');
 		var cp = (box.dataset.cutoff || '15:00').split(':'), ch = parseInt(cp[0] || '15', 10), cm = parseInt(cp[1] || '0', 10), hol = (box.dataset.holidays || '').split(','), parentOk = box.dataset.available === '1';
+		var dl = parseInt(box.dataset.daysLocal || '0', 10), dOther = parseInt(box.dataset.daysOther || '1', 10), state = box.dataset.local || 'none', cur = state;
+		var DN = ['niedziela','poniedziałek','wtorek','środa','czwartek','piątek','sobota'], DW = ['w niedzielę','w poniedziałek','we wtorek','w środę','w czwartek','w piątek','w sobotę'];
 		function two(v) { return (v < 10 ? '0' : '') + v; }
 		function now() {
 			try {
-				var p = {}; new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Warsaw', year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(new Date()).forEach(function (x) { p[x.type] = x.value; });
-				return { wd: { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 }[p.weekday] || 7, date: p.year + '-' + p.month + '-' + p.day, s: (+p.hour) * 3600 + (+p.minute) * 60 + (+p.second) };
+				var p = {}; new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Warsaw', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(new Date()).forEach(function (x) { p[x.type] = x.value; });
+				return { date: p.year + '-' + p.month + '-' + p.day, s: (+p.hour) * 3600 + (+p.minute) * 60 + (+p.second) };
 			} catch (e) {
 				var n = new Date();
-				return { wd: n.getDay() || 7, date: n.getFullYear() + '-' + two(n.getMonth() + 1) + '-' + two(n.getDate()), s: n.getHours() * 3600 + n.getMinutes() * 60 + n.getSeconds() };
+				return { date: n.getFullYear() + '-' + two(n.getMonth() + 1) + '-' + two(n.getDate()), s: n.getHours() * 3600 + n.getMinutes() * 60 + n.getSeconds() };
 			}
 		}
+		function D(s) { var a = s.split('-'); return new Date(Date.UTC(+a[0], +a[1] - 1, +a[2], 12)); }
+		function S(dt) { return dt.getUTCFullYear() + '-' + two(dt.getUTCMonth() + 1) + '-' + two(dt.getUTCDate()); }
+		function work(dt) { var w = dt.getUTCDay(); return w !== 0 && w !== 6 && hol.indexOf(S(dt)) === -1; }
+		function addBiz(dt, n) { var r = new Date(dt.getTime()); while (n > 0) { r.setUTCDate(r.getUTCDate() + 1); if (work(r)) { n--; } } return r; }
+		function nextBiz(dt) { return addBiz(dt, 1); }
+		function short(dt) { return two(dt.getUTCDate()) + '.' + two(dt.getUTCMonth() + 1); }
 		function pl(n, a, b, cc) { var l = n % 10, ll = n % 100; return n === 1 ? a : (l >= 2 && l <= 4 && !(ll >= 12 && ll <= 14) ? b : cc); }
+		function when(dt, today) {
+			var diff = Math.round((dt - today) / 864e5);
+			if (diff === 0) { return 'dziś'; }
+			if (diff === 1) { return 'jutro (' + DN[dt.getUTCDay()] + ')'; }
+			return DW[dt.getUTCDay()] + ' (' + short(dt) + ')';
+		}
 		function update() {
 			if (box.hidden) { return; }
-			var x = now(), cut = ch * 3600 + cm * 60, work = x.wd <= 5 && hol.indexOf(x.date) === -1;
-			if (work && x.s < cut) {
-				box.classList.add('is-today');
-				t.textContent = 'Większość zamówień wysyłamy jeszcze dziś';
-				bdg.textContent = 'zamów do ' + two(ch) + ':' + two(cm);
-				d.textContent = 'Dokładną datę wysyłki i dostawy pokażemy od razu po dodaniu produktu do koszyka.';
+			var x = now(), today = D(x.date), cut = ch * 3600 + cm * 60, before = work(today) && x.s < cut;
+			var base = before ? today : nextBiz(today);
+			var days = cur === 'none' ? dOther : dl;
+			var ship = addBiz(base, days), dlv = addBiz(ship, 1), shipToday = S(ship) === x.date;
+			box.classList.toggle('is-today', shipToday);
+			if (cur === 'some') {
+				t.textContent = shipToday ? 'Część rozmiarów wyślemy jeszcze dziś' : 'Część rozmiarów wyślemy ' + when(ship, today);
+				d.textContent = 'Wybierz rozmiar – pokażemy dokładny termin wysyłki i dostawy.';
+			} else {
+				t.textContent = shipToday ? 'Wyślemy jeszcze dziś' : 'Wyślemy ' + when(ship, today);
+				d.textContent = 'Przewidywana dostawa: ' + DN[dlv.getUTCDay()] + ', ' + short(dlv) + '.' + (cur === 'all' ? ' Produkt jest w naszym sklepie stacjonarnym.' : '');
+			}
+			if (before) {
+				bdg.textContent = 'zamów do ' + two(ch) + ':' + two(cm); bdg.hidden = false;
 				var m = Math.max(0, Math.ceil((cut - x.s) / 60)), h = Math.floor(m / 60); m = m % 60;
 				c.textContent = 'Do godziny granicznej pozostało ' + (h > 0 ? h + ' ' + pl(h, 'godzina', 'godziny', 'godzin') + (m > 0 ? ' ' + m + ' min' : '') : m + ' ' + pl(m, 'minuta', 'minuty', 'minut'));
 				c.hidden = false;
 			} else {
-				box.classList.remove('is-today');
-				t.textContent = 'Sprawdź dokładny termin dostawy';
-				bdg.textContent = 'w koszyku';
-				d.textContent = 'Dodaj produkt do koszyka — od razu pokażemy przewidywaną datę wysyłki i dostawy.';
-				c.textContent = ''; c.hidden = true;
+				bdg.hidden = true; c.textContent = ''; c.hidden = true;
 			}
 		}
 		function show() { box.hidden = false; update(); }
 		function hide() { box.hidden = true; }
 		if (window.jQuery) {
 			var $f = jQuery('form.variations_form');
-			$f.on('found_variation', function (e, v) { (v && v.is_in_stock && v.is_purchasable) ? show() : hide(); });
-			$f.on('reset_data hide_variation', function () { parentOk ? show() : hide(); });
+			$f.on('found_variation', function (e, v) { cur = v && v.fx_store ? 'all' : 'none'; (v && v.is_in_stock && v.is_purchasable) ? show() : hide(); });
+			$f.on('reset_data hide_variation', function () { cur = state; parentOk ? show() : hide(); });
 		}
 		parentOk ? show() : hide();
 		setInterval(update, 30000);

@@ -55,13 +55,25 @@ function fx_ls_log_text( $limit = 200 ) {
  * Ustawienia
  * ===================================================================== */
 
+/* Jednorazowo: „Wysyłka 24h” → „Wysyłka dziś” (towar ze sklepu wysyłamy tego samego dnia, reszta i tak w 24h). */
+add_action( 'init', function () {
+	$s = get_option( FX_LS_OPT );
+	if ( is_array( $s ) && 'Wysyłka 24h' === ( $s['ship_label'] ?? '' ) && ! get_option( 'fx_ls_label_v2' ) ) {
+		$s['ship_label'] = 'Wysyłka dziś';
+		update_option( FX_LS_OPT, $s, false );
+	}
+	if ( ! get_option( 'fx_ls_label_v2' ) ) {
+		update_option( 'fx_ls_label_v2', 1, false );
+	}
+} );
+
 function fx_ls_settings() {
 	$d = array(
 		'on'          => 1,
 		'store_wh'    => 'bl_33043',
 		'ship_wh'     => '', // puste = magazyny „0 dni” z Terminu wysyłki FOX
 		'times'       => '6:00, 11:00, 14:00',
-		'ship_label'  => 'Wysyłka 24h',
+		'ship_label'  => 'Wysyłka dziś',
 		'store_label' => 'Dostępny w sklepie stacjonarnym',
 		'badge'       => 1,
 	);
@@ -176,6 +188,9 @@ add_filter( 'fx_filter_switches', function ( $sw, $term ) {
 		}
 		$base = remove_query_arg( array( $param, 'paged' ), fx_filter_base_url() );
 		$note = '';
+		if ( 'ship' === $kind && function_exists( 'fox_bl_delivery_get_settings' ) ) {
+			$note = 'przy zamówieniu do ' . fox_bl_delivery_get_settings()['cutoff_time'];
+		}
 		if ( 'store' === $kind ) {
 			$note = trim( fx_mod( 'store_city' ) . ( fx_mod( 'store_hours_text' ) ? ' · ' . fx_mod( 'store_hours_text' ) : '' ), ' ·' );
 		}
@@ -263,7 +278,7 @@ add_action( 'wp_footer', function () {
 	<script>
 	(function(){var box=document.querySelector('[data-fx-ls]');if(!box||!window.jQuery)return;var pick=box.querySelector('.fx-ls__pick');
 	var f=jQuery('form.variations_form');
-	f.on('found_variation',function(e,v){var t=[];if(v.fx_ship)t.push('✓ '+box.dataset.shipLabel);if(v.fx_store)t.push('✓ Ten rozmiar jest w sklepie stacjonarnym');pick.textContent=t.join(' · ');pick.hidden=!t.length});
+	f.on('found_variation',function(e,v){pick.textContent=v.fx_store?'✓ Ten rozmiar jest w sklepie stacjonarnym – możesz go przymierzyć':'';pick.hidden=!v.fx_store});
 	f.on('reset_data hide_variation',function(){pick.hidden=true});
 	})();
 	</script>

@@ -1,5 +1,12 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.22.0
+- Termin wysyłki przebudowany: zero zapytań do BaseLinkera przy przeglądaniu i w koszyku. Termin liczony z listy towaru w sklepie stacjonarnym (synchronizacja kilka razy dziennie): towar w sklepie – wysyłka tego samego dnia przy zamówieniu do 15:00, pozostałe – następnego dnia roboczego. Koszyk = termin najwolniejszej pozycji; liczy się też ilość (3 szt. w koszyku, 1 w sklepie → „pozostałe”). Święta i dni bez wysyłki jak dotąd. Pola dla BaseLinkera w zamówieniu bez zmian.
+- Karta produktu: konkretny termin zamiast „Większość zamówień wysyłamy dziś” – „Wyślemy jeszcze dziś / jutro (wtorek) / w poniedziałek (09.11)”, przewidywana dostawa, licznik do 15:00; przed wyborem rozmiaru „Część rozmiarów wyślemy jeszcze dziś”.
+- Koszyk: licznik „Zamów w ciągu…” także przy wysyłce jutro (po 15:00 termin się przesuwa).
+- Ustawienia → Termin wysyłki FOX: „Towar w sklepie stacjonarnym – po X dniach” i „Pozostałe produkty – po X dniach” zamiast listy magazynów.
+- Filtr „Wysyłka 24h” → „Wysyłka dziś” z dopiskiem „przy zamówieniu do 15:00” (towar spoza sklepu i tak wysyłamy w 24h).
+
 ## 3.21.3
 - Wysyłka 24h / sklep: domyślnie oba filtry z magazynu sklepu (bl_33043, ~2 tys. pozycji). Wcześniej „Wysyłka 24h” brała magazyny „0 dni” z Terminu wysyłki, w tym warehouse_4011644 z ~86 tys. pozycji (magazyn dostawcy) – synchronizacja dociągała SKU dla ~89 tys. produktów. Bezpiecznik: przerwanie przy ponad 15 tys. produktów do sprawdzenia. Przycisk „Przerwij synchronizację”.
 

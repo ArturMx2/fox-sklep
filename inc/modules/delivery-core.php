@@ -56,6 +56,8 @@ function fox_bl_delivery_defaults() {
         'blocked_dates'    => '',
         'show_note'        => 1,
         'show_product_cta' => 1,
+        'days_local'       => 0, // towar w sklepie stacjonarnym (lista z synchronizacji Base)
+        'days_other'       => 1, // pozostałe produkty
     ];
 }
 
@@ -109,6 +111,8 @@ function fox_bl_delivery_sanitize_settings($input) {
         'blocked_dates'   => sanitize_textarea_field($input['blocked_dates'] ?? ''),
         'show_note'       => !empty($input['show_note']) ? 1 : 0,
         'show_product_cta' => !empty($input['show_product_cta']) ? 1 : 0,
+        'days_local'      => max(0, min(30, (int) ($input['days_local'] ?? $defaults['days_local']))),
+        'days_other'      => max(0, min(30, (int) ($input['days_other'] ?? $defaults['days_other']))),
     ];
 }
 
@@ -121,7 +125,7 @@ function fox_bl_delivery_settings_page() {
     ?>
     <div class="wrap">
         <h1>Termin wysyłki i dostawy – FOX.SKLEP.PL</h1>
-        <p>Kod oblicza termin całego koszyka na podstawie stanów magazynowych BaseLinkera.</p>
+        <p>Termin całego koszyka liczony z listy towaru w sklepie stacjonarnym, którą sklep pobiera z BaseLinkera kilka razy dziennie (WooCommerce → <a href="<?php echo esc_url(admin_url('admin.php?page=fx-local-stock')); ?>">Wysyłka 24h / sklep</a>). Klient nie czeka na BaseLinkera – nic nie jest odpytywane przy przeglądaniu ani w koszyku.</p>
 
         <form method="post" action="options.php">
             <?php settings_fields(FOX_BL_DELIVERY_SETTINGS_GROUP); ?>
@@ -169,38 +173,30 @@ function fox_bl_delivery_settings_page() {
                 </tr>
 
                 <tr>
-                    <th scope="row"><label for="fox_fallback_days">Termin awaryjny</label></th>
+                    <th scope="row"><label for="fox_days_local">Towar w sklepie stacjonarnym</label></th>
                     <td>
-                        <input type="number" id="fox_fallback_days"
-                               name="<?php echo esc_attr(FOX_BL_DELIVERY_OPTION); ?>[fallback_days]"
-                               value="<?php echo esc_attr($settings['fallback_days']); ?>"
-                               min="-1" max="30"> dni roboczych
-                        <p class="description">Używany, gdy produktu nie uda się dopasować w BaseLinkerze. Ustaw -1, aby zamiast daty pokazać komunikat o konieczności potwierdzenia terminu.</p>
+                        wysyłka po <input type="number" id="fox_days_local"
+                               name="<?php echo esc_attr(FOX_BL_DELIVERY_OPTION); ?>[days_local]"
+                               value="<?php echo esc_attr($settings['days_local']); ?>"
+                               min="0" max="30" style="width:70px"> dniach roboczych
+                        <p class="description">0 = tego samego dnia (zamówienie przed godziną graniczną). Magazyn sklepu ustawiasz w „Wysyłka 24h / sklep” (teraz: <code><?php echo esc_html(function_exists('fx_ls_settings') ? fx_ls_settings()['store_wh'] : ''); ?></code>).</p>
                     </td>
                 </tr>
 
                 <tr>
-                    <th scope="row"><label for="fox_cache_minutes">Pamięć podręczna</label></th>
+                    <th scope="row"><label for="fox_days_other">Pozostałe produkty</label></th>
                     <td>
-                        <input type="number" id="fox_cache_minutes"
-                               name="<?php echo esc_attr(FOX_BL_DELIVERY_OPTION); ?>[cache_minutes]"
-                               value="<?php echo esc_attr($settings['cache_minutes']); ?>"
-                               min="1" max="60"> minut
+                        wysyłka po <input type="number" id="fox_days_other"
+                               name="<?php echo esc_attr(FOX_BL_DELIVERY_OPTION); ?>[days_other]"
+                               value="<?php echo esc_attr($settings['days_other']); ?>"
+                               min="0" max="30" style="width:70px"> dniach roboczych
+                        <p class="description">1 = następnego dnia roboczego (zamówienie przed godziną graniczną). Koszyk z towarem z obu miejsc = termin dłuższego.</p>
                     </td>
                 </tr>
 
-                <tr>
-                    <th scope="row"><label for="fox_warehouse_map">Magazyny i czas realizacji</label></th>
-                    <td>
-                        <textarea id="fox_warehouse_map"
-                                  name="<?php echo esc_attr(FOX_BL_DELIVERY_OPTION); ?>[warehouse_map]"
-                                  rows="8" cols="55" class="large-text code"><?php echo esc_textarea($settings['warehouse_map']); ?></textarea>
-                        <p class="description">
-                            Jeden magazyn w wierszu, format: <code>klucz_magazynu=liczba_dni_roboczych</code>.<br>
-                            Przykład: <code>bl_33043=0</code>, <code>bl_43318=1</code>, <code>bl_47903=7</code>.
-                        </p>
-                    </td>
-                </tr>
+                <input type="hidden" name="<?php echo esc_attr(FOX_BL_DELIVERY_OPTION); ?>[fallback_days]" value="<?php echo esc_attr($settings['fallback_days']); ?>">
+                <input type="hidden" name="<?php echo esc_attr(FOX_BL_DELIVERY_OPTION); ?>[cache_minutes]" value="<?php echo esc_attr($settings['cache_minutes']); ?>">
+                <input type="hidden" name="<?php echo esc_attr(FOX_BL_DELIVERY_OPTION); ?>[warehouse_map]" value="<?php echo esc_attr($settings['warehouse_map']); ?>">
 
                 <tr>
                     <th scope="row"><label for="fox_blocked_dates">Dni bez wysyłki</label></th>
@@ -231,9 +227,9 @@ function fox_bl_delivery_settings_page() {
                             <input type="checkbox"
                                    name="<?php echo esc_attr(FOX_BL_DELIVERY_OPTION); ?>[show_product_cta]"
                                    value="1" <?php checked(!empty($settings['show_product_cta'])); ?>>
-                            Pokaż pod przyciskiem „Dodaj do koszyka” komunikat zachęcający do sprawdzenia terminu dostawy.
+                            Pokaż nad przyciskiem „Dodaj do koszyka” termin wysyłki i dostawy.
                         </label>
-                        <p class="description">Komunikat nie odpytuje BaseLinkera. Dokładny termin jest liczony dopiero dla całego koszyka.</p>
+                        <p class="description">Konkretny dzień wysyłki dla wybranego rozmiaru (z listy towaru w sklepie), z licznikiem do godziny granicznej.</p>
                     </td>
                 </tr>
             </table>
@@ -338,161 +334,9 @@ function fox_bl_delivery_api_call($method, array $parameters, $api_token) {
     return $data;
 }
 
-function fox_bl_delivery_cache_error($cache_key, $message) {
-    set_transient(
-        $cache_key,
-        [
-            '__fox_error' => 1,
-            'message'    => sanitize_text_field($message),
-        ],
-        MINUTE_IN_SECONDS
-    );
-}
-
-function fox_bl_delivery_get_stock_levels($main_sku, $variant_sku, array $settings) {
-    $cache_key = 'fox_bl_stock_v1_' . md5(
-        (string) $settings['inventory_id'] . '|' . $main_sku . '|' . $variant_sku
-    );
-
-    $cached = get_transient($cache_key);
-
-    if (is_array($cached) && isset($cached['__fox_error'])) {
-        return new WP_Error('fox_bl_cached_error', $cached['message'] ?? 'Błąd pobierania danych.');
-    }
-
-    if (is_array($cached)) {
-        return $cached;
-    }
-
-    $list = fox_bl_delivery_api_call(
-        'getInventoryProductsList',
-        [
-            'inventory_id' => (int) $settings['inventory_id'],
-            'filter_sku'   => $main_sku,
-        ],
-        $settings['api_token']
-    );
-
-    if (is_wp_error($list)) {
-        fox_bl_delivery_cache_error($cache_key, $list->get_error_message());
-        return $list;
-    }
-
-    if (empty($list['products']) || !is_array($list['products'])) {
-        fox_bl_delivery_cache_error($cache_key, 'Nie znaleziono produktu po SKU.');
-        return new WP_Error('fox_bl_product_not_found', 'Nie znaleziono produktu po SKU.');
-    }
-
-    $product_id = array_key_first($list['products']);
-
-    if ($product_id === null) {
-        fox_bl_delivery_cache_error($cache_key, 'Brak identyfikatora produktu.');
-        return new WP_Error('fox_bl_missing_product_id', 'Brak identyfikatora produktu.');
-    }
-
-    $product_data_response = fox_bl_delivery_api_call(
-        'getInventoryProductsData',
-        [
-            'inventory_id' => (int) $settings['inventory_id'],
-            'products'     => [(int) $product_id],
-        ],
-        $settings['api_token']
-    );
-
-    if (is_wp_error($product_data_response)) {
-        fox_bl_delivery_cache_error($cache_key, $product_data_response->get_error_message());
-        return $product_data_response;
-    }
-
-    $products_data = $product_data_response['products'] ?? [];
-    $product_data = $products_data[$product_id] ?? $products_data[(string) $product_id] ?? null;
-
-    if (!is_array($product_data) && !empty($products_data)) {
-        $product_data = current($products_data);
-    }
-
-    if (!is_array($product_data)) {
-        fox_bl_delivery_cache_error($cache_key, 'Brak danych produktu w odpowiedzi BaseLinkera.');
-        return new WP_Error('fox_bl_missing_product_data', 'Brak danych produktu w odpowiedzi BaseLinkera.');
-    }
-
-    $stock_source = $product_data;
-
-    if ($variant_sku !== '') {
-        $variant_found = false;
-
-        foreach (($product_data['variants'] ?? []) as $variant) {
-            if (is_array($variant) && (string) ($variant['sku'] ?? '') === (string) $variant_sku) {
-                $stock_source = $variant;
-                $variant_found = true;
-                break;
-            }
-        }
-
-        if (!$variant_found) {
-            fox_bl_delivery_cache_error($cache_key, 'Nie znaleziono wariantu po SKU.');
-            return new WP_Error('fox_bl_variant_not_found', 'Nie znaleziono wariantu po SKU.');
-        }
-    }
-
-    $raw_stock = $stock_source['stock'] ?? [];
-
-    if (!is_array($raw_stock)) {
-        fox_bl_delivery_cache_error($cache_key, 'Brak danych magazynowych produktu.');
-        return new WP_Error('fox_bl_missing_stock', 'Brak danych magazynowych produktu.');
-    }
-
-    $stock = [];
-    foreach ($raw_stock as $warehouse_key => $quantity) {
-        $stock[sanitize_key((string) $warehouse_key)] = max(0, (int) floor((float) $quantity));
-    }
-
-    set_transient(
-        $cache_key,
-        $stock,
-        max(1, (int) $settings['cache_minutes']) * MINUTE_IN_SECONDS
-    );
-
-    return $stock;
-}
-
 // -----------------------------------------------------------------------------
-// 4. OBLICZANIE CZASU DLA PRODUKTU I KOSZYKA
+// 4. OBLICZANIE CZASU DLA KOSZYKA (z listy towaru w sklepie – bez zapytań do BaseLinkera)
 // -----------------------------------------------------------------------------
-
-function fox_bl_delivery_days_for_quantity(array $stock_levels, array $warehouses, $required_quantity) {
-    $required_quantity = max(1, (int) $required_quantity);
-    $available = [];
-
-    foreach ($warehouses as $warehouse_key => $days) {
-        $quantity = max(0, (int) ($stock_levels[$warehouse_key] ?? 0));
-
-        if ($quantity > 0) {
-            $available[] = [
-                'days'     => (int) $days,
-                'quantity' => $quantity,
-            ];
-        }
-    }
-
-    usort($available, function ($a, $b) {
-        return $a['days'] <=> $b['days'];
-    });
-
-    $collected_quantity = 0;
-    $required_days = 0;
-
-    foreach ($available as $warehouse) {
-        $collected_quantity += $warehouse['quantity'];
-        $required_days = max($required_days, $warehouse['days']);
-
-        if ($collected_quantity >= $required_quantity) {
-            return $required_days;
-        }
-    }
-
-    return null;
-}
 
 function fox_bl_delivery_is_business_day(DateTimeImmutable $date, array $blocked_dates) {
     $weekday = (int) $date->format('N');
@@ -565,6 +409,7 @@ function fox_bl_delivery_get_cart_lines() {
         }
 
         $lines[$line_key]['quantity'] += $quantity;
+        $lines[$line_key]['id'] = (int) $product->get_id();
     }
 
     return array_values($lines);
@@ -586,74 +431,19 @@ function fox_bl_delivery_get_cart_estimate() {
         return $request_cache[$cache_key];
     }
 
-    $warehouses = fox_bl_delivery_parse_warehouses($settings['warehouse_map']);
     $blocked_dates = fox_bl_delivery_blocked($settings);
-    $fallback_days = (int) $settings['fallback_days'];
 
-    if (empty($settings['api_token']) || empty($settings['inventory_id']) || empty($warehouses)) {
-        $request_cache[$cache_key] = [
-            'status' => 'unknown',
-            'reason' => 'missing_configuration',
-        ];
-        return $request_cache[$cache_key];
-    }
-
+    // Bez zapytań do BaseLinkera: towar w sklepie stacjonarnym (lista z synchronizacji) = days_local,
+    // reszta = days_other. Ilość ma znaczenie: 3 szt. w koszyku, 1 w sklepie → termin „pozostałe”.
+    $local = function_exists('fx_ls_data') ? (array) (fx_ls_data()['store'] ?? []) : [];
+    $have_sync = function_exists('fx_ls_data') && !empty(fx_ls_data()['at']);
     $worst_days = 0;
-    $used_fallback = false;
+    $used_fallback = !$have_sync;
 
     foreach (fox_bl_delivery_get_cart_lines() as $line) {
-        if ($line['main_sku'] === '') {
-            if ($fallback_days < 0) {
-                $request_cache[$cache_key] = [
-                    'status' => 'unknown',
-                    'reason' => 'missing_sku',
-                ];
-                return $request_cache[$cache_key];
-            }
-
-            $item_days = $fallback_days;
-            $used_fallback = true;
-        } else {
-            $stock_levels = fox_bl_delivery_get_stock_levels(
-                $line['main_sku'],
-                $line['variant_sku'],
-                $settings
-            );
-
-            if (is_wp_error($stock_levels)) {
-                if ($fallback_days < 0) {
-                    $request_cache[$cache_key] = [
-                        'status' => 'unknown',
-                        'reason' => $stock_levels->get_error_code(),
-                    ];
-                    return $request_cache[$cache_key];
-                }
-
-                $item_days = $fallback_days;
-                $used_fallback = true;
-            } else {
-                $item_days = fox_bl_delivery_days_for_quantity(
-                    $stock_levels,
-                    $warehouses,
-                    $line['quantity']
-                );
-
-                if ($item_days === null) {
-                    if ($fallback_days < 0) {
-                        $request_cache[$cache_key] = [
-                            'status' => 'unknown',
-                            'reason' => 'insufficient_stock',
-                        ];
-                        return $request_cache[$cache_key];
-                    }
-
-                    $item_days = $fallback_days;
-                    $used_fallback = true;
-                }
-            }
-        }
-
-        $worst_days = max($worst_days, (int) $item_days);
+        $in_store = (int) ($local[(int) ($line['id'] ?? 0)] ?? 0);
+        $item_days = $in_store >= (int) $line['quantity'] ? (int) $settings['days_local'] : (int) $settings['days_other'];
+        $worst_days = max($worst_days, $item_days);
     }
 
     $timezone = new DateTimeZone(FOX_BL_DELIVERY_TIMEZONE);
@@ -757,7 +547,7 @@ function fox_bl_delivery_render_alert($compact = false) {
     }
 
     $countdown = '';
-    if ($ships_today && !empty($estimate['cutoff_timestamp'])) {
+    if (!empty($estimate['cutoff_timestamp'])) { // także „wyślemy jutro” – po godzinie granicznej termin się przesuwa
         $countdown = '<span class="fox-delivery-countdown" data-cutoff="'
             . esc_attr((string) $estimate['cutoff_timestamp'])
             . '"></span>';
