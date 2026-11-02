@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.21.1
+- Wysyłka 24h / sklep: zapytania zbiorcze do BaseLinkera z czasem do 90 s (było 15 s – „cURL error 28”), 3 próby każdej strony, limit czasu PHP 5 min w tle. „Synchronizuj teraz” działa w tle, panel pokazuje postęp i sam się odświeża. Godziny w panelu w czasie polskim.
+
 ## 3.21.0
 - Nowe filtry na listach produktów: „Wysyłka 24h” i „Dostępny w sklepie stacjonarnym” (z podpisem: miejscowość i godziny otwarcia). Połączone z rozmiarem sprawdzają konkretny rozmiar.
 - Dane z BaseLinkera: synchronizacja w tle o 6:00, 11:00 i 14:00 (do zmiany). Stany wszystkich produktów pobierane zbiorczo (1000 na zapytanie), SKU/EAN dociągane tylko dla nowych produktów z towarem na miejscu; wiązanie po SKU, zapasowo po EAN. Klienci czytają gotową listę – zero zapytań do Base przy przeglądaniu. Sprzedane sztuki znikają z listy od razu po zamówieniu.

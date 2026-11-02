@@ -337,10 +337,33 @@ add_action( FX_LS_EVENT, function ( $mode = 'start' ) {
 /** Zapytanie do BaseLinkera (ten sam klient co Termin wysyłki). */
 function fx_ls_call( $method, $params ) {
 	list( $token ) = fx_ls_api();
-	if ( function_exists( 'fox_bl_delivery_api_call' ) ) {
-		return fox_bl_delivery_api_call( $method, $params, $token );
+	// Własne zapytanie z dłuższym czasem: zbiorcze stany z dużego katalogu Base potrafią iść 20–60 s
+	// (moduł Terminu wysyłki ma 15 s – wystarcza dla pojedynczego produktu, nie dla 1000).
+	$r = wp_remote_post(
+		'https://api.baselinker.com/connector.php',
+		array(
+			'timeout' => 90,
+			'headers' => array( 'X-BLToken' => $token ),
+			'body'    => array(
+				'method'     => $method,
+				'parameters' => wp_json_encode( $params ),
+			),
+		)
+	);
+	if ( is_wp_error( $r ) ) {
+		return $r;
 	}
-	return new WP_Error( 'fx_ls_no_client', 'Brak modułu Termin wysyłki FOX.' );
+	if ( 200 !== (int) wp_remote_retrieve_response_code( $r ) ) {
+		return new WP_Error( 'fx_ls_http', 'BaseLinker: kod HTTP ' . (int) wp_remote_retrieve_response_code( $r ) );
+	}
+	$data = json_decode( wp_remote_retrieve_body( $r ), true );
+	if ( ! is_array( $data ) ) {
+		return new WP_Error( 'fx_ls_json', 'BaseLinker zwrócił nieprawidłową odpowiedź.' );
+	}
+	if ( 'SUCCESS' !== ( $data['status'] ?? '' ) ) {
+		return new WP_Error( 'fx_ls_api', sanitize_text_field( $data['error_message'] ?? 'Błąd BaseLinkera.' ) );
+	}
+	return $data;
 }
 
 function fx_ls_sync_start() {
@@ -370,6 +393,9 @@ function fx_ls_sync_step( $seconds = 20 ) {
 	$st = get_option( FX_LS_STATE );
 	if ( ! is_array( $st ) || empty( $st['phase'] ) || 'done' === $st['phase'] ) {
 		return true;
+	}
+	if ( function_exists( 'set_time_limit' ) ) {
+		@set_time_limit( 300 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors -- jedno zapytanie do Base może trwać ponad minutę
 	}
 	list( $token, $inv ) = fx_ls_api();
 	if ( ! $token || ! $inv ) {
@@ -401,10 +427,16 @@ function fx_ls_sync_step( $seconds = 20 ) {
 			// 1. Stany wszystkich produktów, po 1000 na stronę.
 			$r = fx_ls_call( 'getInventoryProductsStock', array( 'inventory_id' => $inv, 'page' => (int) $st['page'] ) );
 			if ( is_wp_error( $r ) ) {
-				$st['error'] = $r->get_error_message();
-				$st['phase'] = 'done';
+				// Do 3 prób tej samej strony (kolejna za kilka sekund), dopiero potem przerwij.
+				$st['fails'] = (int) ( $st['fails'] ?? 0 ) + 1;
+				$st['error'] = $r->get_error_message() . ' (strona ' . (int) $st['page'] . ', próba ' . $st['fails'] . ' z 3)';
+				if ( $st['fails'] >= 3 ) {
+					$st['phase'] = 'done';
+				}
 				break;
 			}
+			$st['fails'] = 0;
+			$st['error'] = '';
 			$products = (array) ( $r['products'] ?? array() );
 			foreach ( $products as $pid => $p ) {
 				$pid = (int) ( $p['product_id'] ?? $pid );
@@ -577,11 +609,11 @@ add_action( 'admin_post_fx_ls_save', function () {
 	);
 	fx_ls_schedule();
 	if ( ! empty( $in['sync_now'] ) ) {
+		// W tle, żeby panel nie wisiał na długich odpowiedziach Base.
 		fx_ls_sync_start();
-		$done = fx_ls_sync_step( 25 );
-		if ( ! $done ) {
-			wp_schedule_single_event( time() + 5, FX_LS_EVENT, array( 'step' ) );
-		}
+		wp_clear_scheduled_hook( FX_LS_EVENT, array( 'step' ) );
+		wp_schedule_single_event( time(), FX_LS_EVENT, array( 'step' ) );
+		spawn_cron();
 	}
 	wp_safe_redirect( admin_url( 'admin.php?page=fx-local-stock&saved=1' ) );
 	exit;
@@ -595,9 +627,11 @@ function fx_ls_admin_page() {
 	list( $token, $inv ) = fx_ls_api();
 	$next  = wp_next_scheduled( FX_LS_EVENT, array( 'start' ) );
 	$fmt   = function ( $ts ) {
-		return $ts ? wp_date( 'd.m.Y H:i', $ts ) : '—';
+		return $ts ? wp_date( 'd.m.Y H:i', $ts, new DateTimeZone( 'Europe/Warsaw' ) ) . ' (czas polski)' : '—';
 	};
+	$running = ! empty( $st['phase'] ) && 'done' !== $st['phase'];
 	?>
+	<?php if ( $running ) : ?><meta http-equiv="refresh" content="10"><?php endif; ?>
 	<div class="wrap">
 		<h1>Wysyłka 24h i sklep stacjonarny</h1>
 		<p>Sklep w tle pobiera z BaseLinkera stany wybranych magazynów i oznacza produkty: filtry „<?php echo esc_html( $s['ship_label'] ); ?>” i „<?php echo esc_html( $s['store_label'] ); ?>” na listach, etykieta na kafelku, rozmiary do przymierzenia na karcie produktu. Klienci nie odpytują Base – czytają gotową listę.</p>
@@ -610,14 +644,15 @@ function fx_ls_admin_page() {
 
 		<h2>Ostatnia synchronizacja</h2>
 		<table class="widefat striped" style="max-width:760px">
-			<tr><th>Kiedy</th><td><?php echo esc_html( $fmt( $d['at'] ) ); ?><?php echo ! empty( $st['phase'] ) && 'done' !== $st['phase'] ? ' <strong>(trwa kolejna – odśwież za chwilę)</strong>' : ''; ?></td></tr>
+			<tr><th>Kiedy</th><td><?php echo esc_html( $fmt( $d['at'] ) ); ?><?php echo $running ? ' <strong>(trwa synchronizacja: ' . ( 'stock' === $st['phase'] ? 'stany, strona ' . (int) $st['page'] : ( 'data' === $st['phase'] ? 'SKU/EAN, zostało ' . count( (array) ( $st['need'] ?? array() ) ) . ' produktów' : 'zapis' ) ) . ' – strona odświeża się sama)</strong>' : ''; ?></td></tr>
 			<tr><th>Następna</th><td><?php echo esc_html( $fmt( $next ) ); ?></td></tr>
 			<tr><th>Pozycje z Base na tych magazynach</th><td><?php echo (int) ( $stats['base_items'] ?? 0 ); ?> (powiązane ze sklepem: <?php echo (int) ( $stats['matched'] ?? 0 ); ?>)</td></tr>
 			<tr><th><?php echo esc_html( $s['ship_label'] ); ?></th><td><?php echo (int) ( $stats['ship'] ?? 0 ); ?> produktów / rozmiarów</td></tr>
 			<tr><th><?php echo esc_html( $s['store_label'] ); ?></th><td><?php echo (int) ( $stats['store'] ?? 0 ); ?> produktów / rozmiarów</td></tr>
 			<tr><th>Czas</th><td><?php echo (int) ( $stats['seconds'] ?? 0 ); ?> s</td></tr>
-			<?php if ( ! empty( $stats['error'] ) || ! empty( $st['error'] ) ) : ?>
-				<tr><th>Błąd</th><td style="color:#b32d2e"><?php echo esc_html( $stats['error'] ?? $st['error'] ); ?></td></tr>
+			<?php $err = ! empty( $st['error'] ) ? $st['error'] : ( $stats['error'] ?? '' ); ?>
+			<?php if ( $err ) : ?>
+				<tr><th>Błąd</th><td style="color:#b32d2e"><?php echo esc_html( $err ); ?></td></tr>
 			<?php endif; ?>
 			<?php if ( ! empty( $stats['missing'] ) ) : ?>
 				<tr><th>Nie znaleziono w sklepie (SKU/EAN, max 30)</th><td><code><?php echo esc_html( implode( ', ', $stats['missing'] ) ); ?></code></td></tr>
