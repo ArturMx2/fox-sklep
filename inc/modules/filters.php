@@ -27,7 +27,7 @@ function fx_filter_params() {
 /** Czy jest włączony jakikolwiek filtr (rozmiar, kolor, promocje, także stare filter_…). */
 function fx_filters_active() {
 	foreach ( array_keys( $_GET ) as $k ) { // phpcs:ignore WordPress.Security.NonceVerification
-		if ( in_array( $k, array( 'rozmiar', 'kolor', 'promocja', 'wysylka24', 'wsklepie', 'min_price', 'max_price', 'rating_filter' ), true ) || 0 === strpos( $k, 'filter_' ) ) {
+		if ( in_array( $k, array( 'rozmiar', 'kolor', 'promocja', 'wysylka24', 'wsklepie', 'przedsprzedaz', 'min_price', 'max_price', 'rating_filter' ), true ) || 0 === strpos( $k, 'filter_' ) ) {
 			return true;
 		}
 	}
@@ -216,7 +216,7 @@ function fx_filter_selected( $role ) {
 /** Adres kategorii z bieżącymi filtrami i sortowaniem (bez numeru strony). */
 function fx_filter_base_url() {
 	$url = get_term_link( get_queried_object() );
-	foreach ( array( 'rozmiar', 'kolor', 'promocja', 'wysylka24', 'wsklepie', 'orderby' ) as $k ) {
+	foreach ( array( 'rozmiar', 'kolor', 'promocja', 'wysylka24', 'wsklepie', 'przedsprzedaz', 'orderby' ) as $k ) {
 		if ( isset( $_GET[ $k ] ) && '' !== $_GET[ $k ] ) { // phpcs:ignore WordPress.Security.NonceVerification
 			$url = add_query_arg( $k, rawurlencode( sanitize_text_field( wp_unslash( $_GET[ $k ] ) ) ), $url ); // phpcs:ignore WordPress.Security.NonceVerification
 		}

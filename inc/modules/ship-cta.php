@@ -100,8 +100,13 @@ add_action( 'woocommerce_before_add_to_cart_button', function () {
 		}
 	}
 	$state = $product->is_type( 'variable' ) ? ( $local ? 'some' : 'none' ) : ( $local ? 'all' : 'none' );
+	/**
+	 * Własny komunikat zamiast terminu (np. przedsprzedaż): [ 'title' => …, 'desc' => … ] albo null.
+	 * Dla wariantów – pole „fx_ship_override” w danych wariantu (ten sam format).
+	 */
+	$override = $product->is_type( 'variable' ) ? null : apply_filters( 'fx_ship_cta_override', null, $product );
 	?>
-	<div class="fx-ship" id="fx-ship" data-cutoff="<?php echo esc_attr( $conf['cutoff'] ); ?>" data-holidays="<?php echo esc_attr( implode( ',', $conf['blocked'] ) ); ?>" data-available="<?php echo $ok ? '1' : '0'; ?>" data-local="<?php echo esc_attr( $state ); ?>" data-days-local="<?php echo (int) $conf['days_local']; ?>" data-days-other="<?php echo (int) $conf['days_other']; ?>" aria-live="polite"<?php echo $ok ? '' : ' hidden'; ?>>
+	<div class="fx-ship" id="fx-ship" data-cutoff="<?php echo esc_attr( $conf['cutoff'] ); ?>" data-holidays="<?php echo esc_attr( implode( ',', $conf['blocked'] ) ); ?>" data-available="<?php echo $ok ? '1' : '0'; ?>" data-local="<?php echo esc_attr( $state ); ?>" data-days-local="<?php echo (int) $conf['days_local']; ?>" data-days-other="<?php echo (int) $conf['days_other']; ?>"<?php echo $override ? ' data-override="' . esc_attr( wp_json_encode( $override ) ) . '"' : ''; ?> aria-live="polite"<?php echo $ok ? '' : ' hidden'; ?>>
 		<span class="fx-ship__icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6.5h10v9h-10zM13.5 9h3.4l3.1 3.2v3.3h-6.5z"/><circle cx="7" cy="17.3" r="1.7"/><circle cx="17" cy="17.3" r="1.7"/></svg></span>
 		<div class="fx-ship__body">
 			<div class="fx-ship__top"><p class="fx-ship__title" data-fx-ship-title>Wysyłka w 1–2 dni robocze</p><span class="fx-ship__badge" data-fx-ship-badge hidden></span></div>
@@ -124,6 +129,7 @@ add_action( 'wp_footer', function () {
 		var t = box.querySelector('[data-fx-ship-title]'), d = box.querySelector('[data-fx-ship-desc]'), c = box.querySelector('[data-fx-ship-count]'), bdg = box.querySelector('[data-fx-ship-badge]');
 		var cp = (box.dataset.cutoff || '15:00').split(':'), ch = parseInt(cp[0] || '15', 10), cm = parseInt(cp[1] || '0', 10), hol = (box.dataset.holidays || '').split(','), parentOk = box.dataset.available === '1';
 		var dl = parseInt(box.dataset.daysLocal || '0', 10), dOther = parseInt(box.dataset.daysOther || '1', 10), state = box.dataset.local || 'none', cur = state;
+		var ovr = null; try { ovr = box.dataset.override ? JSON.parse(box.dataset.override) : null; } catch (e) {} var ovr0 = ovr;
 		var DN = ['niedziela','poniedziałek','wtorek','środa','czwartek','piątek','sobota'], DW = ['w niedzielę','w poniedziałek','we wtorek','w środę','w czwartek','w piątek','w sobotę'];
 		function two(v) { return (v < 10 ? '0' : '') + v; }
 		function now() {
@@ -150,6 +156,13 @@ add_action( 'wp_footer', function () {
 		}
 		function update() {
 			if (box.hidden) { return; }
+			if (ovr) {
+				box.classList.remove('is-today'); box.classList.add('is-pre');
+				t.textContent = ovr.title || ''; d.textContent = ovr.desc || '';
+				bdg.textContent = ovr.badge || ''; bdg.hidden = !ovr.badge; c.textContent = ''; c.hidden = true;
+				return;
+			}
+			box.classList.remove('is-pre');
 			var x = now(), today = D(x.date), cut = ch * 3600 + cm * 60, before = work(today) && x.s < cut;
 			var base = before ? today : nextBiz(today);
 			var days = cur === 'none' ? dOther : dl;
@@ -175,8 +188,8 @@ add_action( 'wp_footer', function () {
 		function hide() { box.hidden = true; }
 		if (window.jQuery) {
 			var $f = jQuery('form.variations_form');
-			$f.on('found_variation', function (e, v) { cur = v && v.fx_store ? 'all' : 'none'; (v && v.is_in_stock && v.is_purchasable) ? show() : hide(); });
-			$f.on('reset_data hide_variation', function () { cur = state; parentOk ? show() : hide(); });
+			$f.on('found_variation', function (e, v) { cur = v && v.fx_store ? 'all' : 'none'; ovr = v && v.fx_ship_override ? v.fx_ship_override : null; (v && v.is_in_stock && v.is_purchasable) ? show() : hide(); });
+			$f.on('reset_data hide_variation', function () { cur = state; ovr = ovr0; parentOk ? show() : hide(); });
 		}
 		parentOk ? show() : hide();
 		setInterval(update, 30000);

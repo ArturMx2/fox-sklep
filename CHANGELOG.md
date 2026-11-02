@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.23.0
+- Punkty zaczepienia dla wtyczki „FOX – Przedsprzedaż Powerbike” (bez wtyczki nic się nie zmienia): termin koszyka bierze pod uwagę datę przedsprzedaży (filtr fox_bl_delivery_line_dispatch, nagłówek „Przedsprzedaż – planowana wysyłka…”), ramka terminu na karcie produktu pokazuje komunikat przedsprzedaży (fx_ship_cta_override / fx_ship_override w danych wariantu, fioletowy styl), filtr ?przedsprzedaz=1 w filtrach list, w ramce zamówienia pozycja „przedsprzedaż (dostawa do nas ok. …)”.
+
 ## 3.22.1
 - Zamówienie: zapis pełnej deklaracji terminu dla klienta – pole „termin_deklaracja” (dokładny tekst z koszyka), czas złożenia i czy przed godziną graniczną; przy każdej pozycji, czy była w sklepie stacjonarnym. W karcie zamówienia ramka „Termin zadeklarowany klientowi” z rozbiciem na pozycje. Pola szacowana_wysylka / szacowana_dostawa dla BaseLinkera bez zmian.
 

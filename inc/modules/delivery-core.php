@@ -440,7 +440,17 @@ function fox_bl_delivery_get_cart_estimate() {
     $worst_days = 0;
     $used_fallback = !$have_sync;
 
+    $fixed = []; // pozycje z własną datą wysyłki (np. przedsprzedaż – wtyczka przez filtr niżej)
     foreach (fox_bl_delivery_get_cart_lines() as $line) {
+        /**
+         * Własna data wysyłki pozycji (Y-m-d) albo null = zasady sklepu.
+         * Używa jej np. wtyczka „FOX – Przedsprzedaż Powerbike”.
+         */
+        $own = apply_filters('fox_bl_delivery_line_dispatch', null, (int) ($line['id'] ?? 0), (int) $line['quantity']);
+        if (is_string($own) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $own)) {
+            $fixed[] = $own;
+            continue;
+        }
         $in_store = (int) ($local[(int) ($line['id'] ?? 0)] ?? 0);
         $item_days = $in_store >= (int) $line['quantity'] ? (int) $settings['days_local'] : (int) $settings['days_other'];
         $worst_days = max($worst_days, $item_days);
@@ -467,9 +477,20 @@ function fox_bl_delivery_get_cart_estimate() {
         $blocked_dates
     );
 
+    $preorder = false;
+    if ($fixed) {
+        $latest = new DateTimeImmutable(max($fixed) . ' 12:00:00', new DateTimeZone(FOX_BL_DELIVERY_TIMEZONE));
+        if ($latest > $dispatch_date) {
+            $dispatch_date = $latest;
+            $preorder = true;
+            $can_ship_today = false; // licznik do 15:00 nic tu nie zmienia
+        }
+    }
+
     $delivery_date = fox_bl_delivery_add_business_days($dispatch_date, 1, $blocked_dates);
 
     $request_cache[$cache_key] = [
+        'preorder'         => $preorder,
         'status'           => 'ready',
         'dispatch_days'    => $worst_days,
         'dispatch_date'    => $dispatch_date,
@@ -538,7 +559,10 @@ function fox_bl_delivery_render_alert($compact = false) {
     $delivery_date = $estimate['delivery_date'];
     $ships_today = !empty($estimate['ships_today']);
 
-    if ($ships_today) {
+    if (!empty($estimate['preorder'])) {
+        $headline = 'Przedsprzedaż – planowana wysyłka: ' . fox_bl_delivery_polish_date($dispatch_date);
+        $class = 'fox-delivery-alert--later';
+    } elseif ($ships_today) {
         $headline = 'Wysyłka jeszcze dzisiaj';
         $class = 'fox-delivery-alert--today';
     } else {
@@ -653,7 +677,7 @@ add_action('woocommerce_checkout_create_order', function ($order, $data) {
 
     // Deklaracja dla klienta – dokładnie to, co widział w koszyku/zamówieniu, i kiedy.
     $now = new DateTimeImmutable('now', new DateTimeZone(FOX_BL_DELIVERY_TIMEZONE));
-    $headline = !empty($estimate['ships_today']) ? 'Wysyłka jeszcze dzisiaj' : 'Planowana wysyłka: ' . $dispatch;
+    $headline = !empty($estimate['preorder']) ? 'Przedsprzedaż – planowana wysyłka: ' . $dispatch : (!empty($estimate['ships_today']) ? 'Wysyłka jeszcze dzisiaj' : 'Planowana wysyłka: ' . $dispatch);
     $order->update_meta_data('termin_deklaracja', $headline . ' · Przewidywana dostawa: ' . $delivery);
     $order->update_meta_data('_fox_declared_at', $now->format('Y-m-d H:i'));
     $order->update_meta_data('_fox_declared_rule', !empty($estimate['cutoff_timestamp']) ? 'przed godziną graniczną' : 'po godzinie granicznej / dzień wolny');
@@ -701,7 +725,7 @@ add_action('woocommerce_admin_order_data_after_shipping_address', function ($ord
     foreach ($order->get_items() as $item) {
         $src = $item->get_meta('_fx_ship_src');
         if ($src) {
-            $rows[] = esc_html($item->get_name()) . ' ×' . (int) $item->get_quantity() . ' – ' . ('sklep' === $src ? '<strong>w sklepie stacjonarnym</strong>' : 'pozostałe');
+            $rows[] = esc_html($item->get_name()) . ' ×' . (int) $item->get_quantity() . ' – ' . ('sklep' === $src ? '<strong>w sklepie stacjonarnym</strong>' : ('przedsprzedaz' === $src ? '<strong>przedsprzedaż</strong>' . ($item->get_meta('_fxpo_date') ? ' (dostawa do nas ok. ' . esc_html($item->get_meta('_fxpo_date')) . ')' : '') : 'pozostałe'));
         }
     }
     if ($rows) {
