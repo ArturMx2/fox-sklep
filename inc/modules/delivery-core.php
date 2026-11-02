@@ -650,7 +650,27 @@ add_action('woocommerce_checkout_create_order', function ($order, $data) {
     // Pola techniczne – ukryte w standardowym widoku pól własnych.
     $order->update_meta_data('_fox_dispatch_date', $estimate['dispatch_date']->format('Y-m-d'));
     $order->update_meta_data('_fox_delivery_date', $estimate['delivery_date']->format('Y-m-d'));
+
+    // Deklaracja dla klienta – dokładnie to, co widział w koszyku/zamówieniu, i kiedy.
+    $now = new DateTimeImmutable('now', new DateTimeZone(FOX_BL_DELIVERY_TIMEZONE));
+    $headline = !empty($estimate['ships_today']) ? 'Wysyłka jeszcze dzisiaj' : 'Planowana wysyłka: ' . $dispatch;
+    $order->update_meta_data('termin_deklaracja', $headline . ' · Przewidywana dostawa: ' . $delivery);
+    $order->update_meta_data('_fox_declared_at', $now->format('Y-m-d H:i'));
+    $order->update_meta_data('_fox_declared_rule', !empty($estimate['cutoff_timestamp']) ? 'przed godziną graniczną' : 'po godzinie granicznej / dzień wolny');
+    if (!empty($estimate['used_fallback'])) {
+        $order->update_meta_data('_fox_declared_note', 'Brak synchronizacji ze sklepem stacjonarnym – wszystko liczone jako „pozostałe”.');
+    }
 }, 20, 2);
+
+/* Każda pozycja: skąd termin (towar w sklepie stacjonarnym czy pozostałe). */
+add_action('woocommerce_checkout_create_order_line_item', function ($item, $cart_item_key, $values, $order) {
+    $product = $values['data'] ?? null;
+    if (!$product instanceof WC_Product) {
+        return;
+    }
+    $local = function_exists('fx_ls_data') ? (int) (fx_ls_data()['store'][$product->get_id()] ?? 0) : 0;
+    $item->add_meta_data('_fx_ship_src', $local >= (int) $item->get_quantity() ? 'sklep' : 'pozostale', true);
+}, 20, 4);
 
 add_action('woocommerce_admin_order_data_after_shipping_address', function ($order) {
     if (!$order instanceof WC_Order) {
@@ -660,18 +680,35 @@ add_action('woocommerce_admin_order_data_after_shipping_address', function ($ord
     $dispatch = $order->get_meta('szacowana_wysylka');
     $delivery = $order->get_meta('szacowana_dostawa');
 
-    if ($dispatch || $delivery) {
-        echo '<div style="margin-top:12px;padding:10px 12px;background:#f6f7f7;border-left:4px solid #e59b00;">';
-        echo '<strong>Termin realizacji</strong><br>';
-
-        if ($dispatch) {
-            echo 'Wysyłka: ' . esc_html($dispatch) . '<br>';
-        }
-
-        if ($delivery) {
-            echo 'Dostawa: ' . esc_html($delivery);
-        }
-
-        echo '</div>';
+    if (!$dispatch && !$delivery) {
+        return;
     }
+    echo '<div style="margin-top:12px;padding:10px 12px;background:#f6f7f7;border-left:4px solid #e59b00;">';
+    echo '<strong>Termin zadeklarowany klientowi</strong><br>';
+    if ($order->get_meta('termin_deklaracja')) {
+        echo '<em>„' . esc_html($order->get_meta('termin_deklaracja')) . '”</em><br>';
+    }
+    if ($dispatch) {
+        echo 'Wysyłka: <strong>' . esc_html($dispatch) . '</strong><br>';
+    }
+    if ($delivery) {
+        echo 'Dostawa: ' . esc_html($delivery) . '<br>';
+    }
+    if ($order->get_meta('_fox_declared_at')) {
+        echo '<small>Złożone: ' . esc_html($order->get_meta('_fox_declared_at')) . ' (' . esc_html($order->get_meta('_fox_declared_rule')) . ')</small><br>';
+    }
+    $rows = [];
+    foreach ($order->get_items() as $item) {
+        $src = $item->get_meta('_fx_ship_src');
+        if ($src) {
+            $rows[] = esc_html($item->get_name()) . ' ×' . (int) $item->get_quantity() . ' – ' . ('sklep' === $src ? '<strong>w sklepie stacjonarnym</strong>' : 'pozostałe');
+        }
+    }
+    if ($rows) {
+        echo '<small style="display:block;margin-top:6px">' . implode('<br>', $rows) . '</small>'; // phpcs:ignore WordPress.Security.EscapeOutput
+    }
+    if ($order->get_meta('_fox_declared_note')) {
+        echo '<small style="display:block;margin-top:6px;color:#b32d2e">' . esc_html($order->get_meta('_fox_declared_note')) . '</small>';
+    }
+    echo '</div>';
 });

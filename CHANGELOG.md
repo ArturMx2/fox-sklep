@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.22.1
+- Zamówienie: zapis pełnej deklaracji terminu dla klienta – pole „termin_deklaracja” (dokładny tekst z koszyka), czas złożenia i czy przed godziną graniczną; przy każdej pozycji, czy była w sklepie stacjonarnym. W karcie zamówienia ramka „Termin zadeklarowany klientowi” z rozbiciem na pozycje. Pola szacowana_wysylka / szacowana_dostawa dla BaseLinkera bez zmian.
+
 ## 3.22.0
 - Termin wysyłki przebudowany: zero zapytań do BaseLinkera przy przeglądaniu i w koszyku. Termin liczony z listy towaru w sklepie stacjonarnym (synchronizacja kilka razy dziennie): towar w sklepie – wysyłka tego samego dnia przy zamówieniu do 15:00, pozostałe – następnego dnia roboczego. Koszyk = termin najwolniejszej pozycji; liczy się też ilość (3 szt. w koszyku, 1 w sklepie → „pozostałe”). Święta i dni bez wysyłki jak dotąd. Pola dla BaseLinkera w zamówieniu bez zmian.
 - Karta produktu: konkretny termin zamiast „Większość zamówień wysyłamy dziś” – „Wyślemy jeszcze dziś / jutro (wtorek) / w poniedziałek (09.11)”, przewidywana dostawa, licznik do 15:00; przed wyborem rozmiaru „Część rozmiarów wyślemy jeszcze dziś”.
