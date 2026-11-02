@@ -369,7 +369,7 @@ function fx_filters_sidebar() {
 		echo '<div class="fx-fgroup fx-fgroup--sale"><a rel="nofollow" class="fx-switch fx-switch--side' . ( $d['sale_on'] ? ' is-on' : '' ) . '" role="switch" aria-checked="' . ( $d['sale_on'] ? 'true' : 'false' ) . '" href="' . esc_url( fx_filter_sale_url() ) . '"><span class="fx-switch__ui" aria-hidden="true"></span>Tylko promocje</a></div>';
 	}
 	foreach ( (array) ( $d['switches'] ?? array() ) as $sw ) {
-		echo '<div class="fx-fgroup fx-fgroup--sale fx-fgroup--' . esc_attr( $sw['key'] ) . '"><a rel="nofollow" class="fx-switch fx-switch--side' . ( $sw['on'] ? ' is-on' : '' ) . '" role="switch" aria-checked="' . ( $sw['on'] ? 'true' : 'false' ) . '" href="' . esc_url( $sw['url'] ) . '"><span class="fx-switch__ui" aria-hidden="true"></span><span>' . esc_html( $sw['label'] ) . ( ! empty( $sw['note'] ) ? '<small class="fx-switch__note">' . esc_html( $sw['note'] ) . '</small>' : '' ) . '</span></a></div>';
+		echo '<div class="fx-fgroup fx-fgroup--sale fx-fgroup--' . esc_attr( $sw['key'] ) . '"><a rel="nofollow" class="fx-switch fx-switch--side' . ( $sw['on'] ? ' is-on' : '' ) . '" role="switch" aria-checked="' . ( $sw['on'] ? 'true' : 'false' ) . '" href="' . esc_url( $sw['url'] ) . '"><span class="fx-switch__ui" aria-hidden="true"></span><span><span class="fx-switch__label"' . ( 'wysylka24' === $sw['key'] ? ' data-fx-shipday="' . esc_attr( $sw['label'] ) . '"' : '' ) . '>' . esc_html( $sw['label'] ) . '</span>' . ( ! empty( $sw['note'] ) ? '<small class="fx-switch__note"' . ( 'wysylka24' === $sw['key'] ? ' data-fx-shipnote' : '' ) . '>' . esc_html( $sw['note'] ) . '</small>' : '' ) . '</span></a></div>';
 	}
 	foreach ( $d['groups'] as $g ) {
 		list( $role, $label, $opts ) = $g;
@@ -401,7 +401,8 @@ function fx_filters_topbar() {
 	}
 	echo '<div class="fx-fbar"><button type="button" class="fx-chip fx-fbar__open" data-fx-filters-open aria-controls="fx-filters">' . fx_icon( 'menu', 16 ) . 'Filtry' . ( $d['active'] ? ' (' . count( $d['active'] ) . ')' : '' ) . '</button>'; // phpcs:ignore
 	foreach ( $d['active'] as $a ) {
-		echo '<a rel="nofollow" class="fx-chip is-active" href="' . esc_url( $a[1] ) . '" aria-label="Usuń filtr ' . esc_attr( $a[0] ) . '">' . esc_html( $a[0] ) . ' ×</a>';
+		$sd = false !== mb_stripos( $a[0], 'dziś' ) ? ' data-fx-shipday="' . esc_attr( $a[0] ) . '"' : '';
+		echo '<a rel="nofollow" class="fx-chip is-active" href="' . esc_url( $a[1] ) . '" aria-label="Usuń filtr ' . esc_attr( $a[0] ) . '"><span' . $sd . '>' . esc_html( $a[0] ) . '</span> ×</a>';
 	}
 	if ( $d['active'] ) {
 		echo '<a rel="nofollow" class="fx-filter__clear" href="' . esc_url( get_term_link( $d['term'] ) ) . '">Wyczyść</a>';

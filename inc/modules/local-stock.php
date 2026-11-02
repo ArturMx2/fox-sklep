@@ -219,10 +219,40 @@ add_filter( 'fx_product_badges', function ( $badges, $product ) {
 		return $badges;
 	}
 	if ( isset( fx_ls_parent_ids( 'ship' )[ $product->get_id() ] ) ) {
-		$badges[] = array( $s['ship_label'], 'default' );
+		$badges[] = array( $s['ship_label'], 'ship' ); // klasa fx-badge--ship: tekst „dziś/jutro/w poniedziałek” ustawia skrypt niżej
 	}
 	return $badges;
 }, 10, 2 );
+
+/*
+ * „Wysyłka dziś” → „Wysyłka jutro” / „Wysyłka w poniedziałek” według polskiego czasu, godziny granicznej
+ * i świąt. W przeglądarce, bo strony list są w pamięci podręcznej – tekst z serwera byłby nieaktualny.
+ */
+add_action( 'wp_footer', function () {
+	if ( is_admin() || ! fx_ls_settings()['on'] || false === mb_stripos( fx_ls_settings()['ship_label'], 'dziś' ) ) {
+		return;
+	}
+	$cut = function_exists( 'fox_bl_delivery_get_settings' ) ? fox_bl_delivery_get_settings()['cutoff_time'] : '15:00';
+	$hol = function_exists( 'fx_ship_cta_conf' ) ? fx_ship_cta_conf()['blocked'] : array();
+	?>
+	<script>
+	(function(){var els=document.querySelectorAll('.fx-badge--ship,[data-fx-shipday]');if(!els.length)return;
+	var cp='<?php echo esc_js( $cut ); ?>'.split(':'),cut=(+cp[0])*3600+(+cp[1]||0)*60,hol=<?php echo wp_json_encode( array_values( $hol ) ); ?>;
+	var DW=['w niedzielę','w poniedziałek','we wtorek','w środę','w czwartek','w piątek','w sobotę'],DG=['niedzieli','poniedziałku','wtorku','środy','czwartku','piątku','soboty'];
+	function two(v){return(v<10?'0':'')+v}
+	function now(){try{var p={};new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Warsaw',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).forEach(function(x){p[x.type]=x.value});return{d:new Date(Date.UTC(+p.year,+p.month-1,+p.day,12)),s:(+p.hour)*3600+(+p.minute)*60}}catch(e){var n=new Date();return{d:new Date(Date.UTC(n.getFullYear(),n.getMonth(),n.getDate(),12)),s:n.getHours()*3600+n.getMinutes()*60}}}
+	function S(d){return d.getUTCFullYear()+'-'+two(d.getUTCMonth()+1)+'-'+two(d.getUTCDate())}
+	function work(d){var w=d.getUTCDay();return w&&w!==6&&hol.indexOf(S(d))<0}
+	els.forEach(function(e){if(!e.dataset.tpl)e.dataset.tpl=e.dataset.fxShipday||e.textContent});
+	function run(){var x=now(),day=x.d,word='dziś',note='przy zamówieniu do '+cp[0]+':'+(cp[1]||'00');
+		if(!(work(day)&&x.s<cut)){var n=new Date(day.getTime());do{n.setUTCDate(n.getUTCDate()+1)}while(!work(n));
+			var diff=Math.round((n-day)/864e5);word=diff===1?'jutro':DW[n.getUTCDay()];note='przy zamówieniu do '+(diff===1?'jutra':DG[n.getUTCDay()])+', '+cp[0]+':'+(cp[1]||'00');}
+		els.forEach(function(e){e.textContent=e.dataset.tpl.replace(/dziś/i,word)});
+		document.querySelectorAll('[data-fx-shipnote]').forEach(function(e){e.textContent=note});}
+	run();setInterval(run,60000);})();
+	</script>
+	<?php
+}, 40 );
 
 /* =====================================================================
  * Karta produktu: rozmiary w sklepie stacjonarnym + informacja po wyborze rozmiaru

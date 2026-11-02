@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.24.1
+- Etykieta na kafelku i filtr „Wysyłka dziś” zmieniają się według polskiego czasu: po 15:00 „Wysyłka jutro”, w piątek po 15:00 i w weekend „Wysyłka w poniedziałek”, przed świętem – najbliższy dzień roboczy; podpis filtra „przy zamówieniu do jutra / poniedziałku, 15:00”. Liczone w przeglądarce, więc działa także na stronach z pamięci podręcznej; odświeża się co minutę.
+
 ## 3.24.0 – termin wysyłki: wersja ostateczna
 - Klient dostaje deklarację terminu na piśmie: ramka „Planowana wysyłka / Przewidywana dostawa” na stronie „Dziękujemy” i w mailach z potwierdzeniem zamówienia (HTML i tekst).
 - Bony i produkty bez wysyłki nie wpływają na termin: sam bon w koszyku = bez terminu, na karcie bonu brak ramki wysyłki.
