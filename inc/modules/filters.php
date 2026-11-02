@@ -335,7 +335,7 @@ function fx_filters_data() {
 	}
 	$sale_on   = fx_filter_sale_on();
 	$sale_have = $sale_on || fx_filter_sale_in_cat( $term );
-	$switches  = apply_filters( 'fx_filter_switches', array(), $term ); // np. „Wysyłka 24h”, „W sklepie stacjonarnym”
+	$switches  = apply_filters( 'fx_filter_switches', array(), $term ); // np. „Wysyłka dziś”, „W sklepie stacjonarnym”
 	if ( ! $groups && ! $sale_have && ! $switches ) {
 		return $data;
 	}

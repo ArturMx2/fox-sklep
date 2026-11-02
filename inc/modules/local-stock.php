@@ -1,6 +1,6 @@
 <?php
 /**
- * „Wysyłka 24h” i „Dostępny w sklepie stacjonarnym” – stany z magazynów BaseLinkera.
+ * „Wysyłka dziś” i „Dostępny w sklepie stacjonarnym” – stany z magazynów BaseLinkera.
  *
  * Jak to działa:
  *  - kilka razy dziennie (domyślnie 6:00, 11:00, 14:00) sklep w tle pobiera z Base stany WSZYSTKICH
@@ -13,9 +13,9 @@
  *
  * Magazyny:
  *  - „Dostępny w sklepie stacjonarnym” = magazyn sklepu (domyślnie bl_33043),
- *  - „Wysyłka 24h” = magazyny z czasem 0 dni w ustawieniach „Termin wysyłki FOX” (spójnie z koszykiem).
+ *  - „Wysyłka dziś” = domyślnie ten sam magazyn co sklep (towar fizycznie u nas); termin w koszyku liczy moduł Termin wysyłki.
  *
- * Ustawienia i ręczna synchronizacja: WooCommerce → Wysyłka 24h / sklep.
+ * Ustawienia i ręczna synchronizacja: WooCommerce → Wysyłka dziś / sklep.
  * Token i katalog Base – z ustawień „Termin wysyłki FOX” (bez ponownego wpisywania).
  *
  * @package foxsklep
@@ -92,7 +92,7 @@ function fx_ls_keys( $raw ) {
 	return array_values( array_filter( array_map( 'sanitize_key', preg_split( '/[\s,;]+/', (string) $raw ) ) ) );
 }
 
-/** Magazyny „Wysyłka 24h”: z ustawienia albo wszystkie z czasem 0 dni w Terminie wysyłki. */
+/** Magazyny „Wysyłka dziś”: z ustawienia, a puste = magazyn sklepu stacjonarnego. */
 function fx_ls_ship_keys() {
 	$s    = fx_ls_settings();
 	$keys = fx_ls_keys( $s['ship_wh'] );
@@ -114,6 +114,12 @@ function fx_ls_data() {
 		$d = get_option( FX_LS_DATA, array() );
 		$d = is_array( $d ) ? $d : array();
 		$d += array( 'at' => 0, 'ship' => array(), 'store' => array() );
+		// Bezpiecznik: lista starsza niż 36 h (synchronizacja nie działa) – nie obiecujemy „wyślemy dziś”.
+		$d['stale'] = $d['at'] && $d['at'] < time() - 36 * HOUR_IN_SECONDS;
+		if ( $d['stale'] && ( ! is_admin() || wp_doing_ajax() ) ) {
+			$d['ship']  = array();
+			$d['store'] = array();
+		}
 	}
 	return $d;
 }
@@ -206,7 +212,7 @@ add_filter( 'fx_filter_switches', function ( $sw, $term ) {
 	return $sw;
 }, 10, 2 );
 
-/* Etykieta na kafelku: „Wysyłka 24h”. */
+/* Etykieta na kafelku (nazwa z ustawień, domyślnie „Wysyłka dziś”). */
 add_filter( 'fx_product_badges', function ( $badges, $product ) {
 	$s = fx_ls_settings();
 	if ( ! $s['on'] || ! $s['badge'] || ! $product instanceof WC_Product || ! $product->is_in_stock() || count( $badges ) >= 3 ) {
@@ -661,8 +667,28 @@ function fx_ls_finish( &$st, $skumap ) {
 		'seconds'    => time() - (int) $st['started'],
 		'error'      => $st['error'],
 	);
+	// Strony produktów w pamięci podręcznej (LiteSpeed): odśwież tylko te, u których coś się zmieniło.
+	$old     = (array) get_option( FX_LS_DATA, array() );
+	$changed = array();
+	foreach ( array( 'ship', 'store' ) as $kind ) {
+		$a = (array) ( $old[ $kind ] ?? array() );
+		$b = $out[ $kind ];
+		foreach ( array_keys( array_diff_key( $a, $b ) + array_diff_key( $b, $a ) ) as $id ) {
+			$changed[ (int) ( $out['parent'][ $id ] ?? ( $old['parent'][ $id ] ?? $id ) ) ] = true;
+		}
+	}
 	update_option( FX_LS_DATA, $out, false );
-	fx_ls_log( 'Powiązanie ze sklepem: ' . $matched . ' z ' . count( $st['raw'] ) . ' (po SKU: ' . count( $by_sku ) . ', po EAN: ' . count( $by_ean ) . '). Wysyłka 24h: ' . count( $out['ship'] ) . ', sklep: ' . count( $out['store'] ) . '.' . ( $miss ? ' Bez pary w sklepie m.in.: ' . implode( ', ', array_slice( $miss, 0, 10 ) ) : '' ) );
+	if ( $changed ) {
+		if ( count( $changed ) > 300 ) {
+			do_action( 'litespeed_purge_all' );
+		} else {
+			foreach ( array_keys( $changed ) as $pid ) {
+				do_action( 'litespeed_purge_post', $pid );
+			}
+		}
+		fx_ls_log( 'Odświeżono pamięć podręczną: ' . ( count( $changed ) > 300 ? 'cały sklep' : count( $changed ) . ' produktów' ) );
+	}
+	fx_ls_log( 'Powiązanie ze sklepem: ' . $matched . ' z ' . count( $st['raw'] ) . ' (po SKU: ' . count( $by_sku ) . ', po EAN: ' . count( $by_ean ) . '). ' . fx_ls_settings()['ship_label'] . ': ' . count( $out['ship'] ) . ', sklep: ' . count( $out['store'] ) . '.' . ( $miss ? ' Bez pary w sklepie m.in.: ' . implode( ', ', array_slice( $miss, 0, 10 ) ) : '' ) );
 	fx_ls_log( '=== KONIEC w ' . ( time() - (int) $st['started'] ) . ' s' );
 	unset( $st['raw'], $st['need'] );
 	if ( function_exists( 'fx_cache_touch' ) ) {
@@ -690,11 +716,11 @@ add_action( 'wp_ajax_fx_ls_tick', function () {
 } );
 
 /* =====================================================================
- * Panel: WooCommerce → Wysyłka 24h / sklep
+ * Panel: WooCommerce → Wysyłka dziś / sklep
  * ===================================================================== */
 
 add_action( 'admin_menu', function () {
-	add_submenu_page( 'woocommerce', 'Wysyłka 24h i sklep stacjonarny', 'Wysyłka 24h / sklep', 'manage_woocommerce', 'fx-local-stock', 'fx_ls_admin_page' );
+	add_submenu_page( 'woocommerce', 'Wysyłka dziś i sklep stacjonarny', 'Wysyłka dziś / sklep', 'manage_woocommerce', 'fx-local-stock', 'fx_ls_admin_page' );
 }, 60 );
 
 add_action( 'admin_post_fx_ls_stop', function () {
@@ -758,8 +784,11 @@ function fx_ls_admin_page() {
 	$running = ! empty( $st['phase'] ) && 'done' !== $st['phase'];
 	?>
 	<div class="wrap">
-		<h1>Wysyłka 24h i sklep stacjonarny</h1>
+		<h1>Wysyłka dziś i sklep stacjonarny</h1>
 		<p>Sklep w tle pobiera z BaseLinkera stany wybranych magazynów i oznacza produkty: filtry „<?php echo esc_html( $s['ship_label'] ); ?>” i „<?php echo esc_html( $s['store_label'] ); ?>” na listach, etykieta na kafelku, rozmiary do przymierzenia na karcie produktu. Klienci nie odpytują Base – czytają gotową listę.</p>
+		<?php if ( ! empty( $d['stale'] ) ) : ?>
+			<div class="notice notice-error"><p><strong>Lista jest starsza niż 36 h</strong> – synchronizacja z Base nie działa. Do czasu udanej synchronizacji sklep liczy wszystko jako „pozostałe” (wysyłka następnego dnia roboczego), filtry „<?php echo esc_html( $s['ship_label'] ); ?>” i „<?php echo esc_html( $s['store_label'] ); ?>” są ukryte. Sprawdź dziennik poniżej.</p></div>
+		<?php endif; ?>
 		<?php if ( ! $token || ! $inv ) : ?>
 			<div class="notice notice-error"><p>Brak tokenu API lub ID katalogu – uzupełnij je w ustawieniach „Termin wysyłki FOX”.</p></div>
 		<?php endif; ?>

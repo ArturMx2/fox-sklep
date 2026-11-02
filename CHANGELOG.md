@@ -1,5 +1,13 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.24.0 – termin wysyłki: wersja ostateczna
+- Klient dostaje deklarację terminu na piśmie: ramka „Planowana wysyłka / Przewidywana dostawa” na stronie „Dziękujemy” i w mailach z potwierdzeniem zamówienia (HTML i tekst).
+- Bony i produkty bez wysyłki nie wpływają na termin: sam bon w koszyku = bez terminu, na karcie bonu brak ramki wysyłki.
+- Pozycje koszyka liczone po ID produktu (produkty bez SKU nie zlewały się poprawnie).
+- Bezpiecznik: lista ze sklepu stacjonarnego starsza niż 36 h → wszystko liczone jako „pozostałe” (bez obietnicy „wyślemy dziś”), filtry ukryte, czerwone ostrzeżenie w panelu i dopisek w zamówieniu.
+- Po synchronizacji odświeżana pamięć podręczna LiteSpeed tylko dla produktów, u których zmienił się stan w sklepie (powyżej 300 – cały sklep).
+- Nazewnictwo: panel „WooCommerce → Wysyłka dziś / sklep”.
+
 ## 3.23.0
 - Punkty zaczepienia dla wtyczki „FOX – Przedsprzedaż Powerbike” (bez wtyczki nic się nie zmienia): termin koszyka bierze pod uwagę datę przedsprzedaży (filtr fox_bl_delivery_line_dispatch, nagłówek „Przedsprzedaż – planowana wysyłka…”), ramka terminu na karcie produktu pokazuje komunikat przedsprzedaży (fx_ship_cta_override / fx_ship_override w danych wariantu, fioletowy styl), filtr ?przedsprzedaz=1 w filtrach list, w ramce zamówienia pozycja „przedsprzedaż (dostawa do nas ok. …)”.
 

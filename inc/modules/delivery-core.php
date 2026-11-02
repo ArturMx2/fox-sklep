@@ -125,7 +125,7 @@ function fox_bl_delivery_settings_page() {
     ?>
     <div class="wrap">
         <h1>Termin wysyłki i dostawy – FOX.SKLEP.PL</h1>
-        <p>Termin całego koszyka liczony z listy towaru w sklepie stacjonarnym, którą sklep pobiera z BaseLinkera kilka razy dziennie (WooCommerce → <a href="<?php echo esc_url(admin_url('admin.php?page=fx-local-stock')); ?>">Wysyłka 24h / sklep</a>). Klient nie czeka na BaseLinkera – nic nie jest odpytywane przy przeglądaniu ani w koszyku.</p>
+        <p>Termin całego koszyka liczony z listy towaru w sklepie stacjonarnym, którą sklep pobiera z BaseLinkera kilka razy dziennie (WooCommerce → <a href="<?php echo esc_url(admin_url('admin.php?page=fx-local-stock')); ?>">Wysyłka dziś / sklep</a>). Klient nie czeka na BaseLinkera – nic nie jest odpytywane przy przeglądaniu ani w koszyku.</p>
 
         <form method="post" action="options.php">
             <?php settings_fields(FOX_BL_DELIVERY_SETTINGS_GROUP); ?>
@@ -179,7 +179,7 @@ function fox_bl_delivery_settings_page() {
                                name="<?php echo esc_attr(FOX_BL_DELIVERY_OPTION); ?>[days_local]"
                                value="<?php echo esc_attr($settings['days_local']); ?>"
                                min="0" max="30" style="width:70px"> dniach roboczych
-                        <p class="description">0 = tego samego dnia (zamówienie przed godziną graniczną). Magazyn sklepu ustawiasz w „Wysyłka 24h / sklep” (teraz: <code><?php echo esc_html(function_exists('fx_ls_settings') ? fx_ls_settings()['store_wh'] : ''); ?></code>).</p>
+                        <p class="description">0 = tego samego dnia (zamówienie przed godziną graniczną). Magazyn sklepu ustawiasz w „Wysyłka dziś / sklep” (teraz: <code><?php echo esc_html(function_exists('fx_ls_settings') ? fx_ls_settings()['store_wh'] : ''); ?></code>).</p>
                     </td>
                 </tr>
 
@@ -387,6 +387,11 @@ function fox_bl_delivery_get_cart_lines() {
             continue;
         }
 
+        // Bez wysyłki (bon na e-mail, produkt wirtualny) – nie wpływa na termin.
+        if (!$product->needs_shipping() || (function_exists('fx_ship_is_voucher') && fx_ship_is_voucher((int) ($cart_item['product_id'] ?? 0)))) {
+            continue;
+        }
+
         $quantity = max(1, (int) ($cart_item['quantity'] ?? 1));
         $variant_sku = '';
         $main_sku = (string) $product->get_sku();
@@ -398,7 +403,7 @@ function fox_bl_delivery_get_cart_lines() {
             $main_sku = $parent_sku !== '' ? $parent_sku : $variant_sku;
         }
 
-        $line_key = md5($main_sku . '|' . $variant_sku);
+        $line_key = 'p' . (int) $product->get_id(); // po ID – produkty bez SKU się nie zlewają
 
         if (!isset($lines[$line_key])) {
             $lines[$line_key] = [
@@ -438,10 +443,16 @@ function fox_bl_delivery_get_cart_estimate() {
     $local = function_exists('fx_ls_data') ? (array) (fx_ls_data()['store'] ?? []) : [];
     $have_sync = function_exists('fx_ls_data') && !empty(fx_ls_data()['at']);
     $worst_days = 0;
-    $used_fallback = !$have_sync;
+    $used_fallback = !$have_sync || !empty(fx_ls_data()['stale']);
+
+    $lines = fox_bl_delivery_get_cart_lines();
+    if (!$lines) {
+        $request_cache[$cache_key] = null; // same bony / produkty bez wysyłki – bez terminu
+        return null;
+    }
 
     $fixed = []; // pozycje z własną datą wysyłki (np. przedsprzedaż – wtyczka przez filtr niżej)
-    foreach (fox_bl_delivery_get_cart_lines() as $line) {
+    foreach ($lines as $line) {
         /**
          * Własna data wysyłki pozycji (Y-m-d) albo null = zasady sklepu.
          * Używa jej np. wtyczka „FOX – Przedsprzedaż Powerbike”.
@@ -736,3 +747,40 @@ add_action('woocommerce_admin_order_data_after_shipping_address', function ($ord
     }
     echo '</div>';
 });
+
+/* Klient też ma deklarację na piśmie: strona „Dziękujemy” i maile z potwierdzeniem zamówienia. */
+function fox_bl_delivery_order_line($order) {
+    if (!$order instanceof WC_Order) {
+        return '';
+    }
+    $d = (string) $order->get_meta('termin_deklaracja');
+    if ('' === $d && $order->get_meta('szacowana_wysylka') && 'Termin wymaga potwierdzenia' !== $order->get_meta('szacowana_wysylka')) {
+        $d = 'Planowana wysyłka: ' . $order->get_meta('szacowana_wysylka') . ' · Przewidywana dostawa: ' . $order->get_meta('szacowana_dostawa');
+    }
+    return $d;
+}
+
+add_action('woocommerce_thankyou', function ($order_id) {
+    $d = fox_bl_delivery_order_line(wc_get_order($order_id));
+    if (!$d) {
+        return;
+    }
+    $parts = array_map('esc_html', explode(' · ', $d));
+    echo '<div class="fox-delivery-alert fox-delivery-alert--later" style="margin:0 0 24px">'
+        . '<div class="fox-delivery-alert__icon" aria-hidden="true">' . fox_bl_delivery_icon_svg('delivery') . '</div>'
+        . '<div class="fox-delivery-alert__content"><div class="fox-delivery-alert__headline">' . $parts[0] . '</div>'
+        . (isset($parts[1]) ? '<div class="fox-delivery-alert__delivery">' . $parts[1] . '</div>' : '')
+        . '</div></div>'; // phpcs:ignore WordPress.Security.EscapeOutput
+}, 5);
+
+add_action('woocommerce_email_order_meta', function ($order, $sent_to_admin, $plain_text) {
+    $d = fox_bl_delivery_order_line($order);
+    if (!$d) {
+        return;
+    }
+    if ($plain_text) {
+        echo "\n" . str_replace(' · ', "\n", $d) . "\n";
+        return;
+    }
+    echo '<p style="margin:0 0 16px;padding:12px 14px;background:#f4f3f0;border-left:4px solid #111"><strong>' . implode('</strong><br>', array_map('esc_html', explode(' · ', $d))) . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput
+}, 15, 3);

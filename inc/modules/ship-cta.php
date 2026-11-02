@@ -82,8 +82,8 @@ add_action( 'woocommerce_before_add_to_cart_button', function () {
 		return;
 	}
 	global $product;
-	if ( ! $product instanceof WC_Product || ! $product->is_purchasable() ) {
-		return;
+	if ( ! $product instanceof WC_Product || ! $product->is_purchasable() || $product->is_virtual() || ( function_exists( 'fx_ship_is_voucher' ) && fx_ship_is_voucher( $product->get_id() ) ) ) {
+		return; // bon / produkt bez wysyłki – bez ramki terminu
 	}
 	$ok    = $product->is_in_stock();
 	$local = array();
