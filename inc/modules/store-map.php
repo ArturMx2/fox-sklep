@@ -101,3 +101,42 @@ function fx_store_map() {
 	<?php
 	return ob_get_clean();
 }
+
+/* =====================================================================
+ * „Wyznacz trasę”: nawigacja Google Maps od miejsca, w którym jest klient.
+ * Telefon – od razu aplikacja Mapy z nawigacją (dir_action=navigate); komputer – trasa w osobnym
+ * oknie na środku ekranu, a sklep zostaje pod spodem (klient nie ucieka z karty produktu).
+ * ===================================================================== */
+
+/** Adres sklepu do nawigacji. */
+function fx_route_url() {
+	$dest = trim( implode( ', ', array_filter( array( 'FOX.SKLEP.PL', fx_mod( 'store_street' ), trim( fx_mod( 'store_postcode' ) . ' ' . fx_mod( 'store_city' ) ) ) ) ) );
+	return add_query_arg(
+		array(
+			'api'         => 1,
+			'destination' => rawurlencode( $dest ),
+			'travelmode'  => 'driving',
+		),
+		'https://www.google.com/maps/dir/'
+	);
+}
+
+/** Link/przycisk „Wyznacz trasę”. */
+function fx_route_link( $label = 'Wyznacz trasę', $class = '' ) {
+	return '<a class="' . esc_attr( $class ) . '" href="' . esc_url( fx_route_url() ) . '" target="_blank" rel="noopener" data-fx-route>' . esc_html( $label ) . '</a>';
+}
+
+add_action( 'wp_footer', function () {
+	?>
+	<script>
+	document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[data-fx-route]');if(!a||e.ctrlKey||e.metaKey||e.shiftKey)return;
+		var u=a.href,mob=window.matchMedia&&matchMedia('(pointer:coarse)').matches&&window.innerWidth<1024;
+		e.preventDefault();
+		if(mob){window.open(u+(u.indexOf('?')<0?'?':'&')+'dir_action=navigate','_blank','noopener');return}
+		var w=Math.min(1200,screen.availWidth-80),h=Math.min(820,screen.availHeight-80),l=(screen.availLeft||0)+(screen.availWidth-w)/2,t=(screen.availTop||0)+(screen.availHeight-h)/2;
+		var win=window.open(u,'fxroute','popup=yes,width='+w+',height='+h+',left='+Math.round(l)+',top='+Math.round(t));
+		if(!win){window.open(u,'_blank','noopener')} else {try{win.focus()}catch(x){}}
+	});
+	</script>
+	<?php
+}, 60 );

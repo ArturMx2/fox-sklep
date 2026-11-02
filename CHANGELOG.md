@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.24.2
+- „Wyznacz trasę” (strona główna) i „wyznacz trasę” przy „Do przymierzenia w sklepie” na karcie produktu: nawigacja Google Maps do sklepu od miejsca klienta. Telefon – od razu nawigacja w aplikacji Mapy; komputer – trasa w osobnym oknie na środku ekranu, sklep zostaje pod spodem. Link z Dostosuj (Google Maps albo puste pole) zastępowany nawigacją; inny adres zostaje bez zmian.
+
 ## 3.24.1
 - Etykieta na kafelku i filtr „Wysyłka dziś” zmieniają się według polskiego czasu: po 15:00 „Wysyłka jutro”, w piątek po 15:00 i w weekend „Wysyłka w poniedziałek”, przed świętem – najbliższy dzień roboczy; podpis filtra „przy zamówieniu do jutra / poniedziałku, 15:00”. Liczone w przeglądarce, więc działa także na stronach z pamięci podręcznej; odświeża się co minutę.
 

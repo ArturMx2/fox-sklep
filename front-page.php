@@ -375,8 +375,15 @@ endif;
 			<p><?php echo wp_kses_post( fx_mod( 'store_text' ) ); ?></p>
 		<?php endif; ?>
 	</div>
-	<?php if ( fx_mod( 'store_btn_label' ) && fx_mod( 'store_btn_url' ) ) : ?>
-		<a class="fx-btn fx-btn--white" href="<?php echo esc_url( fx_mod( 'store_btn_url' ) ); ?>"><?php echo esc_html( fx_mod( 'store_btn_label' ) ); ?></a>
+	<?php
+	$fx_btn = (string) fx_mod( 'store_btn_url' );
+	// Link do Google Maps (albo puste pole) = nawigacja do sklepu w nowym oknie; inny adres zostaje jak jest.
+	$fx_nav = function_exists( 'fx_route_link' ) && ( '' === $fx_btn || preg_match( '#goo\.gl/maps|maps\.app\.goo\.gl|google\.[a-z.]+/maps#i', $fx_btn ) );
+	?>
+	<?php if ( fx_mod( 'store_btn_label' ) && $fx_nav ) : ?>
+		<?php echo fx_route_link( fx_mod( 'store_btn_label' ), 'fx-btn fx-btn--white' ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
+	<?php elseif ( fx_mod( 'store_btn_label' ) && $fx_btn ) : ?>
+		<a class="fx-btn fx-btn--white" href="<?php echo esc_url( $fx_btn ); ?>"><?php echo esc_html( fx_mod( 'store_btn_label' ) ); ?></a>
 	<?php endif; ?>
 	</div>
 	<?php echo $fx_smap; // phpcs:ignore WordPress.Security.EscapeOutput -- zbudowane w fx_store_map() ?>

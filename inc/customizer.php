@@ -434,7 +434,7 @@ function fx_customize( $wp ) {
 	$add( 'store_title', 'fx_home_store', 'Tytuł', 'textarea' );
 	$add( 'store_text', 'fx_home_store', 'Tekst', 'html' );
 	$add( 'store_btn_label', 'fx_home_store', 'Przycisk – tekst' );
-	$add( 'store_btn_url', 'fx_home_store', 'Przycisk – link', 'url' );
+	$add( 'store_btn_url', 'fx_home_store', 'Przycisk – link (puste albo link Google Maps = nawigacja do sklepu w nowym oknie)', 'url' );
 }
 
 function fx_sanitize_world( $v ) {

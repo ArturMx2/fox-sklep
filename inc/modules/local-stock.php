@@ -301,7 +301,7 @@ add_action( 'woocommerce_single_product_summary', function () {
 	if ( $sizes ) {
 		$where = fx_mod( 'store_city' ) ? fx_mod( 'store_city' ) : 'pod Wrocławiem';
 		$txt   = array_filter( $sizes ) ? 'Do przymierzenia w sklepie (' . $where . '): <strong>' . esc_html( implode( ', ', $sizes ) ) . '</strong>' : 'Do obejrzenia w sklepie stacjonarnym (' . esc_html( $where ) . ')';
-		echo '<p class="fx-ls__store">' . fx_icon( 'pin', 16 ) . '<span>' . $txt . ' · <a href="' . esc_url( home_url( '/#salon' ) ) . '">dojazd</a></span></p>'; // phpcs:ignore WordPress.Security.EscapeOutput
+		echo '<p class="fx-ls__store">' . fx_icon( 'pin', 16 ) . '<span>' . $txt . ' · ' . ( function_exists( 'fx_route_link' ) ? fx_route_link( 'wyznacz trasę' ) : '<a href="' . esc_url( home_url( '/#salon' ) ) . '">dojazd</a>' ) . '</span></p>'; // phpcs:ignore WordPress.Security.EscapeOutput
 	}
 	echo '<p class="fx-ls__pick" hidden></p></div>';
 }, 28 );
