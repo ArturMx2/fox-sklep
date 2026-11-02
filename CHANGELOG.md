@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.21.2
+- Wysyłka 24h / sklep: dziennik synchronizacji w panelu (każde zapytanie do Base z czasem i wynikiem, przykład odpowiedzi Base, magazyny z towarem, powiązanie SKU/EAN, błędy). Otwarty panel sam prowadzi synchronizację krok po kroku (nie czeka na zadania w tle). Blokada przed równoległymi krokami.
+
 ## 3.21.1
 - Wysyłka 24h / sklep: zapytania zbiorcze do BaseLinkera z czasem do 90 s (było 15 s – „cURL error 28”), 3 próby każdej strony, limit czasu PHP 5 min w tle. „Synchronizuj teraz” działa w tle, panel pokazuje postęp i sam się odświeża. Godziny w panelu w czasie polskim.
 

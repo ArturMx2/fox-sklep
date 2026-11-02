@@ -28,6 +28,28 @@ const FX_LS_DATA     = 'fx_ls_data';
 const FX_LS_STATE    = 'fx_ls_state';
 const FX_LS_SKUMAP   = 'fx_ls_skumap';
 const FX_LS_EVENT    = 'fx_ls_sync_event';
+const FX_LS_LOG      = 'fx_ls_log';
+
+/** Dziennik synchronizacji (ostatnie 400 wpisów, czas polski). */
+function fx_ls_log( $msg ) {
+	$log   = get_option( FX_LS_LOG, array() );
+	$log   = is_array( $log ) ? $log : array();
+	$log[] = array( time(), (string) $msg );
+	if ( count( $log ) > 400 ) {
+		$log = array_slice( $log, -400 );
+	}
+	update_option( FX_LS_LOG, $log, false );
+}
+
+function fx_ls_log_text( $limit = 200 ) {
+	$log = array_slice( (array) get_option( FX_LS_LOG, array() ), -$limit );
+	$tz  = new DateTimeZone( 'Europe/Warsaw' );
+	$out = array();
+	foreach ( $log as $row ) {
+		$out[] = wp_date( 'd.m H:i:s', (int) $row[0], $tz ) . '  ' . $row[1];
+	}
+	return implode( "\n", $out );
+}
 
 /* =====================================================================
  * Ustawienia
@@ -325,10 +347,10 @@ add_action( 'init', function () {
 
 add_action( FX_LS_EVENT, function ( $mode = 'start' ) {
 	if ( 'start' === $mode ) {
-		fx_ls_sync_start();
+		fx_ls_sync_start( 'harmonogram' );
 		fx_ls_schedule(); // kolejny termin dnia
 	}
-	$done = fx_ls_sync_step( 20 );
+	$done = fx_ls_sync_step( 45, 'cron' );
 	if ( ! $done ) {
 		wp_schedule_single_event( time() + 5, FX_LS_EVENT, array( 'step' ) );
 	}
@@ -366,7 +388,7 @@ function fx_ls_call( $method, $params ) {
 	return $data;
 }
 
-function fx_ls_sync_start() {
+function fx_ls_sync_start( $who = 'ręcznie' ) {
 	// Raz w tygodniu od nowa SKU/EAN z Base (gdyby ktoś zmienił SKU produktu).
 	if ( (int) get_option( 'fx_ls_skumap_at' ) < time() - WEEK_IN_SECONDS ) {
 		update_option( FX_LS_SKUMAP, array(), false );
@@ -381,19 +403,34 @@ function fx_ls_sync_start() {
 			'raw'     => array(), // blid => [ ship, store, parent_blid ]
 			'need'    => array(), // blid produktów, dla których trzeba dociągnąć SKU/EAN
 			'error'   => '',
+			'touched' => time(),
+			'seen'    => array(), // klucze magazynów z towarem (diagnostyka)
 		),
 		false
 	);
+	list( $token, $inv ) = fx_ls_api();
+	fx_ls_log( '=== START (' . $who . ') – katalog Base ' . $inv . ( $token ? '' : ' – BRAK TOKENU' ) . '; sklep: ' . implode( ',', fx_ls_keys( fx_ls_settings()['store_wh'] ) ) . '; wysyłka 24h: ' . implode( ',', fx_ls_ship_keys() ) . '; SKU/EAN w pamięci: ' . count( (array) get_option( FX_LS_SKUMAP, array() ) ) );
 }
 
 /**
  * Jeden krok synchronizacji (do $seconds sekund). Zwraca true, gdy koniec.
  */
-function fx_ls_sync_step( $seconds = 20 ) {
+function fx_ls_sync_step( $seconds = 20, $who = '' ) {
 	$st = get_option( FX_LS_STATE );
 	if ( ! is_array( $st ) || empty( $st['phase'] ) || 'done' === $st['phase'] ) {
 		return true;
 	}
+	// Jeden krok naraz (cron i panel nie mogą pracować równolegle).
+	if ( get_transient( 'fx_ls_lock' ) ) {
+		return false;
+	}
+	set_transient( 'fx_ls_lock', 1, 5 * MINUTE_IN_SECONDS );
+	$st = fx_ls_sync_step_run( $st, $seconds, $who );
+	delete_transient( 'fx_ls_lock' );
+	return 'done' === $st['phase'];
+}
+
+function fx_ls_sync_step_run( $st, $seconds, $who ) {
 	if ( function_exists( 'set_time_limit' ) ) {
 		@set_time_limit( 300 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors -- jedno zapytanie do Base może trwać ponad minutę
 	}
@@ -401,8 +438,9 @@ function fx_ls_sync_step( $seconds = 20 ) {
 	if ( ! $token || ! $inv ) {
 		$st['phase'] = 'done';
 		$st['error'] = 'Brak tokenu API lub ID katalogu w ustawieniach „Termin wysyłki FOX”.';
+		fx_ls_log( 'BŁĄD: ' . $st['error'] );
 		update_option( FX_LS_STATE, $st, false );
-		return true;
+		return $st;
 	}
 	$ship_keys  = fx_ls_ship_keys();
 	$store_keys = fx_ls_keys( fx_ls_settings()['store_wh'] );
@@ -425,20 +463,39 @@ function fx_ls_sync_step( $seconds = 20 ) {
 	while ( microtime( true ) - $t0 < $seconds ) {
 		if ( 'stock' === $st['phase'] ) {
 			// 1. Stany wszystkich produktów, po 1000 na stronę.
-			$r = fx_ls_call( 'getInventoryProductsStock', array( 'inventory_id' => $inv, 'page' => (int) $st['page'] ) );
+			$c0 = microtime( true );
+			fx_ls_log( 'Stany: pytam o stronę ' . (int) $st['page'] . ( $who ? ' (' . $who . ')' : '' ) . '…' );
+			$r  = fx_ls_call( 'getInventoryProductsStock', array( 'inventory_id' => $inv, 'page' => (int) $st['page'] ) );
+			$ct = round( microtime( true ) - $c0, 1 );
 			if ( is_wp_error( $r ) ) {
 				// Do 3 prób tej samej strony (kolejna za kilka sekund), dopiero potem przerwij.
 				$st['fails'] = (int) ( $st['fails'] ?? 0 ) + 1;
 				$st['error'] = $r->get_error_message() . ' (strona ' . (int) $st['page'] . ', próba ' . $st['fails'] . ' z 3)';
+				fx_ls_log( 'BŁĄD po ' . $ct . ' s: ' . $st['error'] );
 				if ( $st['fails'] >= 3 ) {
 					$st['phase'] = 'done';
+					fx_ls_log( '=== PRZERWANO – zostaje poprzednia lista' );
 				}
 				break;
 			}
 			$st['fails'] = 0;
 			$st['error'] = '';
 			$products = (array) ( $r['products'] ?? array() );
+			$before   = count( (array) $st['raw'] );
+			if ( 1 === (int) $st['page'] && $products ) {
+				// Diagnostyka: jak wygląda jeden produkt w odpowiedzi Base.
+				fx_ls_log( 'Przykład z Base: ' . substr( wp_json_encode( current( $products ) ), 0, 400 ) );
+			}
 			foreach ( $products as $pid => $p ) {
+				foreach ( array_merge( array( (array) ( $p['stock'] ?? array() ) ), array_map( function ( $v ) {
+					return isset( $v['stock'] ) && is_array( $v['stock'] ) ? $v['stock'] : (array) $v;
+				}, (array) ( $p['variants'] ?? array() ) ) ) as $stk ) {
+					foreach ( $stk as $wk => $q ) {
+						if ( (float) $q > 0 ) {
+							$st['seen'][ (string) $wk ] = ( $st['seen'][ (string) $wk ] ?? 0 ) + 1;
+						}
+					}
+				}
 				$pid = (int) ( $p['product_id'] ?? $pid );
 				$var = (array) ( $p['variants'] ?? array() );
 				if ( $var ) {
@@ -464,7 +521,16 @@ function fx_ls_sync_step( $seconds = 20 ) {
 					}
 				}
 			}
+			fx_ls_log( 'Stany: strona ' . (int) $st['page'] . ' – ' . count( $products ) . ' produktów w ' . $ct . ' s; z towarem na naszych magazynach na tej stronie: ' . ( count( (array) $st['raw'] ) - $before ) . ' (razem ' . count( (array) $st['raw'] ) . ')' );
 			if ( count( $products ) < 1000 ) {
+				$seen = (array) $st['seen'];
+				arsort( $seen );
+				$parts = array();
+				foreach ( $seen as $k => $n ) {
+					$parts[] = $k . ': ' . $n;
+				}
+				fx_ls_log( 'Stany: koniec, ' . (int) $st['page'] . ' stron. Magazyny z towarem w Base (liczba pozycji): ' . ( $parts ? implode( ', ', $parts ) : 'BRAK' ) );
+				fx_ls_log( 'SKU/EAN do dociągnięcia: ' . count( (array) $st['need'] ) . ' produktów' );
 				$st['phase'] = 'data';
 			} else {
 				$st['page']++;
@@ -477,12 +543,16 @@ function fx_ls_sync_step( $seconds = 20 ) {
 				$st['phase'] = 'map';
 				continue;
 			}
-			$r = fx_ls_call( 'getInventoryProductsData', array( 'inventory_id' => $inv, 'products' => array_map( 'intval', $need ) ) );
+			$c0 = microtime( true );
+			$r  = fx_ls_call( 'getInventoryProductsData', array( 'inventory_id' => $inv, 'products' => array_map( 'intval', $need ) ) );
+			$ct = round( microtime( true ) - $c0, 1 );
 			if ( is_wp_error( $r ) ) {
 				$st['error'] = $r->get_error_message();
+				fx_ls_log( 'BŁĄD SKU/EAN po ' . $ct . ' s: ' . $st['error'] . ' – zapisuję to, co mam' );
 				$st['phase'] = 'map'; // co mamy, to zapisz
 				continue;
 			}
+			fx_ls_log( 'SKU/EAN: ' . count( (array) ( $r['products'] ?? array() ) ) . ' z ' . count( $need ) . ' produktów w ' . $ct . ' s; zostało ' . max( 0, count( (array) $st['need'] ) - count( $need ) ) );
 			foreach ( (array) ( $r['products'] ?? array() ) as $pid => $p ) {
 				$skumap[ (int) $pid ] = array( (string) ( $p['sku'] ?? '' ), (string) ( $p['ean'] ?? '' ) );
 				foreach ( (array) ( $p['variants'] ?? array() ) as $vid => $v ) {
@@ -506,8 +576,9 @@ function fx_ls_sync_step( $seconds = 20 ) {
 			break;
 		}
 	}
+	$st['touched'] = time();
 	update_option( FX_LS_STATE, $st, false );
-	return 'done' === $st['phase'];
+	return $st;
 }
 
 function fx_ls_finish( &$st, $skumap ) {
@@ -574,11 +645,32 @@ function fx_ls_finish( &$st, $skumap ) {
 		'error'      => $st['error'],
 	);
 	update_option( FX_LS_DATA, $out, false );
+	fx_ls_log( 'Powiązanie ze sklepem: ' . $matched . ' z ' . count( $st['raw'] ) . ' (po SKU: ' . count( $by_sku ) . ', po EAN: ' . count( $by_ean ) . '). Wysyłka 24h: ' . count( $out['ship'] ) . ', sklep: ' . count( $out['store'] ) . '.' . ( $miss ? ' Bez pary w sklepie m.in.: ' . implode( ', ', array_slice( $miss, 0, 10 ) ) : '' ) );
+	fx_ls_log( '=== KONIEC w ' . ( time() - (int) $st['started'] ) . ' s' );
 	unset( $st['raw'], $st['need'] );
 	if ( function_exists( 'fx_cache_touch' ) ) {
 		fx_cache_touch(); // filtry kategorii odświeżą się same
 	}
 }
+
+/* Panel napędza synchronizację sam (bez czekania na zadania w tle). */
+add_action( 'wp_ajax_fx_ls_tick', function () {
+	if ( ! current_user_can( 'manage_woocommerce' ) ) {
+		wp_send_json_error();
+	}
+	check_ajax_referer( 'fx_ls_tick' );
+	$done = fx_ls_sync_step( 40, 'panel' );
+	$st   = (array) get_option( FX_LS_STATE, array() );
+	wp_send_json_success(
+		array(
+			'done'  => $done,
+			'busy'  => (bool) get_transient( 'fx_ls_lock' ),
+			'phase' => $st['phase'] ?? '',
+			'page'  => (int) ( $st['page'] ?? 0 ),
+			'log'   => fx_ls_log_text( 200 ),
+		)
+	);
+} );
 
 /* =====================================================================
  * Panel: WooCommerce → Wysyłka 24h / sklep
@@ -610,7 +702,7 @@ add_action( 'admin_post_fx_ls_save', function () {
 	fx_ls_schedule();
 	if ( ! empty( $in['sync_now'] ) ) {
 		// W tle, żeby panel nie wisiał na długich odpowiedziach Base.
-		fx_ls_sync_start();
+		fx_ls_sync_start( 'ręcznie z panelu' );
 		wp_clear_scheduled_hook( FX_LS_EVENT, array( 'step' ) );
 		wp_schedule_single_event( time(), FX_LS_EVENT, array( 'step' ) );
 		spawn_cron();
@@ -631,7 +723,6 @@ function fx_ls_admin_page() {
 	};
 	$running = ! empty( $st['phase'] ) && 'done' !== $st['phase'];
 	?>
-	<?php if ( $running ) : ?><meta http-equiv="refresh" content="10"><?php endif; ?>
 	<div class="wrap">
 		<h1>Wysyłka 24h i sklep stacjonarny</h1>
 		<p>Sklep w tle pobiera z BaseLinkera stany wybranych magazynów i oznacza produkty: filtry „<?php echo esc_html( $s['ship_label'] ); ?>” i „<?php echo esc_html( $s['store_label'] ); ?>” na listach, etykieta na kafelku, rozmiary do przymierzenia na karcie produktu. Klienci nie odpytują Base – czytają gotową listę.</p>
@@ -658,6 +749,24 @@ function fx_ls_admin_page() {
 				<tr><th>Nie znaleziono w sklepie (SKU/EAN, max 30)</th><td><code><?php echo esc_html( implode( ', ', $stats['missing'] ) ); ?></code></td></tr>
 			<?php endif; ?>
 		</table>
+
+		<h2>Dziennik synchronizacji</h2>
+		<p id="fx-ls-status" class="description"><?php echo $running ? 'Synchronizacja trwa – ta strona prowadzi ją dalej, nie zamykaj jej.' : 'Ostatnie wpisy (najnowsze na dole).'; ?></p>
+		<pre id="fx-ls-log" style="max-width:1100px;max-height:420px;overflow:auto;background:#1d2327;color:#e5e5e5;padding:12px 14px;font-size:12px;line-height:1.5;white-space:pre-wrap"><?php echo esc_html( fx_ls_log_text( 200 ) ); ?></pre>
+		<?php if ( $running ) : ?>
+		<script>
+		(function(){var log=document.getElementById('fx-ls-log'),stat=document.getElementById('fx-ls-status');log.scrollTop=log.scrollHeight;
+		function tick(){var f=new FormData();f.append('action','fx_ls_tick');f.append('_ajax_nonce','<?php echo esc_js( wp_create_nonce( 'fx_ls_tick' ) ); ?>');
+			fetch(ajaxurl,{method:'POST',body:f,credentials:'same-origin'}).then(function(r){return r.json()}).then(function(j){
+				if(!j||!j.success){stat.textContent='Błąd odpowiedzi panelu – spróbuję ponownie za 10 s.';setTimeout(tick,10000);return}
+				log.textContent=j.data.log;log.scrollTop=log.scrollHeight;
+				if(j.data.done){stat.textContent='Gotowe – przeładowuję…';setTimeout(function(){location.reload()},1500);return}
+				stat.textContent=(j.data.busy?'Krok w toku (inny proces), czekam…':'Synchronizacja trwa: '+(j.data.phase==='stock'?'stany, strona '+j.data.page:j.data.phase)+' – nie zamykaj tej strony.');
+				setTimeout(tick,j.data.busy?5000:500);
+			}).catch(function(){stat.textContent='Brak połączenia (np. limit czasu serwera) – ponawiam za 10 s.';setTimeout(tick,10000)});}
+		tick();})();
+		</script>
+		<?php endif; ?>
 
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<?php wp_nonce_field( 'fx_ls_save' ); ?>
