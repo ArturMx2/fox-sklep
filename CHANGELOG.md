@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.20.4
+- Pobranie tylko do 300 zł: powyżej znika dostawa „Kurier pobranie” i płatność przy odbiorze, a w podsumowaniu zamówienia pojawia się krótka informacja. Liczy się wartość produktów po rabatach (z VAT, bez dostawy). Limit zmienisz w Narzędziach sklepu (0 = bez limitu).
+
 ## 3.20.3
 - Dostawa: gdy klient ma darmową dostawę, płatne metody znikają (np. „Kurier InPost: 18,45 zł” obok „Kurier InPost darmowa dostawa”). Pobranie zostaje (lista wyjątków w Narzędziach sklepu).
 - „E-Bon na email” tylko, gdy w koszyku są wyłącznie bony podarunkowe (produkt ID 25473 albo „voucher / bon podarunkowy” w nazwie). Bon z innym produktem = zwykła wysyłka.
