@@ -1,5 +1,12 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.21.0
+- Nowe filtry na listach produktów: „Wysyłka 24h” i „Dostępny w sklepie stacjonarnym” (z podpisem: miejscowość i godziny otwarcia). Połączone z rozmiarem sprawdzają konkretny rozmiar.
+- Dane z BaseLinkera: synchronizacja w tle o 6:00, 11:00 i 14:00 (do zmiany). Stany wszystkich produktów pobierane zbiorczo (1000 na zapytanie), SKU/EAN dociągane tylko dla nowych produktów z towarem na miejscu; wiązanie po SKU, zapasowo po EAN. Klienci czytają gotową listę – zero zapytań do Base przy przeglądaniu. Sprzedane sztuki znikają z listy od razu po zamówieniu.
+- Magazyny: sklep stacjonarny = bl_33043; „Wysyłka 24h” = magazyny z czasem 0 dni w „Termin wysyłki FOX”. Token i katalog Base z tego samego modułu.
+- Kafelek produktu: etykieta „Wysyłka 24h”. Karta produktu: „Do przymierzenia w sklepie (Mokronos Dolny): M, L · dojazd” i po wyborze rozmiaru „✓ Wysyłka 24h · ✓ Ten rozmiar jest w sklepie stacjonarnym”.
+- Panel: WooCommerce → Wysyłka 24h / sklep – stan ostatniej synchronizacji, lista SKU niepowiązanych ze sklepem, ustawienia, „Zapisz i synchronizuj teraz”.
+
 ## 3.20.4
 - Pobranie tylko do 300 zł: powyżej znika dostawa „Kurier pobranie” i płatność przy odbiorze, a w podsumowaniu zamówienia pojawia się krótka informacja. Liczy się wartość produktów po rabatach (z VAT, bez dostawy). Limit zmienisz w Narzędziach sklepu (0 = bez limitu).
 

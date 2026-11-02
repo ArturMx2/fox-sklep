@@ -27,7 +27,7 @@ function fx_filter_params() {
 /** Czy jest włączony jakikolwiek filtr (rozmiar, kolor, promocje, także stare filter_…). */
 function fx_filters_active() {
 	foreach ( array_keys( $_GET ) as $k ) { // phpcs:ignore WordPress.Security.NonceVerification
-		if ( in_array( $k, array( 'rozmiar', 'kolor', 'promocja', 'min_price', 'max_price', 'rating_filter' ), true ) || 0 === strpos( $k, 'filter_' ) ) {
+		if ( in_array( $k, array( 'rozmiar', 'kolor', 'promocja', 'wysylka24', 'wsklepie', 'min_price', 'max_price', 'rating_filter' ), true ) || 0 === strpos( $k, 'filter_' ) ) {
 			return true;
 		}
 	}
@@ -216,7 +216,7 @@ function fx_filter_selected( $role ) {
 /** Adres kategorii z bieżącymi filtrami i sortowaniem (bez numeru strony). */
 function fx_filter_base_url() {
 	$url = get_term_link( get_queried_object() );
-	foreach ( array( 'rozmiar', 'kolor', 'promocja', 'orderby' ) as $k ) {
+	foreach ( array( 'rozmiar', 'kolor', 'promocja', 'wysylka24', 'wsklepie', 'orderby' ) as $k ) {
 		if ( isset( $_GET[ $k ] ) && '' !== $_GET[ $k ] ) { // phpcs:ignore WordPress.Security.NonceVerification
 			$url = add_query_arg( $k, rawurlencode( sanitize_text_field( wp_unslash( $_GET[ $k ] ) ) ), $url ); // phpcs:ignore WordPress.Security.NonceVerification
 		}
@@ -234,8 +234,10 @@ function fx_filter_toggle_url( $role, $slug ) {
 
 /**
  * Produkty pasujące do wybranych wartości (dowolnej z nich) w danej grupie.
+ * $only: opcjonalnie [ id_wariantu_lub_produktu => true ] – liczą się tylko te warianty / produkty
+ * (np. „rozmiar L, który leży w sklepie stacjonarnym”).
  */
-function fx_filter_match_ids( $role, $slugs ) {
+function fx_filter_match_ids( $role, $slugs, $only = null ) {
 	global $wpdb;
 	$ids = array();
 	foreach ( fx_filter_taxonomies()[ $role ] as $tax ) {
@@ -259,15 +261,19 @@ function fx_filter_match_ids( $role, $slugs ) {
 		$vals = array_values( array_unique( $vals ) );
 		if ( $vals ) {
 			$ph  = implode( ',', array_fill( 0, count( $vals ), '%s' ) );
-			$sql = "SELECT DISTINCT v.post_parent FROM {$wpdb->posts} v JOIN {$wpdb->postmeta} a ON a.post_id = v.ID AND a.meta_key = %s JOIN {$wpdb->postmeta} st ON st.post_id = v.ID AND st.meta_key = '_stock_status' AND st.meta_value IN ('instock','onbackorder') WHERE v.post_type = 'product_variation' AND v.post_status = 'publish' AND a.meta_value IN ($ph)";
-			$ids = array_merge( $ids, array_map( 'intval', $wpdb->get_col( $wpdb->prepare( $sql, array_merge( array( 'attribute_' . $tax ), $vals ) ) ) ) ); // phpcs:ignore
+			$sql = "SELECT DISTINCT v.ID, v.post_parent FROM {$wpdb->posts} v JOIN {$wpdb->postmeta} a ON a.post_id = v.ID AND a.meta_key = %s JOIN {$wpdb->postmeta} st ON st.post_id = v.ID AND st.meta_key = '_stock_status' AND st.meta_value IN ('instock','onbackorder') WHERE v.post_type = 'product_variation' AND v.post_status = 'publish' AND a.meta_value IN ($ph)";
+			foreach ( (array) $wpdb->get_results( $wpdb->prepare( $sql, array_merge( array( 'attribute_' . $tax ), $vals ) ) ) as $row ) { // phpcs:ignore
+				if ( null === $only || isset( $only[ (int) $row->ID ] ) ) {
+					$ids[] = (int) $row->post_parent;
+				}
+			}
 		}
 		if ( $terms ) {
 			$vp  = fx_filter_var_parents( $tax );
 			$obj = get_objects_in_term( wp_list_pluck( $terms, 'term_id' ), $tax );
 			$obj = is_wp_error( $obj ) ? array() : $obj;
 			foreach ( 'size' === $role ? fx_filter_only_simple( $obj ) : $obj as $id ) {
-				if ( ! isset( $vp[ (int) $id ] ) ) {
+				if ( ! isset( $vp[ (int) $id ] ) && ( null === $only || isset( $only[ (int) $id ] ) ) ) {
 					$ids[] = (int) $id;
 				}
 			}
@@ -288,6 +294,7 @@ add_action( 'woocommerce_product_query', function ( $q ) {
 	if ( fx_filter_sale_on() ) {
 		$sets[] = array_map( 'intval', wc_get_product_ids_on_sale() );
 	}
+	$sets = apply_filters( 'fx_filter_sets', $sets );
 	if ( ! $sets ) {
 		return;
 	}
@@ -328,7 +335,8 @@ function fx_filters_data() {
 	}
 	$sale_on   = fx_filter_sale_on();
 	$sale_have = $sale_on || fx_filter_sale_in_cat( $term );
-	if ( ! $groups && ! $sale_have ) {
+	$switches  = apply_filters( 'fx_filter_switches', array(), $term ); // np. „Wysyłka 24h”, „W sklepie stacjonarnym”
+	if ( ! $groups && ! $sale_have && ! $switches ) {
 		return $data;
 	}
 	$active = array();
@@ -342,7 +350,12 @@ function fx_filters_data() {
 	if ( $sale_on ) {
 		$active[] = array( 'Promocje', fx_filter_sale_url() );
 	}
-	$data = array( 'term' => $term, 'groups' => $groups, 'sale_have' => $sale_have, 'sale_on' => $sale_on, 'active' => $active );
+	foreach ( $switches as $sw ) {
+		if ( $sw['on'] ) {
+			$active[] = array( $sw['short'], $sw['url'] );
+		}
+	}
+	$data = array( 'term' => $term, 'groups' => $groups, 'sale_have' => $sale_have, 'sale_on' => $sale_on, 'active' => $active, 'switches' => $switches );
 	return $data;
 }
 
@@ -354,6 +367,9 @@ function fx_filters_sidebar() {
 	echo '<aside class="fx-sidebar" id="fx-filters" aria-label="Filtry"><div class="fx-sidebar__head"><span class="fx-sidebar__title">Filtry</span><button type="button" class="fx-icon-btn fx-sidebar__close" data-fx-filters-close aria-label="Zamknij filtry">' . fx_icon( 'close' ) . '</button></div><div class="fx-sidebar__body">'; // phpcs:ignore
 	if ( $d['sale_have'] ) {
 		echo '<div class="fx-fgroup fx-fgroup--sale"><a rel="nofollow" class="fx-switch fx-switch--side' . ( $d['sale_on'] ? ' is-on' : '' ) . '" role="switch" aria-checked="' . ( $d['sale_on'] ? 'true' : 'false' ) . '" href="' . esc_url( fx_filter_sale_url() ) . '"><span class="fx-switch__ui" aria-hidden="true"></span>Tylko promocje</a></div>';
+	}
+	foreach ( (array) ( $d['switches'] ?? array() ) as $sw ) {
+		echo '<div class="fx-fgroup fx-fgroup--sale fx-fgroup--' . esc_attr( $sw['key'] ) . '"><a rel="nofollow" class="fx-switch fx-switch--side' . ( $sw['on'] ? ' is-on' : '' ) . '" role="switch" aria-checked="' . ( $sw['on'] ? 'true' : 'false' ) . '" href="' . esc_url( $sw['url'] ) . '"><span class="fx-switch__ui" aria-hidden="true"></span><span>' . esc_html( $sw['label'] ) . ( ! empty( $sw['note'] ) ? '<small class="fx-switch__note">' . esc_html( $sw['note'] ) . '</small>' : '' ) . '</span></a></div>';
 	}
 	foreach ( $d['groups'] as $g ) {
 		list( $role, $label, $opts ) = $g;
