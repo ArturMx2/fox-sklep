@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.21.3
+- Wysyłka 24h / sklep: domyślnie oba filtry z magazynu sklepu (bl_33043, ~2 tys. pozycji). Wcześniej „Wysyłka 24h” brała magazyny „0 dni” z Terminu wysyłki, w tym warehouse_4011644 z ~86 tys. pozycji (magazyn dostawcy) – synchronizacja dociągała SKU dla ~89 tys. produktów. Bezpiecznik: przerwanie przy ponad 15 tys. produktów do sprawdzenia. Przycisk „Przerwij synchronizację”.
+
 ## 3.21.2
 - Wysyłka 24h / sklep: dziennik synchronizacji w panelu (każde zapytanie do Base z czasem i wynikiem, przykład odpowiedzi Base, magazyny z towarem, powiązanie SKU/EAN, błędy). Otwarty panel sam prowadzi synchronizację krok po kroku (nie czeka na zadania w tle). Blokada przed równoległymi krokami.
 

@@ -84,15 +84,9 @@ function fx_ls_keys( $raw ) {
 function fx_ls_ship_keys() {
 	$s    = fx_ls_settings();
 	$keys = fx_ls_keys( $s['ship_wh'] );
-	if ( ! $keys && function_exists( 'fox_bl_delivery_parse_warehouses' ) ) {
-		list( , , $bl ) = fx_ls_api();
-		foreach ( fox_bl_delivery_parse_warehouses( $bl['warehouse_map'] ?? '' ) as $k => $days ) {
-			if ( 0 === (int) $days ) {
-				$keys[] = $k;
-			}
-		}
-	}
-	return $keys;
+	// Puste = ten sam magazyn co sklep stacjonarny (towar fizycznie u nas). Magazyny „0 dni” z Terminu
+	// wysyłki się nie nadają – jest wśród nich duży magazyn dostawcy (dziesiątki tysięcy pozycji).
+	return $keys ? $keys : fx_ls_keys( $s['store_wh'] );
 }
 
 /* =====================================================================
@@ -538,6 +532,14 @@ function fx_ls_sync_step_run( $st, $seconds, $who ) {
 			}
 		} elseif ( 'data' === $st['phase'] ) {
 			// 2. SKU/EAN tylko dla nowych produktów z towarem na miejscu (reszta z pamięci).
+			if ( count( (array) $st['need'] ) > 15000 ) {
+				// Bezpiecznik: tyle pozycji to nie „towar na półce”, tylko magazyn dostawcy.
+				$st['error'] = 'Przerwano: ' . count( (array) $st['need'] ) . ' produktów do sprawdzenia – to za dużo jak na magazyn sklepu. Sprawdź magazyny w ustawieniach.';
+				fx_ls_log( 'BEZPIECZNIK: ' . $st['error'] );
+				update_option( FX_LS_SKUMAP, array(), false );
+				$st['phase'] = 'done';
+				break;
+			}
 			$need = array_slice( array_keys( (array) $st['need'] ), 0, 100 );
 			if ( ! $need ) {
 				$st['phase'] = 'map';
@@ -680,6 +682,23 @@ add_action( 'admin_menu', function () {
 	add_submenu_page( 'woocommerce', 'Wysyłka 24h i sklep stacjonarny', 'Wysyłka 24h / sklep', 'manage_woocommerce', 'fx-local-stock', 'fx_ls_admin_page' );
 }, 60 );
 
+add_action( 'admin_post_fx_ls_stop', function () {
+	if ( ! current_user_can( 'manage_woocommerce' ) ) {
+		wp_die( 'Brak uprawnień.' );
+	}
+	check_admin_referer( 'fx_ls_stop' );
+	$st = (array) get_option( FX_LS_STATE, array() );
+	unset( $st['raw'], $st['need'] );
+	$st['phase'] = 'done';
+	$st['error'] = 'Przerwano ręcznie – zostaje poprzednia lista.';
+	update_option( FX_LS_STATE, $st, false );
+	wp_clear_scheduled_hook( FX_LS_EVENT, array( 'step' ) );
+	delete_transient( 'fx_ls_lock' );
+	fx_ls_log( '=== PRZERWANO RĘCZNIE' );
+	wp_safe_redirect( admin_url( 'admin.php?page=fx-local-stock' ) );
+	exit;
+} );
+
 add_action( 'admin_post_fx_ls_save', function () {
 	if ( ! current_user_can( 'manage_woocommerce' ) ) {
 		wp_die( 'Brak uprawnień.' );
@@ -750,6 +769,12 @@ function fx_ls_admin_page() {
 			<?php endif; ?>
 		</table>
 
+		<?php if ( $running ) : ?>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:10px 0">
+				<?php wp_nonce_field( 'fx_ls_stop' ); ?><input type="hidden" name="action" value="fx_ls_stop">
+				<button class="button button-secondary">Przerwij synchronizację</button>
+			</form>
+		<?php endif; ?>
 		<h2>Dziennik synchronizacji</h2>
 		<p id="fx-ls-status" class="description"><?php echo $running ? 'Synchronizacja trwa – ta strona prowadzi ją dalej, nie zamykaj jej.' : 'Ostatnie wpisy (najnowsze na dole).'; ?></p>
 		<pre id="fx-ls-log" style="max-width:1100px;max-height:420px;overflow:auto;background:#1d2327;color:#e5e5e5;padding:12px 14px;font-size:12px;line-height:1.5;white-space:pre-wrap"><?php echo esc_html( fx_ls_log_text( 200 ) ); ?></pre>
@@ -775,7 +800,7 @@ function fx_ls_admin_page() {
 			<table class="form-table" role="presentation">
 				<tr><th>Włączone</th><td><label><input type="checkbox" name="on" value="1" <?php checked( $s['on'] ); ?>> Filtry, etykiety i synchronizacja</label></td></tr>
 				<tr><th><label for="fx_ls_store">Magazyn sklepu stacjonarnego</label></th><td><input id="fx_ls_store" class="regular-text code" name="store_wh" value="<?php echo esc_attr( $s['store_wh'] ); ?>"><p class="description">Klucz magazynu z Base, np. <code>bl_33043</code> (kilka – po przecinku).</p></td></tr>
-				<tr><th><label for="fx_ls_ship">Magazyny „<?php echo esc_html( $s['ship_label'] ); ?>”</label></th><td><input id="fx_ls_ship" class="regular-text code" name="ship_wh" value="<?php echo esc_attr( $s['ship_wh'] ); ?>" placeholder="<?php echo esc_attr( implode( ', ', fx_ls_ship_keys() ) ); ?>"><p class="description">Puste = magazyny z czasem 0 dni w „Termin wysyłki FOX” (teraz: <code><?php echo esc_html( implode( ', ', fx_ls_ship_keys() ) ); ?></code>).</p></td></tr>
+				<tr><th><label for="fx_ls_ship">Magazyny „<?php echo esc_html( $s['ship_label'] ); ?>”</label></th><td><input id="fx_ls_ship" class="regular-text code" name="ship_wh" value="<?php echo esc_attr( $s['ship_wh'] ); ?>" placeholder="<?php echo esc_attr( implode( ', ', fx_ls_ship_keys() ) ); ?>"><p class="description">Puste = ten sam magazyn co sklep stacjonarny. Dopisz inne tylko, jeśli towar z nich naprawdę wysyłacie w 24h (teraz: <code><?php echo esc_html( implode( ', ', fx_ls_ship_keys() ) ); ?></code>).</p></td></tr>
 				<tr><th><label for="fx_ls_times">Godziny synchronizacji</label></th><td><input id="fx_ls_times" class="regular-text" name="times" value="<?php echo esc_attr( $s['times'] ); ?>"><p class="description">Czas polski, po przecinku. Sprzedane sztuki znikają z listy od razu po zamówieniu.</p></td></tr>
 				<tr><th><label for="fx_ls_l1">Nazwa filtra wysyłki</label></th><td><input id="fx_ls_l1" class="regular-text" name="ship_label" value="<?php echo esc_attr( $s['ship_label'] ); ?>"></td></tr>
 				<tr><th><label for="fx_ls_l2">Nazwa filtra sklepu</label></th><td><input id="fx_ls_l2" class="regular-text" name="store_label" value="<?php echo esc_attr( $s['store_label'] ); ?>"></td></tr>
