@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.25.5 – wyszukiwarka: kategorie dopasowane do wyników
+- Kategoria w podpowiedziach = najwęższa kategoria, w której jest większość wyników z danego świata (moto / rower), np. „OFF ROAD › Ochraniacze › Kolana i łokcie” zamiast wszystkich ochraniaczy; kaski dalej „OFF ROAD › Kaski” / „ROWEROWY › Kaski rowerowe”.
+- Ścieżka nad kategorią: dział + bezpośredni rodzic.
+
 ## 3.25.4 – wyszukiwarka: „Często szukane”
 - Kliknięcie w podpowiedź „Często szukane” (np. „kask”) od razu pokazuje wyniki dla tej frazy – wcześniej okno się zamykało.
 

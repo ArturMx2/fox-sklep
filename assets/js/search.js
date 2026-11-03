@@ -165,9 +165,11 @@
 
 	/* Kategorie: nazwa pasuje do wpisanych słów albo najczęstsza kategoria wśród wyników. */
 	/*
-	 * Kategorie w podpowiedziach: RODZAJ produktu w danym świecie, nie konkretny model.
-	 * Każdy wynik liczymy do kategorii o jeden poziom pod główną (OFF ROAD › Kaski, ROWEROWY › Kaski rowerowe).
-	 * Gdy wszystkie wyniki są w jednej takiej kategorii – pokazujemy też jej podział (Kaski MTB, Kaski Full Face).
+	 * Kategorie w podpowiedziach: najwęższa kategoria, w której mieści się większość wyników
+	 * z danego świata (dział główny: OFF ROAD / ROWEROWY …), ze ścieżką nad nazwą.
+	 * „kask fox” → OFF ROAD › Kaski i ROWEROWY › Kaski rowerowe (wyniki w wielu modelach),
+	 * „ochraniacz kolan” → OFF ROAD › Ochraniacze › Kolana i łokcie (a nie wszystkie ochraniacze).
+	 * Gdy w świecie nie ma jednej wspólnej kategorii – jego 2 największe kategorie pod działem.
 	 */
 	function chain(id) {
 		var ids = [], cur = id, c = D.cats[cur], g = 0;
@@ -175,26 +177,33 @@
 		return ids;
 	}
 	function catsFor(tk, items) {
-		var top = {}, sub = {}, order = [];
+		var worlds = {}, order = [];
 		items.forEach(function (it) {
 			if (!it.m) { return; }
-			var ch = chain(it.m), a = ch[1];
-			if (!a) { return; } // produkt przypisany tylko do działu głównego – nic nie mówi klientowi
-			if (!top[a]) { top[a] = 0; order.push(a); }
-			top[a]++;
-			if (ch.length > 2) { sub[a] = sub[a] || {}; sub[a][ch[2]] = (sub[a][ch[2]] || 0) + 1; }
+			var ch = chain(it.m);
+			if (ch.length < 2) { return; } // tylko dział główny – nic nie mówi klientowi
+			var w = worlds[ch[0]];
+			if (!w) { w = worlds[ch[0]] = { n: 0, cnt: {}, depth: {} }; order.push(ch[0]); }
+			w.n++;
+			for (var i = 1; i < ch.length; i++) { w.cnt[ch[i]] = (w.cnt[ch[i]] || 0) + 1; w.depth[ch[i]] = i; }
 		});
-		order.sort(function (x, y) { return top[y] - top[x]; });
-		// Pojedyncze, przypadkowe trafienia nie zaśmiecają listy (chyba że kategorii jest mało).
-		var ids = order.filter(function (id, i) { return i < 2 || top[id] >= 2; }).slice(0, 4), out = [];
-		ids.forEach(function (id) { if (P.catById[id]) { out.push({ c: P.catById[id], n: top[id] }); } });
-		if (out.length === 1 && sub[ids[0]]) {
-			var s = sub[ids[0]];
-			Object.keys(s).sort(function (x, y) { return s[y] - s[x]; }).slice(0, 4).forEach(function (id) {
-				if (P.catById[id] && Object.keys(s).length > 1) { out.push({ c: P.catById[id], n: s[id], sub: true }); }
+		order.sort(function (a, b) { return worlds[b].n - worlds[a].n; });
+		var out = [];
+		order.forEach(function (root) {
+			var w = worlds[root], best = 0, ids = Object.keys(w.cnt);
+			if (w.n < 2 && out.length) { return; } // pojedyncze, przypadkowe trafienie
+			ids.forEach(function (id) {
+				if (w.cnt[id] >= Math.ceil(w.n * 0.8) && (!best || w.depth[id] > w.depth[best] || (w.depth[id] === w.depth[best] && w.cnt[id] > w.cnt[best]))) { best = id; }
 			});
-		}
-		return out;
+			if (best) {
+				if (P.catById[best]) { out.push({ c: P.catById[best], n: w.cnt[best] }); }
+				return;
+			}
+			ids.filter(function (id) { return w.depth[id] === 1; }).sort(function (a, b) { return w.cnt[b] - w.cnt[a]; }).slice(0, 2).forEach(function (id) {
+				if (P.catById[id]) { out.push({ c: P.catById[id], n: w.cnt[id] }); }
+			});
+		});
+		return out.slice(0, 4);
 	}
 
 	/*
@@ -370,10 +379,9 @@
 			if (res.cats.length) {
 				cats = '<div class="fx-sd__catbox"><p class="fx-sd__h">Kategorie</p><ul class="fx-sd__cats">' + res.cats.map(function (x) {
 					// Ścieżka nad kategorią (np. „Off Road › Ochraniacze”) – każdy poziom klikalny.
-					if (x.sub) {
-						return '<li class="is-sub"><a class="fx-sd__cat" data-nav href="' + esc(url(x.c.url)) + '"><span>' + esc(x.c.name) + '</span> <span class="fx-sd__n">' + x.n + '</span></a></li>';
-					}
-					var path = catPath(x.c.id).slice(-2).map(function (p) {
+					var pth = catPath(x.c.id);
+					if (pth.length > 2) { pth = [pth[0], pth[pth.length - 1]]; } // dział + bezpośredni rodzic
+					var path = pth.map(function (p) {
 						return '<a data-nav href="' + esc(url(p[1])) + '">' + esc(p[0]) + '</a>';
 					}).join(' <span aria-hidden="true">›</span> ');
 					return '<li>' + (path ? '<span class="fx-sd__path">' + path + ' <span aria-hidden="true">›</span></span>' : '') +
