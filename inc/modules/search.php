@@ -406,6 +406,27 @@ function fx_srch_popular() {
 	return array_values( array_slice( array_unique( array_merge( (array) $rows, $own ) ), 0, 8 ) );
 }
 
+/**
+ * Frazy, których szukali klienci (60 dni, z wynikami, co najmniej 2 razy) – podpowiedzi w lewej kolumnie.
+ *
+ * @return array [ [ fraza, liczba ], … ]
+ */
+function fx_srch_phrases() {
+	global $wpdb;
+	$l    = fx_srch_log_table();
+	$rows = $wpdb->get_results( $wpdb->prepare( "SELECT q, COUNT(*) c FROM $l WHERE ts > %d AND n > 0 AND src IN ('dd','page') AND CHAR_LENGTH(q) BETWEEN 3 AND 60 GROUP BY q HAVING COUNT(*) >= 2 ORDER BY c DESC LIMIT 400", time() - 60 * DAY_IN_SECONDS ) ); // phpcs:ignore
+	$out  = array();
+	$seen = array();
+	foreach ( (array) $rows as $r ) {
+		$k = fx_srch_norm( $r->q );
+		if ( '' !== $k && ! isset( $seen[ $k ] ) ) {
+			$seen[ $k ] = true;
+			$out[]      = array( $r->q, (int) $r->c );
+		}
+	}
+	return $out;
+}
+
 /** Linie „a, b, c” → grupy synonimów (znormalizowane). */
 function fx_srch_syn_groups( $text ) {
 	$out = array();
@@ -510,6 +531,7 @@ function fx_srch_publish() {
 		'syn'   => fx_srch_syn_groups( $s['syn'] ),
 		'pins'  => (object) fx_srch_pins( $s['pins'] ),
 		'pop'   => fx_srch_popular(),
+		'qs'    => fx_srch_phrases(),
 		'items' => $items,
 	);
 	$json = wp_json_encode( $data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
@@ -1074,7 +1096,8 @@ add_action( 'rest_api_init', function () {
 			'methods'             => 'POST',
 			'permission_callback' => '__return_true',
 			'callback'            => function ( WP_REST_Request $r ) {
-				$q   = mb_substr( fx_srch_norm( (string) $r->get_param( 'q' ) ), 0, 100 );
+				// Fraza tak, jak wpisał klient (małe litery, z polskimi znakami) – do statystyk i podpowiedzi.
+				$q   = mb_substr( trim( preg_replace( '/\s+/u', ' ', mb_strtolower( wp_strip_all_tags( (string) $r->get_param( 'q' ) ), 'UTF-8' ) ) ), 0, 100 );
 				$src = in_array( $r->get_param( 'src' ), array( 'dd', 'page', 'ddc', 'pagec' ), true ) ? $r->get_param( 'src' ) : 'dd';
 				if ( '' === $q || mb_strlen( $q ) < 2 ) {
 					return new WP_REST_Response( null, 204 );

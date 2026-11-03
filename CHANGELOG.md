@@ -1,5 +1,11 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.25.2 – wyszukiwarka w układzie dużych sklepów
+- Po lewej podpowiedzi fraz (z wyszukiwań klientów i z nazw produktów) oraz kategorie ze ścieżką.
+- Po prawej siatka produktów z dużymi zdjęciami: nazwa i cena (jak foxracing.com), „Zobacz wszystkie” w nagłówku.
+- Bez rozmiarów i oznaczeń wysyłki w podpowiedziach (zostaje tylko „Przedsprzedaż”).
+- Statystyki zapisują frazy tak, jak wpisał klient (z polskimi znakami).
+
 ## 3.25.1 – wyszukiwarka: ścieżka kategorii, większe zdjęcia
 - Przy kategorii w podpowiedziach ścieżka nadrzędna (np. „Off Road › Ochraniacze › Kolana”) – każdy poziom klikalny.
 - Większe zdjęcia produktów w podpowiedziach (96 px, na telefonie 76 px).

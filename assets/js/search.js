@@ -185,6 +185,50 @@
 		return out;
 	}
 
+	/*
+	 * Podpowiedzi fraz (lewa kolumna, jak u największych sklepów):
+	 * 1) frazy, których klienci szukali (statystyki, z wynikami) pasujące do wpisanych słów,
+	 * 2) dokończenia z nazw pasujących produktów: „kask” → „kask rowerowy”, „kask motocyklowy fox”.
+	 */
+	function suggest(q, res) {
+		var typed = norm(q), out = [], seen = {}, nt = res.tk.tokens.length;
+		seen[typed] = 1;
+		function add(p) {
+			var k = norm(p);
+			if (!k || seen[k] || out.length >= 6) { return; }
+			seen[k] = 1;
+			out.push(p);
+		}
+		(D.qs || []).forEach(function (x) {
+			var w = norm(x[0]).split(' ');
+			if (out.length < 3 && res.tk.tokens.every(function (alts) { return tokScore(alts, w, []) >= 8; })) { add(x[0]); }
+		});
+		var cnt = {}, first = {};
+		res.items.slice(0, 80).forEach(function (it) {
+			var words = it.t.toLowerCase().split(/\s+/), tw = words.map(norm), i;
+			for (i = 0; i < tw.length; i++) {
+				if (tokScore(res.tk.tokens[0], [tw[i]], []) >= 8) { break; }
+			}
+			if (i >= tw.length) { return; }
+			// Okno od pierwszego dopasowanego słowa: wpisane słowa + jedno następne („kask” → „kask rowerowy”).
+			for (var len = nt + 1; len <= nt + 2; len++) {
+				var win = tw.slice(i, i + len);
+				if (win.length < len) { break; }
+				if (!res.tk.tokens.every(function (alts) { return tokScore(alts, win, []) >= 8; })) { continue; }
+				var phr = words.slice(i, i + len).join(' ').replace(/[,;:()\/]+/g, ' ').replace(/\s+/g, ' ').trim();
+				if (norm(phr) !== typed && norm(phr).split(' ').length === len) {
+					cnt[phr] = (cnt[phr] || 0) + 1;
+					if (first[phr] === undefined) { first[phr] = Object.keys(first).length; }
+				}
+				break;
+			}
+		});
+		Object.keys(cnt).sort(function (a, b) { return cnt[b] - cnt[a] || first[a] - first[b]; }).forEach(function (p) {
+			if (cnt[p] >= 2 || out.length < 3) { add(p); }
+		});
+		return out.slice(0, 6);
+	}
+
 	/* Kategorie nadrzędne: [ [nazwa, adres], … ] od najwyższej. */
 	function catPath(id) {
 		var out = [], c = D.cats[id], guard = 0;
@@ -304,38 +348,41 @@
 				return;
 			}
 			res = search(q);
-			var n = res.items.length, ship = shipWord();
-			var side = '';
+			var n = res.items.length;
+			var sugg = suggest(q, res), cats = '', sg = '';
+			if (sugg.length) {
+				sg = '<div class="fx-sd__sugg"><p class="fx-sd__h">Podpowiedzi</p><ul class="fx-sd__phr">' + sugg.map(function (p) {
+					return '<li><a data-nav href="' + esc(allUrl(p)) + '">' + mark(p, res.tk) + '</a></li>';
+				}).join('') + '</ul></div>';
+			}
 			if (res.cats.length) {
-				side += '<p class="fx-sd__h">Kategorie</p><ul class="fx-sd__cats">' + res.cats.map(function (x) {
+				cats = '<div class="fx-sd__catbox"><p class="fx-sd__h">Kategorie</p><ul class="fx-sd__cats">' + res.cats.map(function (x) {
 					// Ścieżka nad kategorią (np. „Off Road › Ochraniacze”) – każdy poziom klikalny.
 					var path = catPath(x.c.id).slice(-2).map(function (p) {
 						return '<a data-nav href="' + esc(url(p[1])) + '">' + esc(p[0]) + '</a>';
 					}).join(' <span aria-hidden="true">›</span> ');
 					return '<li>' + (path ? '<span class="fx-sd__path">' + path + ' <span aria-hidden="true">›</span></span>' : '') +
 						'<a class="fx-sd__cat" data-nav href="' + esc(url(x.c.url)) + '"><span>' + mark(x.c.name, res.tk) + '</span> <span class="fx-sd__n">' + x.n + '</span></a></li>';
-				}).join('') + '</ul>';
+				}).join('') + '</ul></div>';
 			}
-			var list = res.items.slice(0, C.max).map(function (it) {
-				var tags = '';
-				if (it.f & 1) { tags += '<span class="fx-sd__tag is-ship">' + esc(ship) + '</span>'; }
-				if (it.f & 2) { tags += '<span class="fx-sd__tag">W sklepie</span>'; }
-				if (it.pr) { tags += '<span class="fx-sd__tag is-pre">Przedsprzedaż</span>'; }
-				return '<a class="fx-sd__item" data-nav data-pid="' + it.id + '" href="' + esc(url(it.u)) + '">' +
-					'<span class="fx-sd__img">' + (it.i ? '<img src="' + esc(/^https?:/.test(it.i) ? it.i : D.img + it.i) + '" alt="" loading="lazy" width="96" height="96">' : '') + '</span>' +
-					'<span class="fx-sd__body"><span class="fx-sd__title">' + mark(it.t, res.tk) + '</span>' +
-					(it.z ? '<span class="fx-sd__sizes">Rozmiary: ' + esc(it.z) + '</span>' : '') +
-					(tags ? '<span class="fx-sd__tags">' + tags + '</span>' : '') + '</span>' +
-					'<span class="fx-sd__price">' + (it.r ? '<del>' + money(it.r) + '</del><ins>' + money(it.p) + '</ins>' : (it.p ? money(it.p) : '')) + '</span></a>';
+			// Produkty: duże zdjęcie, cena, nazwa (jak u największych sklepów); bez rozmiarów i oznaczeń.
+			var cards = res.items.slice(0, C.max).map(function (it) {
+				return '<a class="fx-sd__card" data-nav data-pid="' + it.id + '" href="' + esc(url(it.u)) + '">' +
+					'<span class="fx-sd__img">' + (it.i ? '<img src="' + esc(/^https?:/.test(it.i) ? it.i : D.img + it.i) + '" alt="" loading="lazy" width="300" height="300">' : '') +
+					(it.pr ? '<span class="fx-sd__tag is-pre">Przedsprzedaż</span>' : '') + '</span>' +
+					'<span class="fx-sd__title">' + mark(it.t, res.tk) + '</span>' +
+					'<span class="fx-sd__price">' + (it.r ? '<ins>' + money(it.p) + '</ins><del>' + money(it.r) + '</del>' : (it.p ? money(it.p) : '')) + '</span></a>';
 			}).join('');
 			h = '';
-			if (res.fixed) { h += '<p class="fx-sd__fix">Pokazujemy wyniki dla <b>„' + esc(res.fixed) + '”</b></p>'; }
 			if (!n) {
-				h += '<div class="fx-sd__none"><p>Nic nie znaleźliśmy dla „' + esc(q) + '”.</p><p>Spróbuj samego modelu (np. „V1”, „Proframe”) albo rodzaju produktu (np. „kask”, „gogle”).</p>' +
+				h += (res.fixed ? '<p class="fx-sd__fix">Pokazujemy wyniki dla <b>„' + esc(res.fixed) + '”</b></p>' : '') +
+					'<div class="fx-sd__none"><p>Nic nie znaleźliśmy dla „' + esc(q) + '”.</p><p>Spróbuj samego modelu (np. „V1”, „Proframe”) albo rodzaju produktu (np. „kask”, „gogle”).</p>' +
 					(D.pop && D.pop.length ? '<div class="fx-sd__chips">' + D.pop.map(function (p) { return '<a class="fx-chip" data-nav data-q="' + esc(p) + '" href="' + esc(allUrl(p)) + '">' + esc(p) + '</a>'; }).join('') + '</div>' : '') + '</div>';
 			} else {
-				h += '<div class="fx-sd__grid' + (side ? '' : ' no-side') + '">' + (side ? '<div class="fx-sd__side">' + side + '</div>' : '') + '<div class="fx-sd__list">' + (res.partial ? '<p class="fx-sd__fix">Brak produktów ze wszystkimi słowami – najbliższe wyniki:</p>' : '') + list + '</div></div>' +
-					'<a class="fx-sd__all" data-nav href="' + esc(allUrl(res.fixed || q)) + '">Pokaż wszystkie wyniki (' + n + ') <span aria-hidden="true">→</span></a>';
+				var note = res.fixed ? '<p class="fx-sd__fix">Pokazujemy wyniki dla <b>„' + esc(res.fixed) + '”</b></p>' : (res.partial ? '<p class="fx-sd__fix">Brak produktów ze wszystkimi słowami – najbliższe wyniki:</p>' : '');
+				h += '<div class="fx-sd__grid' + (sg || cats ? '' : ' no-side') + '">' + sg + cats +
+					'<div class="fx-sd__main"><div class="fx-sd__head"><p class="fx-sd__h">Produkty</p><a class="fx-sd__more" href="' + esc(allUrl(res.fixed || q)) + '">Zobacz wszystkie (' + n + ')</a></div>' + note + '<div class="fx-sd__cards">' + cards + '</div>' +
+					'<a class="fx-sd__all" data-nav href="' + esc(allUrl(res.fixed || q)) + '">Zobacz wszystkie wyniki (' + n + ') <span aria-hidden="true">»</span></a></div></div>';
 			}
 			el.innerHTML = h;
 			open();
