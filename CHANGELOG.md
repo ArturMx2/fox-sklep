@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.25.4 – wyszukiwarka: „Często szukane”
+- Kliknięcie w podpowiedź „Często szukane” (np. „kask”) od razu pokazuje wyniki dla tej frazy – wcześniej okno się zamykało.
+
 ## 3.25.3 – wyszukiwarka: kategorie według rodzaju produktu
 - W podpowiedziach kategorie o jeden poziom pod działem (OFF ROAD › Kaski, ROWEROWY › Kaski rowerowe) zamiast modeli; liczba = pasujące produkty.
 - Gdy wszystkie wyniki są w jednej kategorii – pod nią jej podział (np. Kaski MTB, Kaski Full Face).

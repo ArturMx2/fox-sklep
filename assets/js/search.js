@@ -428,7 +428,7 @@
 			var a = e.target.closest('a');
 			if (!a) { return; }
 			var q = input.value.trim();
-			if (a.dataset.q) { e.preventDefault(); input.value = a.dataset.q; lastQ = null; render(); input.focus(); return; }
+			if (a.dataset.q) { e.preventDefault(); e.stopPropagation(); input.value = a.dataset.q; lastQ = null; render(); input.focus(); var l = input.value.length; try { input.setSelectionRange(l, l); } catch (x) { /* type=search */ } return; }
 			if (a.dataset.pid) { log({ q: q, n: res ? res.items.length : 0, pid: a.dataset.pid, src: 'ddc' }); }
 		});
 		el.addEventListener('mousedown', function (e) { if (e.target.closest('a')) { e.preventDefault(); } }); // bez utraty fokusu przed kliknięciem
@@ -436,7 +436,8 @@
 			if (res && res.fixed) { input.value = res.fixed; }
 		});
 		document.addEventListener('click', function (e) {
-			if (!el.hidden && !wrap.contains(e.target)) { close(); }
+			// Element podmieniony w trakcie kliknięcia (np. „Często szukane”) nie jest już w dokumencie – to nie klik „poza oknem”.
+			if (!el.hidden && e.target.isConnected && !wrap.contains(e.target)) { close(); }
 		});
 		return { close: close };
 	}
