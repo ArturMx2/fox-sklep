@@ -1,5 +1,12 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.24.3 – szybsza karta produktu na telefonie
+- Zdjęcie produktu widoczne od razu – WooCommerce ukrywał galerię do załadowania swoich skryptów (na telefonie kilka sekund).
+- Style bloków edytora (17 KB) nie ładują się na karcie produktu i stronie głównej, gdy treść nie ma bloków.
+- Style powiększenia zdjęć i marek ładowane bez blokowania wyświetlania strony.
+- Wcześniejsze połączenie z Google Tag Manager, Cookie-Script i Doofinder (preconnect).
+- Animacja lisa w zaślepce ładowania działa tylko wtedy, gdy zaślepka jest widoczna.
+
 ## 3.24.2
 - „Wyznacz trasę” (strona główna) i „wyznacz trasę” przy „Do przymierzenia w sklepie” na karcie produktu: nawigacja Google Maps do sklepu od miejsca klienta. Telefon – od razu nawigacja w aplikacji Mapy; komputer – trasa w osobnym oknie na środku ekranu, sklep zostaje pod spodem. Link z Dostosuj (Google Maps albo puste pole) zastępowany nawigacją; inny adres zostaje bez zmian.
 

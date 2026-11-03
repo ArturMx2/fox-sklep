@@ -199,8 +199,16 @@ add_action( 'wp_enqueue_scripts', function () {
 		}
 	}
 
-	/* Style bloków edytora – na listach produktów nie ma treści z bloków. */
-	if ( apply_filters( 'fx_perf_no_block_css_on_archives', true ) && function_exists( 'is_shop' ) && ( is_shop() || is_product_taxonomy() ) ) {
+	/*
+	 * Style bloków edytora (17 KB, blokują wyświetlanie) – na listach produktów, karcie produktu i stronie
+	 * głównej nie ma treści z bloków. Karta produktu z opisem zrobionym w blokach zostaje bez zmian.
+	 */
+	$no_blocks = function_exists( 'is_shop' ) && ( is_shop() || is_product_taxonomy() );
+	if ( ! $no_blocks && ( ( function_exists( 'is_product' ) && is_product() ) || is_front_page() ) ) {
+		$qp        = get_queried_object();
+		$no_blocks = ! ( $qp instanceof WP_Post && has_blocks( $qp->post_content ) );
+	}
+	if ( apply_filters( 'fx_perf_no_block_css_on_archives', true ) && $no_blocks ) {
 		wp_dequeue_style( 'wp-block-library' );
 		wp_dequeue_style( 'wp-block-library-theme' );
 		wp_dequeue_style( 'wc-blocks-style' );
@@ -232,3 +240,36 @@ add_filter( 'wp_get_attachment_image_attributes', function ( $attr, $att, $size 
 	}
 	return $attr;
 }, 30, 3 );
+
+/* =====================================================================
+ * 4. Telefon: szybciej widoczne zdjęcie produktu i mniej blokowania (PageSpeed mobile)
+ * ================================================================== */
+
+/*
+ * Style potrzebne dopiero po kliknięciu (powiększenie zdjęcia) albo drobne – ładowane bez blokowania
+ * wyświetlania strony (media="print" → "all" po pobraniu; bez JS zwykły link w <noscript>).
+ */
+add_filter( 'style_loader_tag', function ( $tag, $handle, $href ) {
+	if ( is_admin() || ! in_array( $handle, apply_filters( 'fx_perf_async_css', array( 'photoswipe', 'photoswipe-default-skin', 'brands-styles' ) ), true ) ) {
+		return $tag;
+	}
+	if ( false !== strpos( $tag, 'onload=' ) ) {
+		return $tag;
+	}
+	$async = str_replace( array( "media='all'", 'media="all"' ), "media='print' onload=\"this.media='all';this.onload=null\"", $tag );
+	return $async === $tag ? $tag : $async . '<noscript>' . trim( $tag ) . '</noscript>' . "\n";
+}, 10, 3 );
+
+/*
+ * Wcześniejsze połączenie z serwerami skryptów, które i tak ładują się na każdej stronie
+ * (Google Tag Manager, baner cookies, wyszukiwarka Doofinder). Najwyżej 4 – tak zaleca Google.
+ */
+add_filter( 'wp_resource_hints', function ( $urls, $relation ) {
+	if ( 'preconnect' !== $relation || is_admin() ) {
+		return $urls;
+	}
+	foreach ( apply_filters( 'fx_perf_preconnect', array( 'https://www.googletagmanager.com', 'https://cdn.cookie-script.com', 'https://eu1-config.doofinder.com', 'https://eu1-search.doofinder.com' ) ) as $h ) {
+		$urls[] = array( 'href' => $h, 'crossorigin' => 'anonymous' );
+	}
+	return $urls;
+}, 30, 2 );
