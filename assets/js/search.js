@@ -46,7 +46,7 @@
 		if (loading) { return loading; }
 		loading = fetch(C.index, { credentials: 'omit' }).then(function (r) { return r.json(); }).then(function (d) {
 			D = d;
-			P = { items: [], vocab: {}, catCount: {}, cats: [] };
+			P = { items: [], vocab: {}, catCount: {}, cats: [], catById: {} };
 			d.items.forEach(function (it) {
 				var tw = norm(it.t).split(' ');
 				tw.forEach(function (w) { if (w.length > 2 && !/^\d+$/.test(w)) { P.vocab[w] = (P.vocab[w] || 0) + 1; } });
@@ -55,7 +55,8 @@
 			});
 			Object.keys(d.cats).forEach(function (id) {
 				var c = d.cats[id];
-				if (P.catCount[id]) { P.cats.push({ id: +id, name: c[0], url: c[1], parent: c[2], w: norm(c[0]).split(' ') }); }
+				P.catById[id] = { id: +id, name: c[0], url: c[1], parent: c[2], w: norm(c[0]).split(' ') };
+				if (P.catCount[id]) { P.cats.push(P.catById[id]); }
 			});
 			return d;
 		}).catch(function () { loading = null; });
@@ -163,23 +164,34 @@
 	}
 
 	/* Kategorie: nazwa pasuje do wpisanych słów albo najczęstsza kategoria wśród wyników. */
+	/*
+	 * Kategorie w podpowiedziach: RODZAJ produktu w danym świecie, nie konkretny model.
+	 * Każdy wynik liczymy do kategorii o jeden poziom pod główną (OFF ROAD › Kaski, ROWEROWY › Kaski rowerowe).
+	 * Gdy wszystkie wyniki są w jednej takiej kategorii – pokazujemy też jej podział (Kaski MTB, Kaski Full Face).
+	 */
+	function chain(id) {
+		var ids = [], cur = id, c = D.cats[cur], g = 0;
+		while (c && g++ < 8) { ids.unshift(+cur); cur = c[2]; c = cur ? D.cats[cur] : null; }
+		return ids;
+	}
 	function catsFor(tk, items) {
-		var out = [], seen = {};
-		P.cats.forEach(function (c) {
-			var ok = tk.tokens.every(function (alts) { return tokScore(alts, c.w, []) >= 8; });
-			if (ok) { out.push({ c: c, n: P.catCount[c.id] }); }
+		var top = {}, sub = {}, order = [];
+		items.forEach(function (it) {
+			if (!it.m) { return; }
+			var ch = chain(it.m), a = ch[1];
+			if (!a) { return; } // produkt przypisany tylko do działu głównego – nic nie mówi klientowi
+			if (!top[a]) { top[a] = 0; order.push(a); }
+			top[a]++;
+			if (ch.length > 2) { sub[a] = sub[a] || {}; sub[a][ch[2]] = (sub[a][ch[2]] || 0) + 1; }
 		});
-		out.sort(function (a, b) { return b.n - a.n; });
-		out = out.slice(0, 3);
-		out.forEach(function (x) { seen[x.c.id] = 1; });
-		if (out.length < 3 && items.length) {
-			var cnt = {};
-			items.slice(0, 60).forEach(function (it) { if (it.m) { cnt[it.m] = (cnt[it.m] || 0) + 1; } });
-			Object.keys(cnt).sort(function (a, b) { return cnt[b] - cnt[a]; }).forEach(function (id) {
-				if (out.length >= 3 || seen[id]) { return; }
-				var c = null;
-				P.cats.forEach(function (x) { if (x.id === +id) { c = x; } });
-				if (c && cnt[id] >= 2) { out.push({ c: c, n: cnt[id], inres: true }); seen[id] = 1; }
+		order.sort(function (x, y) { return top[y] - top[x]; });
+		// Pojedyncze, przypadkowe trafienia nie zaśmiecają listy (chyba że kategorii jest mało).
+		var ids = order.filter(function (id, i) { return i < 2 || top[id] >= 2; }).slice(0, 4), out = [];
+		ids.forEach(function (id) { if (P.catById[id]) { out.push({ c: P.catById[id], n: top[id] }); } });
+		if (out.length === 1 && sub[ids[0]]) {
+			var s = sub[ids[0]];
+			Object.keys(s).sort(function (x, y) { return s[y] - s[x]; }).slice(0, 4).forEach(function (id) {
+				if (P.catById[id] && Object.keys(s).length > 1) { out.push({ c: P.catById[id], n: s[id], sub: true }); }
 			});
 		}
 		return out;
@@ -358,11 +370,14 @@
 			if (res.cats.length) {
 				cats = '<div class="fx-sd__catbox"><p class="fx-sd__h">Kategorie</p><ul class="fx-sd__cats">' + res.cats.map(function (x) {
 					// Ścieżka nad kategorią (np. „Off Road › Ochraniacze”) – każdy poziom klikalny.
+					if (x.sub) {
+						return '<li class="is-sub"><a class="fx-sd__cat" data-nav href="' + esc(url(x.c.url)) + '"><span>' + esc(x.c.name) + '</span> <span class="fx-sd__n">' + x.n + '</span></a></li>';
+					}
 					var path = catPath(x.c.id).slice(-2).map(function (p) {
 						return '<a data-nav href="' + esc(url(p[1])) + '">' + esc(p[0]) + '</a>';
 					}).join(' <span aria-hidden="true">›</span> ');
 					return '<li>' + (path ? '<span class="fx-sd__path">' + path + ' <span aria-hidden="true">›</span></span>' : '') +
-						'<a class="fx-sd__cat" data-nav href="' + esc(url(x.c.url)) + '"><span>' + mark(x.c.name, res.tk) + '</span> <span class="fx-sd__n">' + x.n + '</span></a></li>';
+						'<a class="fx-sd__cat" data-nav href="' + esc(url(x.c.url)) + '"><span>' + esc(x.c.name) + '</span> <span class="fx-sd__n">' + x.n + '</span></a></li>';
 				}).join('') + '</ul></div>';
 			}
 			// Produkty: duże zdjęcie, cena, nazwa (jak u największych sklepów); bez rozmiarów i oznaczeń.

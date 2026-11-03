@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.25.3 – wyszukiwarka: kategorie według rodzaju produktu
+- W podpowiedziach kategorie o jeden poziom pod działem (OFF ROAD › Kaski, ROWEROWY › Kaski rowerowe) zamiast modeli; liczba = pasujące produkty.
+- Gdy wszystkie wyniki są w jednej kategorii – pod nią jej podział (np. Kaski MTB, Kaski Full Face).
+
 ## 3.25.2 – wyszukiwarka w układzie dużych sklepów
 - Po lewej podpowiedzi fraz (z wyszukiwań klientów i z nazw produktów) oraz kategorie ze ścieżką.
 - Po prawej siatka produktów z dużymi zdjęciami: nazwa i cena (jak foxracing.com), „Zobacz wszystkie” w nagłówku.
