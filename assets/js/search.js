@@ -185,6 +185,16 @@
 		return out;
 	}
 
+	/* Kategorie nadrzędne: [ [nazwa, adres], … ] od najwyższej. */
+	function catPath(id) {
+		var out = [], c = D.cats[id], guard = 0;
+		while (c && c[2] && D.cats[c[2]] && guard++ < 6) {
+			c = D.cats[c[2]];
+			out.unshift([c[0], c[1]]);
+		}
+		return out;
+	}
+
 	/* ---------- „wysyłka dziś / jutro / w poniedziałek” (czas polski, święta) ---------- */
 	function shipWord() {
 		var label = C.ship || 'Wysyłka dziś';
@@ -298,7 +308,12 @@
 			var side = '';
 			if (res.cats.length) {
 				side += '<p class="fx-sd__h">Kategorie</p><ul class="fx-sd__cats">' + res.cats.map(function (x) {
-					return '<li><a data-nav href="' + esc(url(x.c.url)) + '"><span>' + mark(x.c.name, res.tk) + '</span> <span class="fx-sd__n">' + x.n + '</span></a></li>';
+					// Ścieżka nad kategorią (np. „Off Road › Ochraniacze”) – każdy poziom klikalny.
+					var path = catPath(x.c.id).slice(-2).map(function (p) {
+						return '<a data-nav href="' + esc(url(p[1])) + '">' + esc(p[0]) + '</a>';
+					}).join(' <span aria-hidden="true">›</span> ');
+					return '<li>' + (path ? '<span class="fx-sd__path">' + path + ' <span aria-hidden="true">›</span></span>' : '') +
+						'<a class="fx-sd__cat" data-nav href="' + esc(url(x.c.url)) + '"><span>' + mark(x.c.name, res.tk) + '</span> <span class="fx-sd__n">' + x.n + '</span></a></li>';
 				}).join('') + '</ul>';
 			}
 			var list = res.items.slice(0, C.max).map(function (it) {
@@ -307,7 +322,7 @@
 				if (it.f & 2) { tags += '<span class="fx-sd__tag">W sklepie</span>'; }
 				if (it.pr) { tags += '<span class="fx-sd__tag is-pre">Przedsprzedaż</span>'; }
 				return '<a class="fx-sd__item" data-nav data-pid="' + it.id + '" href="' + esc(url(it.u)) + '">' +
-					'<span class="fx-sd__img">' + (it.i ? '<img src="' + esc(/^https?:/.test(it.i) ? it.i : D.img + it.i) + '" alt="" loading="lazy" width="64" height="64">' : '') + '</span>' +
+					'<span class="fx-sd__img">' + (it.i ? '<img src="' + esc(/^https?:/.test(it.i) ? it.i : D.img + it.i) + '" alt="" loading="lazy" width="96" height="96">' : '') + '</span>' +
 					'<span class="fx-sd__body"><span class="fx-sd__title">' + mark(it.t, res.tk) + '</span>' +
 					(it.z ? '<span class="fx-sd__sizes">Rozmiary: ' + esc(it.z) + '</span>' : '') +
 					(tags ? '<span class="fx-sd__tags">' + tags + '</span>' : '') + '</span>' +

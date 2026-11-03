@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.25.1 – wyszukiwarka: ścieżka kategorii, większe zdjęcia
+- Przy kategorii w podpowiedziach ścieżka nadrzędna (np. „Off Road › Ochraniacze › Kolana”) – każdy poziom klikalny.
+- Większe zdjęcia produktów w podpowiedziach (96 px, na telefonie 76 px).
+
 ## 3.25.0 – własna wyszukiwarka (zamiast Doofindera)
 - Podpowiedzi przy każdej literze liczone w przeglądarce: zdjęcie, cena, rozmiary, „Wysyłka dziś”, „W sklepie”, przedsprzedaż, kategorie.
 - Tylko produkty dostępne i w przedsprzedaży – w podpowiedziach i na stronie wyników.

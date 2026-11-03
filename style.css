@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.25.0
+Version: 3.25.1
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -1615,12 +1615,16 @@ html.fx-added-open{overflow:hidden}
 .fx-sd__list{padding:8px}
 .fx-sd__h{margin:0 0 8px;font:600 12px/1.2 var(--fx-body);letter-spacing:.06em;text-transform:uppercase;color:var(--fx-muted)}
 .fx-sd__cats{list-style:none;margin:0;padding:0}
-.fx-sd__cats a{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:10px;text-decoration:none;color:inherit;font-size:15px}
-.fx-sd__cats a .fx-sd__n{color:var(--fx-muted);font-size:13px}
-.fx-sd__cats a:hover,.fx-sd__cats a.is-active{background:#efece6}
-.fx-sd__item{display:grid;grid-template-columns:64px 1fr auto;gap:14px;align-items:center;padding:8px 10px;border-radius:12px;text-decoration:none;color:inherit}
+.fx-sd__cats li{padding:4px 0}
+.fx-sd__path{display:block;padding:4px 10px 0;font-size:12px;line-height:1.35;color:var(--fx-muted)}
+.fx-sd__path a{color:inherit;text-decoration:none;border-radius:4px}
+.fx-sd__path a:hover,.fx-sd__path a.is-active{color:var(--fx-ink);text-decoration:underline}
+.fx-sd__cat{display:flex;justify-content:space-between;gap:8px;padding:4px 10px 6px;border-radius:10px;text-decoration:none;color:inherit;font-size:15px}
+.fx-sd__cat .fx-sd__n{color:var(--fx-muted);font-size:13px}
+.fx-sd__cat:hover,.fx-sd__cat.is-active{background:#efece6}
+.fx-sd__item{display:grid;grid-template-columns:96px 1fr auto;gap:16px;align-items:center;padding:8px 10px;border-radius:12px;text-decoration:none;color:inherit}
 .fx-sd__item:hover,.fx-sd__item.is-active{background:#f4f2ee}
-.fx-sd__img{width:64px;height:64px;border-radius:10px;background:#f4f2ee;overflow:hidden;display:block}
+.fx-sd__img{width:96px;height:96px;border-radius:12px;background:#f4f2ee;overflow:hidden;display:block}
 .fx-sd__img img{width:100%;height:100%;object-fit:contain;display:block;mix-blend-mode:multiply}
 .fx-sd__body{min-width:0;display:flex;flex-direction:column;gap:3px}
 .fx-sd__title{font-size:14px;line-height:1.3;font-weight:500;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -1653,8 +1657,8 @@ html.fx-added-open{overflow:hidden}
   .fx-sd{position:static;transform:none;width:auto;max-height:none;flex:1 1 auto;margin:8px -12px 0;border-radius:0;box-shadow:none;border-top:1px solid #eeebe5}
   .fx-sd__grid{grid-template-columns:1fr}
   .fx-sd__side{order:2;border-right:0;border-top:1px solid #eeebe5;border-radius:0;background:#fff}
-  .fx-sd__item{grid-template-columns:56px 1fr auto;gap:12px}
-  .fx-sd__img{width:56px;height:56px}
+  .fx-sd__item{grid-template-columns:76px 1fr auto;gap:12px}
+  .fx-sd__img{width:76px;height:76px}
   .fx-drawer .fx-sd{margin:8px 0 0}
 }
 .fx-drawer .fx-sd{position:static;transform:none;width:auto;max-height:none;box-shadow:none;border-radius:0}
