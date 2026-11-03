@@ -1,5 +1,15 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.25.0 – własna wyszukiwarka (zamiast Doofindera)
+- Podpowiedzi przy każdej literze liczone w przeglądarce: zdjęcie, cena, rozmiary, „Wysyłka dziś”, „W sklepie”, przedsprzedaż, kategorie.
+- Tylko produkty dostępne i w przedsprzedaży – w podpowiedziach i na stronie wyników.
+- Polskie znaki, odmiana („kaski”, „rowerowe”), literówki („gogel” → „gogle”), synonimy, SKU i EAN (kod z jednym wynikiem otwiera produkt).
+- Kolejność: trafność × mnożniki (sprzedaż, kliknięcia z wyszukiwarki, wysyłka dziś, sklep, promocja, nowość, przedsprzedaż, kategoria, mnożnik produktu) + przypięcia fraz.
+- Strona wyników z filtrami motywu (rozmiar, kolor, promocje, wysyłka dziś, w sklepie).
+- Statystyki: najczęstsze frazy, frazy bez wyników, najczęściej klikane produkty – WooCommerce → Wyszukiwarka.
+- Tryb testu dla administratorów; skrypty Doofindera wyłączane tam, gdzie działa nowa wyszukiwarka.
+- Edycja produktu → Ogólne → „Mnożnik w wyszukiwarce”.
+
 ## 3.24.3 – szybsza karta produktu na telefonie
 - Zdjęcie produktu widoczne od razu – WooCommerce ukrywał galerię do załadowania swoich skryptów (na telefonie kilka sekund).
 - Style bloków edytora (17 KB) nie ładują się na karcie produktu i stronie głównej, gdy treść nie ma bloków.

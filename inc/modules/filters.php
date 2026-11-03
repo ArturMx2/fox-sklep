@@ -60,8 +60,35 @@ function fx_filter_taxonomies() {
 	return $out;
 }
 
+/**
+ * Strona wyników wyszukiwania (moduł search.php) jako „kategoria” dla filtrów:
+ * obiekt z listą ID wyników zamiast terminu. Null poza wynikami wyszukiwania.
+ */
+function fx_filter_search_term() {
+	static $t = false;
+	if ( false === $t ) {
+		$t = null;
+		if ( function_exists( 'fx_srch_is_results' ) && fx_srch_is_results() ) {
+			$ids = fx_srch_current()['ids'];
+			$t   = (object) array( 'term_id' => 's' . md5( implode( ',', $ids ) ), 'ids' => $ids, 'fx_search' => true );
+		}
+	}
+	return $t;
+}
+
+/** Adres „bez filtrów” – kategoria albo wyniki wyszukiwania. */
+function fx_filter_clear_url( $term ) {
+	if ( ! empty( $term->fx_search ) ) {
+		return add_query_arg( array( 's' => rawurlencode( fx_srch_current_q() ), 'post_type' => 'product' ), home_url( '/' ) );
+	}
+	return get_term_link( $term );
+}
+
 /** ID produktów w kategorii (z podkategoriami), opublikowanych. */
 function fx_filter_cat_products( $term ) {
+	if ( isset( $term->ids ) ) {
+		return array_map( 'intval', (array) $term->ids );
+	}
 	static $cache = array();
 	if ( isset( $cache[ $term->term_id ] ) ) {
 		return $cache[ $term->term_id ];
@@ -128,7 +155,7 @@ function fx_filter_var_parents( $tax ) {
  */
 function fx_filter_options( $role, $term ) {
 	$key   = 'fx_flt_' . md5( 'v3|' . $role . '|' . $term->term_id . '|' . implode( ',', fx_filter_taxonomies()[ $role ] ) );
-	$cache = get_transient( $key );
+	$cache = get_transient( $key ); // wyniki wyszukiwania: klucz z listy ID, krótszy czas
 	if ( is_array( $cache ) ) {
 		return $cache;
 	}
@@ -192,7 +219,7 @@ function fx_filter_options( $role, $term ) {
 			}
 		);
 	}
-	set_transient( $key, $out, 12 * HOUR_IN_SECONDS );
+	set_transient( $key, $out, isset( $term->ids ) ? 2 * HOUR_IN_SECONDS : 12 * HOUR_IN_SECONDS );
 	return $out;
 }
 
@@ -215,7 +242,8 @@ function fx_filter_selected( $role ) {
 
 /** Adres kategorii z bieżącymi filtrami i sortowaniem (bez numeru strony). */
 function fx_filter_base_url() {
-	$url = get_term_link( get_queried_object() );
+	$st  = fx_filter_search_term();
+	$url = $st ? fx_filter_clear_url( $st ) : get_term_link( get_queried_object() );
 	foreach ( array( 'rozmiar', 'kolor', 'promocja', 'wysylka24', 'wsklepie', 'przedsprzedaz', 'orderby' ) as $k ) {
 		if ( isset( $_GET[ $k ] ) && '' !== $_GET[ $k ] ) { // phpcs:ignore WordPress.Security.NonceVerification
 			$url = add_query_arg( $k, rawurlencode( sanitize_text_field( wp_unslash( $_GET[ $k ] ) ) ), $url ); // phpcs:ignore WordPress.Security.NonceVerification
@@ -319,10 +347,11 @@ function fx_filters_data() {
 		return $data;
 	}
 	$data = null;
-	if ( ! is_product_category() ) {
+	$term = fx_filter_search_term();
+	if ( ! $term && ! is_product_category() ) {
 		return $data;
 	}
-	$term   = get_queried_object();
+	$term   = $term ? $term : get_queried_object();
 	$groups = array();
 	foreach ( array( 'size' => 'Rozmiar', 'color' => 'Kolor' ) as $role => $label ) {
 		if ( empty( fx_filter_taxonomies()[ $role ] ) ) {
@@ -388,7 +417,7 @@ function fx_filters_sidebar() {
 		echo '</div></details>';
 	}
 	if ( $d['active'] ) {
-		echo '<a rel="nofollow" class="fx-sidebar__clear" href="' . esc_url( get_term_link( $d['term'] ) ) . '">Wyczyść wszystkie filtry</a>';
+		echo '<a rel="nofollow" class="fx-sidebar__clear" href="' . esc_url( fx_filter_clear_url( $d['term'] ) ) . '">Wyczyść wszystkie filtry</a>';
 	}
 	echo '</div></aside><div class="fx-sidebar__bg" data-fx-filters-close></div>';
 }
@@ -405,7 +434,7 @@ function fx_filters_topbar() {
 		echo '<a rel="nofollow" class="fx-chip is-active" href="' . esc_url( $a[1] ) . '" aria-label="Usuń filtr ' . esc_attr( $a[0] ) . '"><span' . $sd . '>' . esc_html( $a[0] ) . '</span> ×</a>';
 	}
 	if ( $d['active'] ) {
-		echo '<a rel="nofollow" class="fx-filter__clear" href="' . esc_url( get_term_link( $d['term'] ) ) . '">Wyczyść</a>';
+		echo '<a rel="nofollow" class="fx-filter__clear" href="' . esc_url( fx_filter_clear_url( $d['term'] ) ) . '">Wyczyść</a>';
 	}
 	echo '</div>';
 }
@@ -461,7 +490,7 @@ function fx_filter_sale_url() {
 /** Czy w kategorii (z podkategoriami) jest choć jeden produkt w promocji. */
 function fx_filter_sale_in_cat( $term ) {
 	$key   = 'fx_flt_sale_' . $term->term_id;
-	$cache = get_transient( $key );
+	$cache = isset( $term->ids ) ? false : get_transient( $key );
 	if ( false !== $cache ) {
 		return (bool) $cache;
 	}
@@ -473,7 +502,9 @@ function fx_filter_sale_in_cat( $term ) {
 			break;
 		}
 	}
-	set_transient( $key, $has, HOUR_IN_SECONDS );
+	if ( ! isset( $term->ids ) ) {
+		set_transient( $key, $has, HOUR_IN_SECONDS );
+	}
 	return (bool) $has;
 }
 

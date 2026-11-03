@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.24.3
+Version: 3.25.0
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -1602,3 +1602,59 @@ html.fx-added-open{overflow:hidden}
 .fx-ls svg{flex:none;margin-top:2px}
 .fx-ls a{text-decoration:underline;text-underline-offset:2px}
 .fx-ls__pick{color:#1d7a3a;font-weight:600}
+
+/* =====================================================================
+   Wyszukiwarka FOX – podpowiedzi (inc/modules/search.php, assets/js/search.js)
+   ===================================================================== */
+.fx-header__search{position:relative}
+.fx-sd{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);width:min(880px,calc(100vw - 32px));max-height:min(78vh,720px);overflow:auto;background:#fff;color:var(--fx-ink);border-radius:18px;box-shadow:0 24px 60px rgba(12,10,8,.18),0 2px 8px rgba(12,10,8,.08);z-index:1002;text-align:left;overscroll-behavior:contain}
+.fx-sd[hidden]{display:none}
+.fx-sd__grid{display:grid;grid-template-columns:230px 1fr}
+.fx-sd__grid.no-side{grid-template-columns:1fr}
+.fx-sd__side{padding:18px 16px;border-right:1px solid #eeebe5;background:#faf9f6;border-radius:18px 0 0 0}
+.fx-sd__list{padding:8px}
+.fx-sd__h{margin:0 0 8px;font:600 12px/1.2 var(--fx-body);letter-spacing:.06em;text-transform:uppercase;color:var(--fx-muted)}
+.fx-sd__cats{list-style:none;margin:0;padding:0}
+.fx-sd__cats a{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:10px;text-decoration:none;color:inherit;font-size:15px}
+.fx-sd__cats a .fx-sd__n{color:var(--fx-muted);font-size:13px}
+.fx-sd__cats a:hover,.fx-sd__cats a.is-active{background:#efece6}
+.fx-sd__item{display:grid;grid-template-columns:64px 1fr auto;gap:14px;align-items:center;padding:8px 10px;border-radius:12px;text-decoration:none;color:inherit}
+.fx-sd__item:hover,.fx-sd__item.is-active{background:#f4f2ee}
+.fx-sd__img{width:64px;height:64px;border-radius:10px;background:#f4f2ee;overflow:hidden;display:block}
+.fx-sd__img img{width:100%;height:100%;object-fit:contain;display:block;mix-blend-mode:multiply}
+.fx-sd__body{min-width:0;display:flex;flex-direction:column;gap:3px}
+.fx-sd__title{font-size:14px;line-height:1.3;font-weight:500;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.fx-sd__title b{font-weight:700}
+.fx-sd__sizes{font-size:12px;color:var(--fx-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fx-sd__tags{display:flex;flex-wrap:wrap;gap:4px}
+.fx-sd__tag{font-size:11px;line-height:1;padding:4px 7px;border-radius:999px;background:#efece6;color:#3b3833}
+.fx-sd__tag.is-ship{background:#e3f4e6;color:#1f6b33}
+.fx-sd__tag.is-pre{background:#efe7fb;color:#5b2ea6}
+.fx-sd__price{font-weight:700;font-size:15px;white-space:nowrap;text-align:right;display:flex;flex-direction:column;align-items:flex-end}
+.fx-sd__price del{font-weight:400;font-size:12px;color:var(--fx-muted)}
+.fx-sd__price ins{text-decoration:none;color:#c8102e}
+.fx-sd__all{display:flex;justify-content:center;align-items:center;gap:8px;margin:0 8px 8px;padding:13px;border-radius:12px;background:var(--fx-ink);color:#fff;text-decoration:none;font-weight:600;position:sticky;bottom:8px}
+.fx-sd__all:hover,.fx-sd__all.is-active{opacity:.9;color:#fff}
+.fx-sd__fix{margin:8px 10px;font-size:13px;color:var(--fx-muted)}
+.fx-sd__empty,.fx-sd__none{padding:18px 20px}
+.fx-sd__none p{margin:0 0 8px}
+.fx-sd__chips,.fx-srch-chips{display:flex;flex-wrap:wrap;gap:8px}
+.fx-sd__chips .fx-chip.is-active{outline:2px solid var(--fx-ink)}
+.fx-search .fx-sd__cancel{display:none}
+.fx-srch-note{margin:0 0 14px;color:var(--fx-muted)}
+.fx-srch-empty{margin:10px 0 30px}
+.fx-srch-empty__h{font-weight:600;margin:16px 0 8px}
+@media (max-width:767px){
+  .fx-sd-open,.fx-sd-open body{overflow:hidden}
+  .fx-header__search.is-sd{position:fixed;inset:0;z-index:10050;background:#fff;padding:10px 12px 0;display:flex;flex-direction:column;height:100dvh}
+  .fx-header__search.is-sd .fx-search{flex:0 0 auto;max-width:none;width:100%}
+  .fx-header__search.is-sd .fx-search .fx-sd__cancel{display:block;background:none;border:0;padding:0 6px 0 10px;font:500 15px/1 var(--fx-body);color:var(--fx-ink);cursor:pointer;white-space:nowrap}
+  .fx-header__search.is-sd .fx-search .fx-search__btn{display:none}
+  .fx-sd{position:static;transform:none;width:auto;max-height:none;flex:1 1 auto;margin:8px -12px 0;border-radius:0;box-shadow:none;border-top:1px solid #eeebe5}
+  .fx-sd__grid{grid-template-columns:1fr}
+  .fx-sd__side{order:2;border-right:0;border-top:1px solid #eeebe5;border-radius:0;background:#fff}
+  .fx-sd__item{grid-template-columns:56px 1fr auto;gap:12px}
+  .fx-sd__img{width:56px;height:56px}
+  .fx-drawer .fx-sd{margin:8px 0 0}
+}
+.fx-drawer .fx-sd{position:static;transform:none;width:auto;max-height:none;box-shadow:none;border-radius:0}
