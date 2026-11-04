@@ -1,5 +1,13 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.27.0 – „Napisz do nas na WhatsApp”
+- Dymek w prawym dolnym rogu z okienkiem: temat (dobór rozmiaru, dostępność, status zamówienia…), pytanie i przycisk „Otwórz WhatsApp” z gotową wiadomością.
+- Do wiadomości dopisujemy produkt, SKU, wybrany rozmiar i link (na karcie produktu), zawartość koszyka albo numer zamówienia.
+- Status „online / odpiszemy od…” według godzin pracy i świąt; zachęta na karcie produktu raz na wizytę.
+- Na telefonie dymek nad paskiem „Zamawiam”; na stronie zamówienia domyślnie ukryty.
+- Zdarzenia whatsapp_open / whatsapp_click / whatsapp_teaser w dataLayer (GA4).
+- Ustawienia: Dostosuj → FOX.SKLEP.PL → WhatsApp. Bez numeru dymek się nie pokazuje.
+
 ## 3.26.1 – wyszukiwarka: synonimy-frazy, bez Części i akcesoriów
 - Synonimy wielowyrazowe działają w obie strony (np. „nakolanniki” ↔ „ochraniacze kolan”, też w odmianie: „ochraniacz kolana”); dokładnie wpisana fraza ma pierwszeństwo, synonim uzupełnia wyniki.
 - Produkty z działu Części i akcesoria nie pojawiają się w wyszukiwarce (decyduje kategoria główna – produkt przypisany też do OFF ROAD / ROWER zostaje). Lista wykluczonych kategorii: Wyszukiwarka → Ustawienia i indeks.

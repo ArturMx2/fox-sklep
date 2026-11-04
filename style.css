@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.26.1
+Version: 3.27.0
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -1674,3 +1674,44 @@ html.fx-added-open{overflow:hidden}
   .fx-drawer .fx-sd{margin:8px 0 0}
 }
 .fx-drawer .fx-sd{position:static;transform:none;width:auto;max-height:none;box-shadow:none;border-radius:0}
+
+/* =====================================================================
+   WhatsApp – dymek i okienko (inc/modules/whatsapp.php)
+   ===================================================================== */
+.fx-wa{position:fixed;right:20px;bottom:20px;z-index:90;display:flex;flex-direction:column;align-items:flex-end;gap:10px;font-family:var(--fx-body)}
+.fx-wa.is-lift{bottom:20px}
+.fx-wa__btn{position:relative;width:60px;height:60px;border-radius:50%;border:0;background:var(--fx-ink,#0c0a08);color:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:0 10px 28px rgba(12,10,8,.28);transition:transform .15s}
+.fx-wa__btn:hover{transform:translateY(-2px)}
+.fx-wa__btn:focus-visible{outline:3px solid #1d8f4a;outline-offset:3px}
+.fx-wa__online{position:absolute;right:4px;top:4px;width:13px;height:13px;border-radius:50%;background:#9a968e;border:2px solid #fff}
+.fx-wa.is-online .fx-wa__online{background:#22c55e}
+.fx-wa__panel{width:min(360px,calc(100vw - 32px));background:#fff;color:var(--fx-ink);border-radius:18px;box-shadow:0 24px 60px rgba(12,10,8,.22),0 2px 8px rgba(12,10,8,.08);overflow:hidden}
+.fx-wa__panel[hidden]{display:none}
+.fx-wa__head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;background:var(--fx-ink,#0c0a08);color:#fff;padding:16px 16px 14px 18px}
+.fx-wa__title{margin:0;font-weight:700;font-size:17px;line-height:1.25}
+.fx-wa__status{margin:6px 0 0;font-size:13px;line-height:1.35;color:#d6d2ca;display:flex;gap:7px;align-items:flex-start}
+.fx-wa__dot{flex:0 0 auto;width:8px;height:8px;border-radius:50%;background:#9a968e;margin-top:5px}
+.fx-wa.is-online .fx-wa__dot{background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.25)}
+.fx-wa__x{background:none;border:0;color:#fff;font-size:26px;line-height:1;cursor:pointer;padding:0 2px;opacity:.8}
+.fx-wa__x:hover{opacity:1}
+.fx-wa__body{padding:14px 16px 16px}
+.fx-wa__sub{margin:0 0 12px;font-size:14px;line-height:1.45;color:#3b3833}
+.fx-wa__topics{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.fx-wa__topic{border:1px solid #d9d5cd;background:#fff;color:var(--fx-ink);border-radius:999px;padding:7px 12px;font-size:13px;cursor:pointer;line-height:1.2}
+.fx-wa__topic[aria-checked="true"]{background:var(--fx-ink);border-color:var(--fx-ink);color:#fff}
+.fx-wa__msg{width:100%;box-sizing:border-box;border:1px solid #d9d5cd;border-radius:12px;padding:10px 12px;font:15px/1.4 var(--fx-body);resize:vertical;min-height:72px}
+.fx-wa__msg:focus{outline:0;border-color:var(--fx-ink);box-shadow:0 0 0 3px rgba(12,10,8,.08)}
+.fx-wa__ctx{margin:8px 0 0;font-size:12px;color:var(--fx-muted);line-height:1.4}
+.fx-wa__send{margin-top:12px;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;height:48px;border:0;border-radius:999px;background:#1d8f4a;color:#fff;font:600 16px/1 var(--fx-body);cursor:pointer}
+.fx-wa__send:hover{background:#18793e}
+.fx-wa__note{margin:8px 0 0;font-size:12px;color:var(--fx-muted);text-align:center}
+.fx-wa__teaser{position:relative;margin:0;max-width:240px;background:#fff;color:var(--fx-ink);border-radius:14px;padding:12px 30px 12px 14px;font-size:14px;line-height:1.35;box-shadow:0 12px 30px rgba(12,10,8,.18);cursor:pointer}
+.fx-wa__teaser[hidden]{display:none}
+.fx-wa__teaser-x{position:absolute;right:6px;top:4px;background:none;border:0;font-size:18px;color:var(--fx-muted);cursor:pointer;padding:2px 4px}
+.fx-wa[data-state="open"] .fx-wa__teaser{display:none}
+@media (max-width:900px){
+  .fx-wa{right:14px;bottom:14px}
+  .fx-wa.is-lift{bottom:calc(84px + env(safe-area-inset-bottom))}
+  .fx-wa__btn{width:54px;height:54px}
+}
+@media print{.fx-wa{display:none}}
