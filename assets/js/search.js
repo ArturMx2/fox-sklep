@@ -134,23 +134,64 @@
 		return best;
 	}
 
+	/*
+	 * Synonimy-frazy („nakolanniki, ochraniacze kolan”): gdy zapytanie zawiera jedną z fraz grupy
+	 * (z odmianą: „ochraniacz kolana” = „ochraniacze kolan”), szukamy też wersji z pozostałymi frazami.
+	 * Wynik produktu = najlepszy z wersji (zamienione trochę słabiej niż wpisane). Pojedyncze słowa
+	 * obsługuje synOf() na poziomie słowa.
+	 */
+	function sameWord(a, b) { return a === b || (stem(a) || a) === (stem(b) || b); }
+	function findSeq(qw, mw) {
+		for (var i = 0; i + mw.length <= qw.length; i++) {
+			var ok = true;
+			for (var j = 0; j < mw.length; j++) { if (!sameWord(qw[i + j], mw[j])) { ok = false; break; } }
+			if (ok) { return i; }
+		}
+		return -1;
+	}
+	function variants(q) {
+		var qw = norm(q).split(' ').filter(Boolean), out = [{ q: qw.join(' '), f: 1 }], seen = {};
+		seen[out[0].q] = 1;
+		(D.syn || []).forEach(function (g) {
+			g.forEach(function (m) {
+				var mw = m.split(' '), i = findSeq(qw, mw);
+				if (i < 0) { return; }
+				g.forEach(function (o) {
+					if (o === m || (m.indexOf(' ') < 0 && o.indexOf(' ') < 0)) { return; } // słowo ↔ słowo: synOf()
+					var v = qw.slice(0, i).concat(o.split(' '), qw.slice(i + mw.length)).join(' ');
+					if (!seen[v] && out.length < 8) { seen[v] = 1; out.push({ q: v, f: 0.75 }); }
+				});
+			});
+		});
+		return out;
+	}
 	function search(q) {
 		// Poprawka z panelu (Analityka → Bez wyników): „nakolanniki” → „ochraniacz kolan”.
 		var mapped = D.map && D.map[norm(q)];
-		var tk = tokens(mapped || q), n = tk.tokens.length, full = [], part = [];
-		if (mapped) { tk.fixed = mapped; }
-		if (!n) { return { items: [], cats: [], fixed: '', partial: false, tk: tk }; }
-		var nds = tk.tokens.map(needles);
-		P.items.forEach(function (row) {
-			var sum = 0, hit = 0;
-			for (var t = 0; t < n; t++) {
-				var s = maybe(row.all, nds[t]) ? tokScore(tk.tokens[t], row.tw, row.xw) : 0;
-				if (s > 0) { hit++; sum += s; }
-			}
-			if (!hit) { return; }
-			var sc = sum * row.it.w;
-			if (hit === n) { full.push([sc, row.it]); } else if (n > 1 && hit >= Math.ceil(n / 2)) { part.push([sc * hit / n, row.it]); }
+		var vars = variants(mapped || q), tk = null, best = {}, bestPart = {}, mk = [];
+		vars.forEach(function (v, vi) {
+			var t = tokens(v.q), n = t.tokens.length;
+			if (!vi) { tk = t; }
+			if (!n) { return; }
+			var nds = t.tokens.map(needles);
+			P.items.forEach(function (row) {
+				var sum = 0, hit = 0;
+				for (var k = 0; k < n; k++) {
+					var s = maybe(row.all, nds[k]) ? tokScore(t.tokens[k], row.tw, row.xw) : 0;
+					if (s > 0) { hit++; sum += s; }
+				}
+				if (!hit) { return; }
+				var sc = sum / n * row.it.w * v.f, id = row.it.id; // średnia na słowo – wersje frazy o różnej długości porównywalne
+				if (hit === n) { if (!best[id] || best[id][0] < sc) { best[id] = [sc, row.it]; } } else if (n > 1 && hit >= Math.ceil(n / 2)) {
+					sc = sc * hit / n;
+					if (!bestPart[id] || bestPart[id][0] < sc) { bestPart[id] = [sc, row.it]; }
+				}
+			});
+			mk = mk.concat(t.tokens); // podświetlenie także słów z synonimu
 		});
+		if (mapped) { tk.fixed = mapped; }
+		if (!tk || !tk.tokens.length) { return { items: [], cats: [], fixed: '', partial: false, tk: tk || { tokens: [], words: [] } }; }
+		var full = Object.keys(best).map(function (k) { return best[k]; }), part = Object.keys(bestPart).filter(function (k) { return !best[k]; }).map(function (k) { return bestPart[k]; });
 		var partial = !full.length && part.length > 0, list = partial ? part : full;
 		list.sort(function (a, b) { return b[0] - a[0]; });
 		var items = list.map(function (x) { return x[1]; });
@@ -163,7 +204,7 @@
 			pins.forEach(function (id) { if (byId[id]) { pinned.push(byId[id]); } });
 			items = pinned.concat(items.filter(function (it) { return pins.indexOf(it.id) < 0; }));
 		}
-		return { items: items, cats: catsFor(tk, items), fixed: tk.fixed, partial: partial, tk: tk };
+		return { items: items, cats: catsFor(tk, items), fixed: tk.fixed, partial: partial, tk: tk, mk: { tokens: mk } };
 	}
 
 	/* Kategorie: nazwa pasuje do wpisanych słów albo najczęstsza kategoria wśród wyników. */
@@ -418,7 +459,7 @@
 			var sugg = suggest(q, res), cats = '', sg = '';
 			if (sugg.length) {
 				sg = '<div class="fx-sd__sugg"><p class="fx-sd__h">Podpowiedzi</p><ul class="fx-sd__phr">' + sugg.map(function (p) {
-					return '<li><a data-nav data-via="phr" href="' + esc(allUrl(p)) + '">' + mark(p, res.tk) + '</a></li>';
+					return '<li><a data-nav data-via="phr" href="' + esc(allUrl(p)) + '">' + mark(p, res.mk || res.tk) + '</a></li>';
 				}).join('') + '</ul></div>';
 			}
 			if (res.cats.length) {
@@ -438,7 +479,7 @@
 				return '<a class="fx-sd__card" data-nav data-pid="' + it.id + '" href="' + esc(url(it.u)) + '">' +
 					'<span class="fx-sd__img">' + (it.i ? '<img src="' + esc(/^https?:/.test(it.i) ? it.i : D.img + it.i) + '" alt="" loading="lazy" width="300" height="300">' : '') +
 					(it.pr ? '<span class="fx-sd__tag is-pre">Przedsprzedaż</span>' : '') + '</span>' +
-					'<span class="fx-sd__title">' + mark(it.t, res.tk) + '</span>' +
+					'<span class="fx-sd__title">' + mark(it.t, res.mk || res.tk) + '</span>' +
 					'<span class="fx-sd__price">' + (it.r ? '<ins>' + money(it.p) + '</ins><del>' + money(it.r) + '</del>' : (it.p ? money(it.p) : '')) + '</span></a>';
 			}).join('');
 			h = '';

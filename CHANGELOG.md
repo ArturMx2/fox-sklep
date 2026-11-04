@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.26.1 – wyszukiwarka: synonimy-frazy, bez Części i akcesoriów
+- Synonimy wielowyrazowe działają w obie strony (np. „nakolanniki” ↔ „ochraniacze kolan”, też w odmianie: „ochraniacz kolana”); dokładnie wpisana fraza ma pierwszeństwo, synonim uzupełnia wyniki.
+- Produkty z działu Części i akcesoria nie pojawiają się w wyszukiwarce (decyduje kategoria główna – produkt przypisany też do OFF ROAD / ROWER zostaje). Lista wykluczonych kategorii: Wyszukiwarka → Ustawienia i indeks.
+
 ## 3.26.0 – analityka wyszukiwań
 - WooCommerce → Wyszukiwarka → Analityka: okresy 7/14/30/60/90/180/365 dni lub własny zakres, porównanie z poprzednim okresem.
 - Podsumowanie z wykresami: wyszukania dzień po dniu (z poprzednim okresem), sprzedaż z wyszukiwarki, ostatnie 24 miesiące.

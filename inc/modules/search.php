@@ -44,6 +44,7 @@ function fx_srch_defaults() {
 		'map'       => '', // „fraza => inna fraza” – poprawki fraz bez wyników (Analityka → Bez wyników)
 		'cat_boost' => '',
 		'popular'   => 'kask, gogle, buty, bluza, spodnie, rękawice',
+		'excl'      => 'czesci-i-akcesoria', // kategorie (slugi, z podkategoriami) poza wyszukiwarką
 		'max'       => 8,
 	);
 }
@@ -215,12 +216,59 @@ function fx_srch_preorder_ids() {
 /**
  * Rekord do indeksu albo null (produkt niedostępny, ukryty, nieopublikowany).
  */
+/** ID kategorii wykluczonych z wyszukiwarki (z podkategoriami). */
+function fx_srch_excluded_cats() {
+	static $ids = null;
+	if ( null === $ids ) {
+		$ids = array();
+		foreach ( array_filter( array_map( 'trim', explode( ',', (string) fx_srch_settings()['excl'] ) ) ) as $slug ) {
+			$t = get_term_by( 'slug', sanitize_title( $slug ), 'product_cat' );
+			if ( $t ) {
+				$ids[ (int) $t->term_id ] = true;
+				foreach ( (array) get_term_children( $t->term_id, 'product_cat' ) as $c ) {
+					$ids[ (int) $c ] = true;
+				}
+			}
+		}
+	}
+	return $ids;
+}
+
+/**
+ * Czy produkt należy do wykluczonego działu (np. Części i akcesoria). Decyduje kategoria główna
+ * (fx_main_category: OFF ROAD / ROWER mają pierwszeństwo), więc gogle przypisane też do akcesoriów
+ * zostają w wyszukiwarce. Bez kategorii głównej – wykluczony, gdy wszystkie jego kategorie są w wykluczonych.
+ */
+function fx_srch_is_excluded( $id ) {
+	$ex = fx_srch_excluded_cats();
+	if ( ! $ex ) {
+		return false;
+	}
+	$main = function_exists( 'fx_main_category' ) ? fx_main_category( $id ) : null;
+	if ( $main instanceof WP_Term ) {
+		return isset( $ex[ (int) $main->term_id ] );
+	}
+	$cats = (array) wp_get_post_terms( $id, 'product_cat', array( 'fields' => 'ids' ) );
+	if ( ! $cats ) {
+		return false;
+	}
+	foreach ( $cats as $c ) {
+		if ( ! isset( $ex[ (int) $c ] ) ) {
+			return false;
+		}
+	}
+	return true;
+}
+
 function fx_srch_record( $id ) {
 	$p = wc_get_product( $id );
 	if ( ! $p || 'publish' !== get_post_status( $id ) || $p->is_type( 'variation' ) ) {
 		return null;
 	}
 	if ( in_array( $p->get_catalog_visibility(), array( 'hidden', 'catalog' ), true ) ) {
+		return null;
+	}
+	if ( fx_srch_is_excluded( $id ) ) {
 		return null;
 	}
 	$status = $p->get_stock_status();
@@ -638,6 +686,12 @@ function fx_srch_cron_run() {
 		global $wpdb;
 		$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . fx_srch_log_table() . ' WHERE ts < %d', time() - 400 * DAY_IN_SECONDS ) ); // phpcs:ignore
 	}
+	// Zmiana wykluczonych kategorii (albo pierwsza wersja z tym ustawieniem) – przeliczenie całego indeksu.
+	$exh = md5( (string) fx_srch_settings()['excl'] );
+	if ( get_option( 'fx_srch_excl_h' ) !== $exh ) {
+		fx_srch_seed_all();
+		update_option( 'fx_srch_excl_h', $exh, false );
+	}
 	$left = fx_srch_process( 40 );
 	$f    = get_option( 'fx_srch_file', array() );
 	$ls   = function_exists( 'fx_ls_data' ) ? (int) fx_ls_data()['at'] : 0;
@@ -840,6 +894,55 @@ function fx_srch_tok_score( $alts, $tw, $xw ) {
 /**
  * Wyszukiwanie: [ ids (kolejność), fixed (poprawione zapytanie), partial ].
  */
+/** Te same słowa z odmianą: „ochraniacze” = „ochraniacz”, „kolana” = „kolan”. */
+function fx_srch_same_word( $a, $b ) {
+	return $a === $b || ( fx_srch_stem( $a ) ?: $a ) === ( fx_srch_stem( $b ) ?: $b );
+}
+
+/**
+ * Wersje zapytania z synonimami-frazami (np. „nakolanniki” ↔ „ochraniacze kolan”).
+ * Pojedyncze słowa obsługuje fx_srch_syn_of() na poziomie słowa. Te same zasady co w JS.
+ *
+ * @return array [ [ fraza, mnożnik ], … ] – pierwsza to zapytanie klienta.
+ */
+function fx_srch_variants( $q ) {
+	$qw   = array_values( array_filter( explode( ' ', fx_srch_norm( $q ) ), 'strlen' ) );
+	$out  = array( array( implode( ' ', $qw ), 1 ) );
+	$seen = array( $out[0][0] => true );
+	foreach ( (array) ( fx_srch_index()['syn'] ?? array() ) as $g ) {
+		foreach ( $g as $m ) {
+			$mw = explode( ' ', $m );
+			$at = -1;
+			for ( $i = 0; $i + count( $mw ) <= count( $qw ) && $at < 0; $i++ ) {
+				$ok = true;
+				foreach ( $mw as $j => $w ) {
+					if ( ! fx_srch_same_word( $qw[ $i + $j ], $w ) ) {
+						$ok = false;
+						break;
+					}
+				}
+				if ( $ok ) {
+					$at = $i;
+				}
+			}
+			if ( $at < 0 ) {
+				continue;
+			}
+			foreach ( $g as $o ) {
+				if ( $o === $m || ( false === strpos( $m, ' ' ) && false === strpos( $o, ' ' ) ) ) {
+					continue;
+				}
+				$v = implode( ' ', array_merge( array_slice( $qw, 0, $at ), explode( ' ', $o ), array_slice( $qw, $at + count( $mw ) ) ) );
+				if ( ! isset( $seen[ $v ] ) && count( $out ) < 8 ) {
+					$seen[ $v ] = true;
+					$out[]      = array( $v, 0.75 );
+				}
+			}
+		}
+	}
+	return $out;
+}
+
 function fx_srch_query( $q ) {
 	static $cache = array();
 	if ( isset( $cache[ $q ] ) ) {
@@ -849,53 +952,64 @@ function fx_srch_query( $q ) {
 	$prep   = fx_srch_prepared();
 	$map    = (array) ( $idx['map'] ?? array() );
 	$mapped = $map[ fx_srch_norm( $q ) ] ?? '';
-	$tk     = fx_srch_tokens( '' !== $mapped ? $mapped : $q );
+	$tk     = null;
+	$scores  = array();
+	$partial = array();
+	foreach ( fx_srch_variants( '' !== $mapped ? $mapped : $q ) as $vi => $var ) {
+		$t = fx_srch_tokens( $var[0] );
+		if ( 0 === $vi ) {
+			$tk = $t;
+		}
+		if ( ! $t['tokens'] ) {
+			continue;
+		}
+		$n = count( $t['tokens'] );
+		// Szybkie odrzucenie: każde dopasowanie jest podciągiem tekstu produktu.
+		$nds = array();
+		foreach ( $t['tokens'] as $k => $alts ) {
+			foreach ( $alts as $a ) {
+				$st          = fx_srch_stem( $a );
+				$nds[ $k ][] = $st ? $st : $a;
+			}
+		}
+		foreach ( $prep['items'] as $row ) {
+			list( $it, $tw, $xw, $all ) = $row;
+			$sum = 0;
+			$hit = 0;
+			foreach ( $t['tokens'] as $k => $alts ) {
+				$maybe = false;
+				foreach ( $nds[ $k ] as $nd ) {
+					if ( false !== strpos( $all, $nd ) ) {
+						$maybe = true;
+						break;
+					}
+				}
+				$s = $maybe ? fx_srch_tok_score( $alts, $tw, $xw ) : 0;
+				if ( $s > 0 ) {
+					$hit++;
+					$sum += $s;
+				}
+			}
+			if ( ! $hit ) {
+				continue;
+			}
+			$score = $sum / $n * (float) $it['w'] * $var[1]; // średnia na słowo – wersje frazy o różnej długości porównywalne
+			$id    = $it['id'];
+			if ( $hit === $n ) {
+				$scores[ $id ] = max( $scores[ $id ] ?? 0, $score );
+			} elseif ( $n > 1 && $hit >= ceil( $n / 2 ) ) {
+				$partial[ $id ] = max( $partial[ $id ] ?? 0, $score * $hit / $n );
+			}
+		}
+	}
 	if ( '' !== $mapped ) {
 		$tk['fixed'] = $mapped; // poprawka z panelu, np. „nakolanniki => ochraniacz kolan”
 	}
 	$out = array( 'ids' => array(), 'fixed' => $tk['fixed'], 'partial' => false );
-	if ( ! $tk['tokens'] ) {
+	if ( ! $tk['tokens'] && ! $scores ) {
 		return $cache[ $q ] = $out;
 	}
-	$n       = count( $tk['tokens'] );
-	$scores  = array();
-	$partial = array();
-	// Szybkie odrzucenie: każde dopasowanie jest podciągiem tekstu produktu.
-	$nds = array();
-	foreach ( $tk['tokens'] as $k => $alts ) {
-		foreach ( $alts as $a ) {
-			$st          = fx_srch_stem( $a );
-			$nds[ $k ][] = $st ? $st : $a;
-		}
-	}
-	foreach ( $prep['items'] as $row ) {
-		list( $it, $tw, $xw, $all ) = $row;
-		$sum = 0;
-		$hit = 0;
-		foreach ( $tk['tokens'] as $k => $alts ) {
-			$maybe = false;
-			foreach ( $nds[ $k ] as $nd ) {
-				if ( false !== strpos( $all, $nd ) ) {
-					$maybe = true;
-					break;
-				}
-			}
-			$s = $maybe ? fx_srch_tok_score( $alts, $tw, $xw ) : 0;
-			if ( $s > 0 ) {
-				$hit++;
-				$sum += $s;
-			}
-		}
-		if ( ! $hit ) {
-			continue;
-		}
-		$score = $sum * (float) $it['w'];
-		if ( $hit === $n ) {
-			$scores[ $it['id'] ] = $score;
-		} elseif ( $n > 1 && $hit >= ceil( $n / 2 ) ) {
-			$partial[ $it['id'] ] = $score * $hit / $n;
-		}
-	}
+	$partial = array_diff_key( $partial, $scores );
 	if ( ! $scores && $partial ) {
 		$scores         = $partial;
 		$out['partial'] = true;
@@ -1287,6 +1401,7 @@ add_action( 'admin_post_fx_srch_save', function () {
 		$out[ $k ] = sanitize_textarea_field( (string) ( $in[ $k ] ?? '' ) );
 	}
 	$out['popular'] = sanitize_text_field( (string) ( $in['popular'] ?? '' ) );
+	$out['excl']    = implode( ', ', array_filter( array_map( 'sanitize_title', explode( ',', (string) ( $in['excl'] ?? '' ) ) ) ) );
 	update_option( FX_SRCH_OPT, $out, false );
 	if ( fx_srch_file() ) {
 		fx_srch_publish(); // mnożniki i synonimy działają od razu
@@ -1381,6 +1496,8 @@ function fx_srch_settings_page() {
 					<p class="description">Jedna linia: slug kategorii | mnożnik. Obejmuje podkategorie.</p></td></tr>
 				<tr><th>Synonimy</th><td><textarea name="fx[syn]" rows="10" class="large-text code"><?php echo esc_textarea( $s['syn'] ); ?></textarea>
 					<p class="description">Jedna linia = słowa, które znaczą to samo. Polskie znaki i odmiana („kaski”, „rowerowe”) są obsługiwane same.</p></td></tr>
+				<tr><th>Nie pokazuj kategorii</th><td><input type="text" class="large-text" name="fx[excl]" value="<?php echo esc_attr( $s['excl'] ); ?>" placeholder="czesci-i-akcesoria">
+					<p class="description">Slugi kategorii po przecinku (z podkategoriami). Produkt jest pomijany, gdy jego kategoria główna leży w tych działach. Po zmianie indeks przelicza się sam w ciągu kilkunastu minut (albo „Przebuduj cały indeks teraz”).</p></td></tr>
 				<tr><th>Podpowiedzi przy pustym polu</th><td><input type="text" class="large-text" name="fx[popular]" value="<?php echo esc_attr( $s['popular'] ); ?>">
 					<p class="description">Po przecinku. Gdy zbiorą się statystyki, na początku listy pojawią się najczęściej wyszukiwane frazy.</p></td></tr>
 				<tr><th>Produktów w podpowiedziach</th><td><input type="number" min="4" max="12" name="fx[max]" value="<?php echo esc_attr( $s['max'] ); ?>" style="width:70px"></td></tr>
