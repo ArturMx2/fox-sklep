@@ -1,5 +1,14 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.26.0 – analityka wyszukiwań
+- WooCommerce → Wyszukiwarka → Analityka: okresy 7/14/30/60/90/180/365 dni lub własny zakres, porównanie z poprzednim okresem.
+- Podsumowanie z wykresami: wyszukania dzień po dniu (z poprzednim okresem), sprzedaż z wyszukiwarki, ostatnie 24 miesiące.
+- Raporty: frazy, bez wyników (z tym, co klienci wpisali potem), bez kliknięcia, trendy (rosnące / spadające), produkty, brakujący towar (popyt na niedostępne), zachowanie (źródło wyszukania, urządzenie, pozycja kliknięcia, filtry, kategorie, dni × godziny).
+- Sprzedaż z wyszukiwarki: koszyk i zamówienia z produktami znalezionymi wyszukiwarką (do 7 dni od kliknięcia).
+- Poprawka frazy jednym kliknięciem (np. „nakolanniki” → „ochraniacz kolan”) – działa od razu w podpowiedziach i na stronie wyników.
+- Eksport każdego raportu do CSV (Excel, polskie znaki) i wszystkich zdarzeń; dane JSON dla programu analitycznego (adres z kluczem w panelu).
+- Zdarzenia przechowywane 400 dni, dzienne podsumowania na stałe. Bez danych osobowych.
+
 ## 3.25.5 – wyszukiwarka: kategorie dopasowane do wyników
 - Kategoria w podpowiedziach = najwęższa kategoria, w której jest większość wyników z danego świata (moto / rower), np. „OFF ROAD › Ochraniacze › Kolana i łokcie” zamiast wszystkich ochraniaczy; kaski dalej „OFF ROAD › Kaski” / „ROWEROWY › Kaski rowerowe”.
 - Ścieżka nad kategorią: dział + bezpośredni rodzic.

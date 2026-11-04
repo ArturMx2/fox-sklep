@@ -135,7 +135,10 @@
 	}
 
 	function search(q) {
-		var tk = tokens(q), n = tk.tokens.length, full = [], part = [];
+		// Poprawka z panelu (Analityka → Bez wyników): „nakolanniki” → „ochraniacz kolan”.
+		var mapped = D.map && D.map[norm(q)];
+		var tk = tokens(mapped || q), n = tk.tokens.length, full = [], part = [];
+		if (mapped) { tk.fixed = mapped; }
 		if (!n) { return { items: [], cats: [], fixed: '', partial: false, tk: tk }; }
 		var nds = tk.tokens.map(needles);
 		P.items.forEach(function (row) {
@@ -280,8 +283,50 @@
 	}
 
 	/* ---------- dziennik ---------- */
+	/*
+	 * Dane do analityki (bez danych osobowych):
+	 * - fx_sid: losowy identyfikator sesji przeglądarki (ciasteczko sesyjne) – ile osób szuka, co wpisują po braku wyników,
+	 * - urządzenie (telefon / komputer), pozycja klikniętego wyniku,
+	 * - fx_sq: kliknięte z wyszukiwarki produkty z frazą (7 dni) – przypisanie koszyka i zamówienia do frazy.
+	 */
+	function cookie(name) {
+		var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+		return m ? decodeURIComponent(m[1]) : '';
+	}
+	function sid() {
+		var v = cookie('fx_sid');
+		if (!/^[a-z0-9]{12,16}$/.test(v)) {
+			v = (Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)).replace(/[^a-z0-9]/g, '').slice(0, 14);
+			document.cookie = 'fx_sid=' + v + ';path=/;SameSite=Lax';
+		}
+		return v;
+	}
+	function clicks() {
+		var out = [];
+		cookie('fx_sq').split('|').forEach(function (x) { var p = x.split('~'); if (p.length === 2 && /^\d+$/.test(p[0])) { out.push([p[0], p[1]]); } });
+		return out;
+	}
+	function remember(pid, q) {
+		var list = clicks().filter(function (x) { return x[0] !== String(pid); });
+		list.unshift([String(pid), String(q).replace(/[|~;]/g, ' ').slice(0, 60)]);
+		document.cookie = 'fx_sq=' + encodeURIComponent(list.slice(0, 10).map(function (x) { return x[0] + '~' + x[1]; }).join('|')) + ';path=/;max-age=604800;SameSite=Lax';
+	}
+	function qFor(pid) {
+		var q = '';
+		clicks().forEach(function (x) { if (!q && x[0] === String(pid)) { q = x[1]; } });
+		return q;
+	}
+	/* Skąd klient przyszedł na stronę wyników: wpisane + Enter, „Często szukane”, podpowiedź frazy, „Zobacz wszystkie”. */
+	function setVia(v) { try { sessionStorage.setItem('fxvia', v); } catch (e) { /* tryb prywatny */ } }
+	function takeVia() {
+		var v = 'link';
+		try { v = sessionStorage.getItem('fxvia') || 'link'; sessionStorage.removeItem('fxvia'); } catch (e) { /* tryb prywatny */ }
+		return v;
+	}
 	function log(data) {
 		try {
+			data.sid = sid();
+			data.dev = window.innerWidth < 768 ? 'm' : 'd';
 			var f = new FormData();
 			Object.keys(data).forEach(function (k) { f.append(k, data[k]); });
 			if (navigator.sendBeacon) { navigator.sendBeacon(C.log, f); } else { fetch(C.log, { method: 'POST', body: f, keepalive: true }); }
@@ -373,7 +418,7 @@
 			var sugg = suggest(q, res), cats = '', sg = '';
 			if (sugg.length) {
 				sg = '<div class="fx-sd__sugg"><p class="fx-sd__h">Podpowiedzi</p><ul class="fx-sd__phr">' + sugg.map(function (p) {
-					return '<li><a data-nav href="' + esc(allUrl(p)) + '">' + mark(p, res.tk) + '</a></li>';
+					return '<li><a data-nav data-via="phr" href="' + esc(allUrl(p)) + '">' + mark(p, res.tk) + '</a></li>';
 				}).join('') + '</ul></div>';
 			}
 			if (res.cats.length) {
@@ -382,10 +427,10 @@
 					var pth = catPath(x.c.id);
 					if (pth.length > 2) { pth = [pth[0], pth[pth.length - 1]]; } // dział + bezpośredni rodzic
 					var path = pth.map(function (p) {
-						return '<a data-nav href="' + esc(url(p[1])) + '">' + esc(p[0]) + '</a>';
+						return '<a data-nav data-cat="' + esc(p[0]) + '" href="' + esc(url(p[1])) + '">' + esc(p[0]) + '</a>';
 					}).join(' <span aria-hidden="true">›</span> ');
 					return '<li>' + (path ? '<span class="fx-sd__path">' + path + ' <span aria-hidden="true">›</span></span>' : '') +
-						'<a class="fx-sd__cat" data-nav href="' + esc(url(x.c.url)) + '"><span>' + esc(x.c.name) + '</span> <span class="fx-sd__n">' + x.n + '</span></a></li>';
+						'<a class="fx-sd__cat" data-nav data-cat="' + esc(x.c.name) + '" href="' + esc(url(x.c.url)) + '"><span>' + esc(x.c.name) + '</span> <span class="fx-sd__n">' + x.n + '</span></a></li>';
 				}).join('') + '</ul></div>';
 			}
 			// Produkty: duże zdjęcie, cena, nazwa (jak u największych sklepów); bez rozmiarów i oznaczeń.
@@ -404,15 +449,15 @@
 			} else {
 				var note = res.fixed ? '<p class="fx-sd__fix">Pokazujemy wyniki dla <b>„' + esc(res.fixed) + '”</b></p>' : (res.partial ? '<p class="fx-sd__fix">Brak produktów ze wszystkimi słowami – najbliższe wyniki:</p>' : '');
 				h += '<div class="fx-sd__grid' + (sg || cats ? '' : ' no-side') + '">' + sg + cats +
-					'<div class="fx-sd__main"><div class="fx-sd__head"><p class="fx-sd__h">Produkty</p><a class="fx-sd__more" href="' + esc(allUrl(res.fixed || q)) + '">Zobacz wszystkie (' + n + ')</a></div>' + note + '<div class="fx-sd__cards">' + cards + '</div>' +
-					'<a class="fx-sd__all" data-nav href="' + esc(allUrl(res.fixed || q)) + '">Zobacz wszystkie wyniki (' + n + ') <span aria-hidden="true">»</span></a></div></div>';
+					'<div class="fx-sd__main"><div class="fx-sd__head"><p class="fx-sd__h">Produkty</p><a class="fx-sd__more" data-via="all" href="' + esc(allUrl(res.fixed || q)) + '">Zobacz wszystkie (' + n + ')</a></div>' + note + '<div class="fx-sd__cards">' + cards + '</div>' +
+					'<a class="fx-sd__all" data-nav data-via="all" href="' + esc(allUrl(res.fixed || q)) + '">Zobacz wszystkie wyniki (' + n + ') <span aria-hidden="true">»</span></a></div></div>';
 			}
 			el.innerHTML = h;
 			open();
 			clearTimeout(timer);
 			timer = setTimeout(function () {
 				var key = norm(q);
-				if (key.length >= 2 && key !== lastLogged) { lastLogged = key; log({ q: q, n: n, src: 'dd' }); }
+				if (key.length >= 2 && key !== lastLogged) { lastLogged = key; log({ q: q, n: n, src: 'dd', via: via }); }
 			}, 1500);
 		}
 
@@ -422,7 +467,8 @@
 			cancelAnimationFrame(raf);
 			raf = requestAnimationFrame(render);
 		}
-		input.addEventListener('input', onInput);
+		var via = 'typed'; // skąd fraza: wpisana / „Często szukane”
+		input.addEventListener('input', function () { via = 'typed'; onInput(); });
 		input.addEventListener('focus', function () { lastQ = null; onInput(); });
 		['pointerenter', 'touchstart'].forEach(function (ev) { input.addEventListener(ev, load, { passive: true }); });
 		input.addEventListener('keydown', function (e) {
@@ -436,11 +482,18 @@
 			var a = e.target.closest('a');
 			if (!a) { return; }
 			var q = input.value.trim();
-			if (a.dataset.q) { e.preventDefault(); e.stopPropagation(); input.value = a.dataset.q; lastQ = null; render(); input.focus(); var l = input.value.length; try { input.setSelectionRange(l, l); } catch (x) { /* type=search */ } return; }
-			if (a.dataset.pid) { log({ q: q, n: res ? res.items.length : 0, pid: a.dataset.pid, src: 'ddc' }); }
+			if (a.dataset.via) { setVia(a.dataset.via); }
+			if (a.dataset.cat) { log({ q: q, n: res ? res.items.length : 0, src: 'cat', x: a.dataset.cat }); }
+			if (a.dataset.q) { e.preventDefault(); e.stopPropagation(); via = 'pop'; input.value = a.dataset.q; lastQ = null; render(); input.focus(); var l = input.value.length; try { input.setSelectionRange(l, l); } catch (x) { /* type=search */ } return; }
+			if (a.dataset.pid) {
+				var cards = Array.prototype.slice.call(el.querySelectorAll('[data-pid]'));
+				log({ q: q, n: res ? res.items.length : 0, pid: a.dataset.pid, pos: cards.indexOf(a) + 1, src: 'ddc' });
+				remember(a.dataset.pid, q);
+			}
 		});
 		el.addEventListener('mousedown', function (e) { if (e.target.closest('a')) { e.preventDefault(); } }); // bez utraty fokusu przed kliknięciem
 		form.addEventListener('submit', function () {
+			setVia(via === 'pop' ? 'pop' : 'enter');
 			if (res && res.fixed) { input.value = res.fixed; }
 		});
 		document.addEventListener('click', function (e) {
@@ -454,16 +507,47 @@
 		document.querySelectorAll('form.fx-search input[name="s"]').forEach(function (input) {
 			if (!input.dataset.fxSd) { input.dataset.fxSd = 1; Box(input); }
 		});
+		// Dodanie do koszyka produktu, który klient znalazł wyszukiwarką (do 7 dni od kliknięcia).
+		function cartLog(pid) {
+			var q = qFor(pid);
+			if (q) { log({ q: q, pid: pid, src: 'cart' }); }
+		}
+		document.addEventListener('submit', function (e) {
+			var f = e.target.closest && e.target.closest('form.cart');
+			if (!f) { return; }
+			var b = f.querySelector('[name="add-to-cart"]'), pid = b && b.value;
+			if (pid) { cartLog(pid); }
+		}, true);
+		if (window.jQuery) {
+			window.jQuery(document.body).on('added_to_cart', function (e, frags, hash, btn) {
+				var pid = btn && (btn.data ? btn.data('product_id') : '');
+				if (pid) { cartLog(pid); }
+			});
+		}
 		// Strona wyników: zapis wyszukania i kliknięć w produkty.
 		if (C.q) {
 			if (!/\/page\/\d+/.test(location.pathname) && !/[?&]paged=/.test(location.search) && !/[?&](rozmiar|kolor|orderby|promocja|wysylka24|wsklepie)=/.test(location.search)) {
-				log({ q: C.q, n: C.n, src: 'page' });
+				log({ q: C.q, n: C.n, src: 'page', via: takeVia() });
 			}
+			// Filtry i sortowanie użyte na wynikach (raz na frazę i zestaw filtrów w sesji).
+			try {
+				var sp = new URLSearchParams(location.search), fl = [];
+				['rozmiar', 'kolor', 'promocja', 'wysylka24', 'wsklepie', 'przedsprzedaz', 'orderby'].forEach(function (k) { var v = sp.get(k); if (v) { fl.push(k + '=' + v); } });
+				var fk = 'fxflt|' + C.q + '|' + fl.join('|');
+				if (fl.length && !sessionStorage.getItem(fk)) { sessionStorage.setItem(fk, '1'); log({ q: C.q, n: C.n, src: 'flt', x: fl.join('|') }); }
+			} catch (e) { /* stara przeglądarka / tryb prywatny */ }
+			// Strona, od której klient zaczął (lista doładowuje kolejne strony i zmienia adres na /page/N/).
+			var startPage = +((location.pathname.match(/\/page\/(\d+)/) || [0, 1])[1]);
 			document.addEventListener('click', function (e) {
-				var a = e.target.closest('ul.products li.product a');
-				if (!a) { return; }
+				// Tylko główna lista wyników (nie produkty z menu, „ostatnio oglądane” itp.).
+				var a = e.target.closest('#fx-main ul.products li.product a');
+				if (!a || a.closest('header, nav, .fx-mega')) { return; }
 				var li = a.closest('li.product'), m = li && li.className.match(/\bpost-(\d+)\b/);
-				if (m) { log({ q: C.q, n: C.n, pid: m[1], src: 'pagec' }); }
+				if (m) {
+					var all = Array.prototype.slice.call(li.parentNode.children).filter(function (x) { return x.matches && x.matches('li.product'); });
+					log({ q: C.q, n: C.n, pid: m[1], pos: all.indexOf(li) + 1 + (startPage - 1) * (C.pp || 12), src: 'pagec' });
+					remember(m[1], C.q);
+				}
 			});
 		}
 	}

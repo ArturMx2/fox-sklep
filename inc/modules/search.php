@@ -22,7 +22,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FX_SRCH_DB', 3 );
+define( 'FX_SRCH_DB', 5 );
 define( 'FX_SRCH_OPT', 'fx_srch_settings' );
 
 /* =====================================================================
@@ -41,6 +41,7 @@ function fx_srch_defaults() {
 		'w_pop'     => 1,      // siła popularności (sprzedaż + kliknięcia); 0 = bez
 		'syn'       => "kask, kaski, helmet\nbluza, jersey, koszulka\nspodnie, pants\ngogle, okulary, goggles\nbuty, obuwie, boots\nrękawice, rękawiczki, gloves\nmtb, rower, rowerowy, rowerowe, bike, enduro\nmx, cross, crossowy, crossowe, motocross, moto, motocyklowy, motocyklowe\nochraniacz, ochraniacze, zbroja, buzer, protektor\nbluza z kapturem, hoodie\nkurtka, jacket\nczapka, cap, czapki\nkoszulka, t-shirt, tshirt, tee\ndziecięcy, dziecięce, junior, youth, kids\ndamski, damskie, damska, women, womens",
 		'pins'      => '',
+		'map'       => '', // „fraza => inna fraza” – poprawki fraz bez wyników (Analityka → Bez wyników)
 		'cat_boost' => '',
 		'popular'   => 'kask, gogle, buty, bluza, spodnie, rękawice',
 		'max'       => 8,
@@ -122,13 +123,30 @@ add_action( 'init', function () {
 		id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 		ts int(10) unsigned NOT NULL,
 		q varchar(100) NOT NULL DEFAULT '',
+		qn varchar(100) NOT NULL DEFAULT '',
 		n int(10) unsigned NOT NULL DEFAULT 0,
 		pid bigint(20) unsigned NOT NULL DEFAULT 0,
 		src varchar(8) NOT NULL DEFAULT '',
+		sid varchar(16) NOT NULL DEFAULT '',
+		dev char(1) NOT NULL DEFAULT '',
+		pos smallint(5) unsigned NOT NULL DEFAULT 0,
+		oid bigint(20) unsigned NOT NULL DEFAULT 0,
+		val decimal(12,2) NOT NULL DEFAULT 0,
+		via varchar(8) NOT NULL DEFAULT '',
+		x varchar(190) NOT NULL DEFAULT '',
 		PRIMARY KEY  (id),
 		KEY ts (ts),
-		KEY q (q)
+		KEY q (q),
+		KEY qn (qn),
+		KEY sid (sid)
 	) $c;" );
+	// Starsze wpisy: fraza znormalizowana do grupowania („Rękawice” = „rekawice”).
+	foreach ( (array) $wpdb->get_results( 'SELECT DISTINCT q FROM ' . fx_srch_log_table() . " WHERE qn = '' LIMIT 5000" ) as $r ) { // phpcs:ignore
+		$wpdb->update( fx_srch_log_table(), array( 'qn' => fx_srch_norm( $r->q ) ), array( 'q' => $r->q, 'qn' => '' ) ); // phpcs:ignore
+	}
+	if ( function_exists( 'fx_ss_install' ) ) {
+		fx_ss_install(); // dzienne podsumowania (search-stats.php)
+	}
 	update_option( 'fx_srch_db', FX_SRCH_DB, true );
 }, 5 );
 
@@ -456,6 +474,18 @@ function fx_srch_pins( $text ) {
 	return $out;
 }
 
+/** „fraza => cel” → [ fraza_znormalizowana => cel ]. */
+function fx_srch_map( $text ) {
+	$out = array();
+	foreach ( preg_split( '/\r\n|\r|\n/', (string) $text ) as $line ) {
+		$parts = array_map( 'trim', explode( '=>', $line, 2 ) );
+		if ( 2 === count( $parts ) && '' !== $parts[0] && '' !== $parts[1] ) {
+			$out[ fx_srch_norm( $parts[0] ) ] = $parts[1];
+		}
+	}
+	return $out;
+}
+
 /** „slug | 1.5” → [ term_id => 1.5 ]. */
 function fx_srch_cat_boosts( $text ) {
 	$out = array();
@@ -530,6 +560,7 @@ function fx_srch_publish() {
 		'cats'  => (object) $catmap,
 		'syn'   => fx_srch_syn_groups( $s['syn'] ),
 		'pins'  => (object) fx_srch_pins( $s['pins'] ),
+		'map'   => (object) fx_srch_map( $s['map'] ),
 		'pop'   => fx_srch_popular(),
 		'qs'    => fx_srch_phrases(),
 		'items' => $items,
@@ -603,9 +634,9 @@ function fx_srch_cron_run() {
 	$hour = (int) wp_date( 'G' );
 	if ( ! get_option( 'fx_srch_file' ) || ( get_option( 'fx_srch_full' ) !== gmdate( 'Y-m-d' ) && $hour >= 3 && $hour < 5 ) ) {
 		fx_srch_seed_all();
-		// Dziennik: tylko 180 dni.
+		// Dziennik: 400 dni (porównanie rok do roku dla ostatnich tygodni).
 		global $wpdb;
-		$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . fx_srch_log_table() . ' WHERE ts < %d', time() - 180 * DAY_IN_SECONDS ) ); // phpcs:ignore
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . fx_srch_log_table() . ' WHERE ts < %d', time() - 400 * DAY_IN_SECONDS ) ); // phpcs:ignore
 	}
 	$left = fx_srch_process( 40 );
 	$f    = get_option( 'fx_srch_file', array() );
@@ -814,10 +845,15 @@ function fx_srch_query( $q ) {
 	if ( isset( $cache[ $q ] ) ) {
 		return $cache[ $q ];
 	}
-	$idx  = fx_srch_index();
-	$prep = fx_srch_prepared();
-	$tk   = fx_srch_tokens( $q );
-	$out  = array( 'ids' => array(), 'fixed' => $tk['fixed'], 'partial' => false );
+	$idx    = fx_srch_index();
+	$prep   = fx_srch_prepared();
+	$map    = (array) ( $idx['map'] ?? array() );
+	$mapped = $map[ fx_srch_norm( $q ) ] ?? '';
+	$tk     = fx_srch_tokens( '' !== $mapped ? $mapped : $q );
+	if ( '' !== $mapped ) {
+		$tk['fixed'] = $mapped; // poprawka z panelu, np. „nakolanniki => ochraniacz kolan”
+	}
+	$out = array( 'ids' => array(), 'fixed' => $tk['fixed'], 'partial' => false );
 	if ( ! $tk['tokens'] ) {
 		return $cache[ $q ] = $out;
 	}
@@ -1030,6 +1066,7 @@ add_action( 'wp_enqueue_scripts', function () {
 		'ship'   => function_exists( 'fx_ls_settings' ) ? fx_ls_settings()['ship_label'] : 'Wysyłka dziś',
 		'cutoff' => function_exists( 'fox_bl_delivery_get_settings' ) ? fox_bl_delivery_get_settings()['cutoff_time'] : '15:00',
 		'hol'    => function_exists( 'fx_ship_cta_conf' ) ? array_values( (array) fx_ship_cta_conf()['blocked'] ) : array(),
+		'pp'     => max( 1, (int) $GLOBALS['wp_query']->get( 'posts_per_page' ) ),
 	);
 	wp_add_inline_script( 'fx-search', 'window.fxSearch=' . wp_json_encode( $cfg ) . ';', 'before' );
 }, 20 );
@@ -1098,7 +1135,7 @@ add_action( 'rest_api_init', function () {
 			'callback'            => function ( WP_REST_Request $r ) {
 				// Fraza tak, jak wpisał klient (małe litery, z polskimi znakami) – do statystyk i podpowiedzi.
 				$q   = mb_substr( trim( preg_replace( '/\s+/u', ' ', mb_strtolower( wp_strip_all_tags( (string) $r->get_param( 'q' ) ), 'UTF-8' ) ) ), 0, 100 );
-				$src = in_array( $r->get_param( 'src' ), array( 'dd', 'page', 'ddc', 'pagec' ), true ) ? $r->get_param( 'src' ) : 'dd';
+				$src = in_array( $r->get_param( 'src' ), array( 'dd', 'page', 'ddc', 'pagec', 'cart', 'cat', 'flt' ), true ) ? $r->get_param( 'src' ) : 'dd';
 				if ( '' === $q || mb_strlen( $q ) < 2 ) {
 					return new WP_REST_Response( null, 204 );
 				}
@@ -1106,7 +1143,7 @@ add_action( 'rest_api_init', function () {
 				$ip  = md5( (string) ( $_SERVER['REMOTE_ADDR'] ?? '' ) ); // phpcs:ignore
 				$key = 'fx_sl_' . substr( $ip, 0, 12 );
 				$cnt = (int) get_transient( $key );
-				if ( $cnt > 60 ) {
+				if ( $cnt > 120 ) {
 					return new WP_REST_Response( null, 429 );
 				}
 				set_transient( $key, $cnt + 1, MINUTE_IN_SECONDS );
@@ -1117,8 +1154,14 @@ add_action( 'rest_api_init', function () {
 						'ts'  => time(),
 						'q'   => $q,
 						'n'   => min( 100000, absint( $r->get_param( 'n' ) ) ),
+						'qn'  => mb_substr( fx_srch_norm( $q ), 0, 100 ),
 						'pid' => absint( $r->get_param( 'pid' ) ),
 						'src' => $src,
+						'sid' => fx_srch_sid( $r->get_param( 'sid' ) ),
+						'dev' => 'm' === $r->get_param( 'dev' ) ? 'm' : ( 'd' === $r->get_param( 'dev' ) ? 'd' : '' ),
+						'pos' => min( 9999, absint( $r->get_param( 'pos' ) ) ),
+						'via' => in_array( $r->get_param( 'via' ), array( 'typed', 'pop', 'phr', 'all', 'enter', 'link' ), true ) ? $r->get_param( 'via' ) : '',
+						'x'   => mb_substr( sanitize_text_field( (string) $r->get_param( 'x' ) ), 0, 190 ),
 					)
 				);
 				return new WP_REST_Response( null, 204 );
@@ -1126,6 +1169,67 @@ add_action( 'rest_api_init', function () {
 		)
 	);
 } );
+
+/** Identyfikator sesji z przeglądarki (losowy, bez danych osobowych). */
+function fx_srch_sid( $v ) {
+	$v = strtolower( (string) $v );
+	return preg_match( '/^[a-z0-9]{12,16}$/', $v ) ? $v : '';
+}
+
+/*
+ * Zamówienie: produkty kliknięte wcześniej z wyszukiwarki (ciasteczko fx_sq, 7 dni) → wpis „order”
+ * z frazą i wartością pozycji. Fraza trafia też do zamówienia (pole _fx_search_terms).
+ */
+function fx_srch_order_log( $order ) {
+	if ( is_numeric( $order ) ) {
+		$order = wc_get_order( $order );
+	}
+	if ( ! $order instanceof WC_Order || $order->get_meta( '_fx_search_terms' ) || empty( $_COOKIE['fx_sq'] ) ) { // phpcs:ignore
+		return;
+	}
+	$map = array();
+	foreach ( explode( '|', sanitize_text_field( wp_unslash( $_COOKIE['fx_sq'] ) ) ) as $pair ) { // phpcs:ignore
+		$p = explode( '~', $pair, 2 );
+		if ( 2 === count( $p ) && ctype_digit( $p[0] ) && ! isset( $map[ (int) $p[0] ] ) ) {
+			$map[ (int) $p[0] ] = mb_substr( mb_strtolower( trim( $p[1] ) ), 0, 100 );
+		}
+	}
+	if ( ! $map ) {
+		return;
+	}
+	global $wpdb;
+	$terms = array();
+	$sid   = fx_srch_sid( $_COOKIE['fx_sid'] ?? '' ); // phpcs:ignore
+	foreach ( $order->get_items() as $item ) {
+		$pid = (int) $item->get_product_id();
+		if ( ! isset( $map[ $pid ] ) || '' === $map[ $pid ] ) {
+			continue;
+		}
+		$q = $map[ $pid ];
+		$wpdb->insert( // phpcs:ignore
+			fx_srch_log_table(),
+			array(
+				'ts'  => time(),
+				'q'   => $q,
+				'qn'  => mb_substr( fx_srch_norm( $q ), 0, 100 ),
+				'pid' => $pid,
+				'src' => 'order',
+				'sid' => $sid,
+				'oid' => $order->get_id(),
+				'val' => round( (float) $item->get_total() + (float) $item->get_total_tax(), 2 ),
+				'n'   => (int) $item->get_quantity(),
+			)
+		);
+		$terms[ $q ] = true;
+	}
+	if ( $terms ) {
+		$order->update_meta_data( '_fx_search_terms', implode( ', ', array_keys( $terms ) ) );
+		$order->save();
+		setcookie( 'fx_sq', '', time() - 3600, COOKIEPATH ? COOKIEPATH : '/', COOKIE_DOMAIN ); // jedno zamówienie = jedno przypisanie
+	}
+}
+add_action( 'woocommerce_checkout_order_processed', 'fx_srch_order_log', 20 );
+add_action( 'woocommerce_store_api_checkout_order_processed', 'fx_srch_order_log', 20 );
 
 /* =====================================================================
  * Produkt: „Mnożnik w wyszukiwarce”
@@ -1160,7 +1264,7 @@ add_action( 'woocommerce_admin_process_product_object', function ( $p ) {
  * ===================================================================== */
 
 add_action( 'admin_menu', function () {
-	add_submenu_page( 'woocommerce', 'Wyszukiwarka FOX', 'Wyszukiwarka', 'manage_woocommerce', 'fx-szukaj', 'fx_srch_admin_page' );
+	add_submenu_page( 'woocommerce', 'Wyszukiwarka FOX', 'Wyszukiwarka', 'manage_woocommerce', 'fx-szukaj', 'fx_srch_admin_page' ); // search-stats.php
 }, 60 );
 
 add_action( 'admin_post_fx_srch_save', function () {
@@ -1179,7 +1283,7 @@ add_action( 'admin_post_fx_srch_save', function () {
 		$v         = (float) str_replace( ',', '.', (string) ( $in[ $k ] ?? $d[ $k ] ) );
 		$out[ $k ] = max( 0, min( 10, $v ) );
 	}
-	foreach ( array( 'syn', 'pins', 'cat_boost' ) as $k ) {
+	foreach ( array( 'syn', 'pins', 'cat_boost', 'map' ) as $k ) {
 		$out[ $k ] = sanitize_textarea_field( (string) ( $in[ $k ] ?? '' ) );
 	}
 	$out['popular'] = sanitize_text_field( (string) ( $in['popular'] ?? '' ) );
@@ -1187,7 +1291,7 @@ add_action( 'admin_post_fx_srch_save', function () {
 	if ( fx_srch_file() ) {
 		fx_srch_publish(); // mnożniki i synonimy działają od razu
 	}
-	wp_safe_redirect( admin_url( 'admin.php?page=fx-szukaj&zapisano=1' ) );
+	wp_safe_redirect( admin_url( 'admin.php?page=fx-szukaj&tab=ustawienia&zapisano=1' ) );
 	exit;
 } );
 
@@ -1213,7 +1317,7 @@ add_action( 'wp_ajax_fx_srch_build', function () {
 	);
 } );
 
-function fx_srch_admin_page() {
+function fx_srch_settings_page() {
 	if ( ! current_user_can( 'manage_woocommerce' ) ) {
 		return;
 	}
@@ -1221,20 +1325,13 @@ function fx_srch_admin_page() {
 	$s     = fx_srch_settings();
 	$f     = get_option( 'fx_srch_file', array() );
 	$t     = fx_srch_table();
-	$l     = fx_srch_log_table();
 	$rows  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $t" ); // phpcs:ignore
 	$dirty = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $t WHERE dirty = 1" ); // phpcs:ignore
-	$since = time() - 30 * DAY_IN_SECONDS;
-	$tot   = $wpdb->get_row( $wpdb->prepare( "SELECT SUM(src IN ('dd','page')) s, SUM(src IN ('dd','page') AND n = 0) z, SUM(pid > 0) c FROM $l WHERE ts > %d", $since ) ); // phpcs:ignore
-	$top   = $wpdb->get_results( $wpdb->prepare( "SELECT q, SUM(src IN ('dd','page')) s, SUM(pid > 0) c, ROUND(AVG(CASE WHEN src IN ('dd','page') THEN n END)) n FROM $l WHERE ts > %d GROUP BY q ORDER BY s DESC LIMIT 40", $since ) ); // phpcs:ignore
-	$zero  = $wpdb->get_results( $wpdb->prepare( "SELECT q, COUNT(*) s FROM $l WHERE ts > %d AND n = 0 AND src IN ('dd','page') GROUP BY q ORDER BY s DESC LIMIT 40", $since ) ); // phpcs:ignore
-	$clk   = $wpdb->get_results( $wpdb->prepare( "SELECT pid, COUNT(*) c FROM $l WHERE ts > %d AND pid > 0 GROUP BY pid ORDER BY c DESC LIMIT 20", $since ) ); // phpcs:ignore
 	$n     = function ( $v ) {
 		return number_format_i18n( (float) $v );
 	};
 	?>
 	<div class="wrap fx-srch-admin">
-		<h1>Wyszukiwarka FOX</h1>
 		<?php if ( isset( $_GET['zapisano'] ) ) : // phpcs:ignore ?>
 			<div class="notice notice-success is-dismissible"><p>Zapisano. Indeks przeliczony z nowymi ustawieniami.</p></div>
 		<?php endif; ?>
@@ -1246,13 +1343,6 @@ function fx_srch_admin_page() {
 				Czeka na przeliczenie: <strong data-fx-left><?php echo esc_html( $n( $dirty ) ); ?></strong> z <?php echo esc_html( $n( $rows ) ); ?> (automat co 5 min)</p>
 				<p><button class="button button-primary" data-fx-build>Przebuduj cały indeks teraz</button> <span data-fx-status></span></p>
 				<p class="description">Nowe i zmienione produkty trafiają do wyszukiwarki same w ciągu ok. 5 minut, a raz na dobę (3:00) cały indeks jest odświeżany.</p>
-			</div>
-			<div class="fx-srch-card">
-				<h2>Ostatnie 30 dni</h2>
-				<p>Wyszukiwań: <strong><?php echo esc_html( $n( $tot->s ?? 0 ) ); ?></strong><br>
-				Bez wyników: <strong><?php echo esc_html( $n( $tot->z ?? 0 ) ); ?></strong> (<?php echo $tot && $tot->s ? esc_html( round( 100 * $tot->z / $tot->s ) ) : 0; ?>%)<br>
-				Kliknięć w produkt z wyszukiwarki: <strong><?php echo esc_html( $n( $tot->c ?? 0 ) ); ?></strong></p>
-				<p class="description">Sprzedaż z wyszukiwarki widać w GA4 (zdarzenie „view_search_results”, parametr s).</p>
 			</div>
 		</div>
 
@@ -1285,6 +1375,8 @@ function fx_srch_admin_page() {
 				</td></tr>
 				<tr><th>Przypięte produkty</th><td><textarea name="fx[pins]" rows="5" class="large-text code" placeholder="kask | 12345, 23456&#10;gogle | 34567"><?php echo esc_textarea( $s['pins'] ); ?></textarea>
 					<p class="description">Jedna linia: fraza | ID produktów po przecinku. Te produkty są zawsze na górze dla tej frazy (w podanej kolejności). ID widać na liście produktów po najechaniu na nazwę.</p></td></tr>
+				<tr><th>Poprawki fraz</th><td><textarea name="fx[map]" rows="5" class="large-text code" placeholder="nakolanniki => ochraniacz kolan"><?php echo esc_textarea( $s['map'] ); ?></textarea>
+					<p class="description">Jedna linia: fraza klienta => fraza, dla której pokazać wyniki. Najprościej dodawać jednym kliknięciem w Analityce → Bez wyników.</p></td></tr>
 				<tr><th>Mnożnik kategorii</th><td><textarea name="fx[cat_boost]" rows="4" class="large-text code" placeholder="kaski-mtb | 1.3&#10;outlet | 0.7"><?php echo esc_textarea( $s['cat_boost'] ); ?></textarea>
 					<p class="description">Jedna linia: slug kategorii | mnożnik. Obejmuje podkategorie.</p></td></tr>
 				<tr><th>Synonimy</th><td><textarea name="fx[syn]" rows="10" class="large-text code"><?php echo esc_textarea( $s['syn'] ); ?></textarea>
@@ -1296,36 +1388,6 @@ function fx_srch_admin_page() {
 			<?php submit_button( 'Zapisz i przelicz' ); ?>
 		</form>
 
-		<div class="fx-srch-cards">
-			<div class="fx-srch-card">
-				<h2>Najczęściej wyszukiwane (30 dni)</h2>
-				<table class="widefat striped"><thead><tr><th>Fraza</th><th>Wyszukań</th><th>Śr. wyników</th><th>Kliknięć</th></tr></thead><tbody>
-				<?php foreach ( (array) $top as $r ) : ?>
-					<tr><td><a href="<?php echo esc_url( add_query_arg( array( 's' => $r->q, 'post_type' => 'product' ), home_url( '/' ) ) ); ?>" target="_blank"><?php echo esc_html( $r->q ); ?></a></td><td><?php echo (int) $r->s; ?></td><td><?php echo esc_html( null === $r->n ? '—' : (int) $r->n ); ?></td><td><?php echo (int) $r->c; ?></td></tr>
-				<?php endforeach; ?>
-				<?php if ( ! $top ) : ?><tr><td colspan="4">Brak danych – statystyki zbierają się od włączenia wyszukiwarki.</td></tr><?php endif; ?>
-				</tbody></table>
-			</div>
-			<div class="fx-srch-card">
-				<h2>Bez wyników (30 dni)</h2>
-				<table class="widefat striped"><thead><tr><th>Fraza</th><th>Ile razy</th></tr></thead><tbody>
-				<?php foreach ( (array) $zero as $r ) : ?>
-					<tr><td><?php echo esc_html( $r->q ); ?></td><td><?php echo (int) $r->s; ?></td></tr>
-				<?php endforeach; ?>
-				<?php if ( ! $zero ) : ?><tr><td colspan="2">Brak.</td></tr><?php endif; ?>
-				</tbody></table>
-				<p class="description">Wskazówka: dopisz brakujące słowo do synonimów (np. „ochraniacz kolan” → „nakolanniki”) albo uzupełnij ofertę.</p>
-			</div>
-			<div class="fx-srch-card">
-				<h2>Najczęściej klikane produkty</h2>
-				<table class="widefat striped"><thead><tr><th>Produkt</th><th>Kliknięć</th></tr></thead><tbody>
-				<?php foreach ( (array) $clk as $r ) : ?>
-					<tr><td><a href="<?php echo esc_url( get_edit_post_link( $r->pid ) ); ?>"><?php echo esc_html( get_the_title( $r->pid ) ); ?></a> <small>#<?php echo (int) $r->pid; ?></small></td><td><?php echo (int) $r->c; ?></td></tr>
-				<?php endforeach; ?>
-				<?php if ( ! $clk ) : ?><tr><td colspan="2">Brak.</td></tr><?php endif; ?>
-				</tbody></table>
-			</div>
-		</div>
 	</div>
 	<style>
 		.fx-srch-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin:16px 0}
