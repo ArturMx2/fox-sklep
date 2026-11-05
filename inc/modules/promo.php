@@ -34,6 +34,7 @@ function fx_promo_settings() {
 			'stack'     => 0,
 			'note'      => 1,
 			'rounding'  => '',   // '' = jak w „Przecenach Powerbike”; none | int | 99
+			'brands'    => 'FOX', // tylko te marki (po przecinku); puste = wszystkie
 		);
 		$v = get_option( FX_PROMO_OPT, array() );
 		$s = array_merge( $d, is_array( $v ) ? $v : array() );
@@ -85,7 +86,7 @@ function fx_promo_pb_ids() {
 	return $ids;
 }
 
-function fx_promo_excluded( $parent_id ) {
+function fx_promo_excluded( $parent_id, $title = null ) {
 	static $cache = array();
 	$parent_id = (int) $parent_id;
 	if ( isset( $cache[ $parent_id ] ) ) {
@@ -99,6 +100,9 @@ function fx_promo_excluded( $parent_id ) {
 	if ( in_array( $parent_id, $vouchers, true ) ) {
 		return $cache[ $parent_id ] = true;
 	}
+	if ( ! fx_promo_brand_ok( $parent_id, $title ) ) {
+		return $cache[ $parent_id ] = true;
+	}
 	if ( $s['ex_cats'] ) {
 		foreach ( wc_get_product_cat_ids( $parent_id ) as $c ) {
 			if ( array_intersect( array_merge( array( (int) $c ), array_map( 'intval', get_ancestors( $c, 'product_cat' ) ) ), $s['ex_cats'] ) ) {
@@ -107,6 +111,57 @@ function fx_promo_excluded( $parent_id ) {
 		}
 	}
 	return $cache[ $parent_id ] = false;
+}
+
+/**
+ * Czy produkt jest jednej z marek kampanii: taksonomia marek (WooCommerce Brands), atrybut „Marka / Producent”,
+ * a gdy produkt nie ma marki – słowo w nazwie (np. „… FOX …”).
+ */
+function fx_promo_brand_ok( $parent_id, $title = null ) {
+	$want = array_filter( array_map( function ( $b ) {
+		return sanitize_title( trim( $b ) );
+	}, explode( ',', (string) fx_promo_settings()['brands'] ) ) );
+	if ( ! $want ) {
+		return true;
+	}
+	static $taxes = null;
+	if ( null === $taxes ) {
+		$taxes = array();
+		foreach ( array( 'product_brand', 'pwb-brand', 'yith_product_brand' ) as $t ) {
+			if ( taxonomy_exists( $t ) ) {
+				$taxes[] = $t;
+			}
+		}
+		foreach ( function_exists( 'wc_get_attribute_taxonomies' ) ? wc_get_attribute_taxonomies() : array() as $a ) {
+			if ( preg_match( '/^(marka|brand|producent|manufacturer)$/i', $a->attribute_name ) ) {
+				$taxes[] = wc_attribute_taxonomy_name( $a->attribute_name );
+			}
+		}
+	}
+	$has = false;
+	foreach ( $taxes as $t ) {
+		$terms = wp_get_object_terms( $parent_id, $t, array( 'fields' => 'all' ) );
+		if ( is_wp_error( $terms ) || ! $terms ) {
+			continue;
+		}
+		$has = true;
+		foreach ( $terms as $term ) {
+			if ( in_array( $term->slug, $want, true ) || in_array( sanitize_title( $term->name ), $want, true ) ) {
+				return true;
+			}
+		}
+	}
+	if ( $has ) {
+		return false; // ma markę, ale inną
+	}
+	$name = ' ' . sanitize_title( null === $title ? get_the_title( $parent_id ) : $title ) . ' ';
+	$name = ' ' . str_replace( '-', ' ', trim( $name ) ) . ' ';
+	foreach ( $want as $b ) {
+		if ( false !== strpos( $name, ' ' . str_replace( '-', ' ', $b ) . ' ' ) ) {
+			return true;
+		}
+	}
+	return false;
 }
 
 /**
@@ -191,7 +246,7 @@ add_filter( 'woocommerce_get_variation_prices_hash', function ( $hash ) {
 	if ( fx_promo_active() ) {
 		$s      = fx_promo_settings();
 		$pb     = get_option( FX_PROMO_PB, array() );
-		$hash[] = 'fxpromo|' . md5( wp_json_encode( array( $s['pct_pb'], $s['pct_shelf'], $s['pct_rest'], $s['ex_ids'], $s['ex_cats'] ) ) ) . '|' . (int) ( $pb['at'] ?? 0 ) . '|' . ( function_exists( 'fx_ls_data' ) ? (int) fx_ls_data()['at'] : 0 );
+		$hash[] = 'fxpromo|' . md5( wp_json_encode( array( $s['pct_pb'], $s['pct_shelf'], $s['pct_rest'], $s['ex_ids'], $s['ex_cats'], $s['brands'], $s['rounding'] ) ) ) . '|' . (int) ( $pb['at'] ?? 0 ) . '|' . ( function_exists( 'fx_ls_data' ) ? (int) fx_ls_data()['at'] : 0 );
 	}
 	return $hash;
 } );
@@ -204,29 +259,42 @@ add_filter( 'fx_sale_ids', function ( $ids ) {
 	static $extra = null;
 	if ( null === $extra ) {
 		global $wpdb;
-		$s     = fx_promo_settings();
-		$extra = array();
-		if ( $s['pct_rest'] > 0 ) {
-			$extra = array_map( 'intval', $wpdb->get_col( "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'product' AND post_status = 'publish'" ) ); // phpcs:ignore
-		} else {
-			$parents = array();
-			if ( $s['pct_shelf'] > 0 && function_exists( 'fx_ls_data' ) ) {
-				$d = fx_ls_data();
-				foreach ( (array) $d['store'] as $id => $q ) {
-					if ( $q > 0 ) {
-						$parents[ (int) ( $d['parent'][ $id ] ?? $id ) ] = true;
+		$s   = fx_promo_settings();
+		$pb  = get_option( FX_PROMO_PB, array() );
+		$key = 'fx_promo_sale_' . md5( wp_json_encode( array( $s, (int) ( $pb['at'] ?? 0 ), function_exists( 'fx_ls_data' ) ? (int) fx_ls_data()['at'] : 0 ) ) );
+		$extra = get_transient( $key );
+		if ( ! is_array( $extra ) ) {
+			$cand = array(); // id => tytuł (null = pobierz)
+			if ( $s['pct_rest'] > 0 ) {
+				foreach ( (array) $wpdb->get_results( "SELECT ID, post_title FROM {$wpdb->posts} WHERE post_type = 'product' AND post_status = 'publish'" ) as $r ) { // phpcs:ignore
+					$cand[ (int) $r->ID ] = $r->post_title;
+				}
+			} else {
+				if ( $s['pct_shelf'] > 0 && function_exists( 'fx_ls_data' ) ) {
+					$d = fx_ls_data();
+					foreach ( (array) $d['store'] as $id => $q ) {
+						if ( $q > 0 ) {
+							$cand[ (int) ( $d['parent'][ $id ] ?? $id ) ] = null;
+						}
+					}
+				}
+				if ( $s['pct_pb'] > 0 ) {
+					foreach ( (array) ( $pb['parents'] ?? array() ) as $p ) {
+						$cand[ (int) $p ] = null;
 					}
 				}
 			}
-			if ( $s['pct_pb'] > 0 ) {
-				$pb = get_option( FX_PROMO_PB, array() );
-				foreach ( (array) ( $pb['parents'] ?? array() ) as $p ) {
-					$parents[ (int) $p ] = true;
+			$extra = array();
+			foreach ( array_chunk( array_keys( $cand ), 500 ) as $chunk ) {
+				update_object_term_cache( $chunk, 'product' ); // marki i kategorie jednym zapytaniem na partię
+				foreach ( $chunk as $p ) {
+					if ( ! fx_promo_excluded( $p, $cand[ $p ] ) ) {
+						$extra[] = $p;
+					}
 				}
 			}
-			$extra = array_keys( $parents );
+			set_transient( $key, $extra, HOUR_IN_SECONDS );
 		}
-		$extra = array_values( array_filter( $extra, function ( $p ) { return ! fx_promo_excluded( $p ); } ) );
 	}
 	return array_values( array_unique( array_merge( $ids, $extra ) ) );
 } );
@@ -460,6 +528,7 @@ add_action( 'admin_post_fx_promo', function () {
 				'ex_cats'   => array_values( array_filter( array_map( 'absint', (array) ( $in['ex_cats'] ?? array() ) ) ) ),
 				'stack'     => empty( $in['stack'] ) ? 0 : 1,
 				'note'      => empty( $in['note'] ) ? 0 : 1,
+				'brands'    => sanitize_text_field( $in['brands'] ?? '' ),
 				'rounding'  => in_array( $in['rounding'] ?? '', array( '', 'none', 'int', '99' ), true ) ? $in['rounding'] : '',
 			),
 			false
@@ -525,6 +594,7 @@ function fx_promo_page() {
 				<tr><th>Półka (sklep stacjonarny)</th><td><input type="number" name="pct_shelf" value="<?php echo esc_attr( $s['pct_shelf'] ); ?>" min="0" max="90" step="0.5" style="width:80px"> %
 					<p class="description">Rozmiary leżące w sklepie (teraz: <?php echo (int) $shelf; ?>, stany z <?php echo esc_html( $fmt( $d['at'] ?? 0 ) ); ?>). W koszyku – tylko tyle sztuk, ile leży na półce.</p></td></tr>
 				<tr><th>Pozostałe produkty</th><td><input type="number" name="pct_rest" value="<?php echo esc_attr( $s['pct_rest'] ); ?>" min="0" max="90" step="0.5" style="width:80px"> %<p class="description">Wszystko inne (0 = bez rabatu).</p></td></tr>
+				<tr><th>Tylko marki</th><td><input type="text" name="brands" value="<?php echo esc_attr( $s['brands'] ); ?>" class="regular-text"><p class="description">Po przecinku, np. „FOX”. Marka z pola marki produktu albo atrybutu „Marka”, a gdy produkt jej nie ma – z nazwy. Puste = wszystkie marki.</p></td></tr>
 				<tr><th>Wyklucz produkty</th><td>
 					<select class="wc-product-search" multiple style="width:100%;max-width:600px" name="ex_ids[]" data-placeholder="Szukaj produktu…" data-action="woocommerce_json_search_products">
 						<?php foreach ( $s['ex_ids'] as $pid ) : $p = wc_get_product( $pid ); if ( $p ) : ?>

@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.31.2
+- Przeceny: „Tylko marki” (domyślnie FOX) – marka z pola marki produktu (WooCommerce Brands) albo atrybutu „Marka / Producent”, a gdy produkt jej nie ma – z nazwy.
+- Przeceny: „Tylko promocje” w kategoriach liczone zbiorczo i trzymane w pamięci (szybko przy 20 tys. produktów).
+
 ## 3.31.1
 - Przeceny: współpraca z wtyczką „Przeceny Powerbike” – na stronie kampanii stan stałej wyprzedaży (rabat, liczba przecenionych pozycji, automat, ostatni przebieg); kampania działa „z wierzchu”, po jej końcu zostaje stała wyprzedaż.
 - Przeceny: zaokrąglenie cen (do grosza / do złotówki / …,99), domyślnie takie samo jak w „Przecenach Powerbike”.
