@@ -225,7 +225,10 @@
 	$(document).on('click', '[data-fx-dialog-close]', function () { var d = this.closest('dialog'); if (d) { d.close(); } });
 	$(document).on('click', 'dialog.fx-dialog', function (e) { if (e.target === this) { this.close(); } });
 
-	/* ---------- Kategorie: kolejne strony doładowywane przy przewijaniu ---------- */
+	/* ---------- Kategorie: kolejne strony doładowywane przy przewijaniu ----------
+	 * Adres w pasku się nie zmienia (bez /page/N/) – odświeżenie i udostępniony link pokazują listę od początku.
+	 * Prawdziwe linki /page/N/ zostają w ukrytej paginacji dla Google.
+	 * Powrót z produktu („Wstecz”): wczytujemy tyle stron, ile klient widział, i wracamy w to samo miejsce. */
 	(function () {
 		var list = document.querySelector('.fx-shop ul.products');
 		var pager = document.querySelector('.fx-shop nav.woocommerce-pagination');
@@ -239,32 +242,69 @@
 		loader.innerHTML = '<span class="fx-loader__dot"></span><span class="screen-reader-text">Wczytuję kolejne produkty</span>';
 		pager.parentNode.insertBefore(loader, pager);
 		var busy = false;
-		var io = new IntersectionObserver(function (entries) {
-			if (!entries[0].isIntersecting || busy || !next) { return; }
+		var loaded = 1; // ile stron dołożono do listy (licząc pierwszą)
+		var key = 'fxinf:' + location.pathname + location.search;
+		var io;
+
+		var loadNext = function () {
+			if (!next) { return Promise.resolve(false); }
 			busy = true;
 			loader.classList.add('is-loading');
-			var url = next.href;
-			fetch(url, { credentials: 'same-origin' }).then(function (r) { return r.text(); }).then(function (html) {
+			return fetch(next.href, { credentials: 'same-origin' }).then(function (r) { return r.text(); }).then(function (html) {
 				var doc = new DOMParser().parseFromString(html, 'text/html');
 				var items = doc.querySelectorAll('.fx-shop ul.products > li.product');
 				items.forEach(function (li) { list.appendChild(document.importNode(li, true)); });
 				var newPager = doc.querySelector('.fx-shop nav.woocommerce-pagination');
 				next = newPager ? newPager.querySelector('a.next') : null;
 				if (newPager) { pager.innerHTML = newPager.innerHTML; }
-				try { history.replaceState(null, '', url); } catch (e) {}
+				loaded++;
 				$(document.body).trigger('post-load');
 				if (!next) { io.disconnect(); loader.remove(); }
+				return true;
 			}).catch(function () {
 				// Błąd sieci: zostawiamy zwykłą paginację jako zapas.
 				document.body.classList.remove('fx-infinite');
+				next = null;
 				io.disconnect(); loader.remove();
+				return false;
 			}).finally(function () {
 				busy = false; loader.classList.remove('is-loading');
+			});
+		};
+
+		io = new IntersectionObserver(function (entries) {
+			if (!entries[0].isIntersecting || busy || !next) { return; }
+			loadNext().then(function () {
 				// Ponowna obserwacja: jeśli znacznik nadal jest blisko ekranu, wczytaj kolejną stronę.
 				if (next && loader.isConnected) { io.unobserve(loader); io.observe(loader); }
 			});
 		}, { rootMargin: '800px 0px' });
-		io.observe(loader);
+
+		// Zapis miejsca przy wyjściu z listy (np. kliknięcie w produkt).
+		var save = function () {
+			try { sessionStorage.setItem(key, JSON.stringify({ p: loaded, y: window.scrollY, t: Date.now() })); } catch (e) {}
+		};
+		window.addEventListener('pagehide', save);
+
+		var nav = window.performance && performance.getEntriesByType ? performance.getEntriesByType('navigation')[0] : null;
+		var state = null;
+		try { state = JSON.parse(sessionStorage.getItem(key) || 'null'); } catch (e) {}
+		if (nav && 'back_forward' === nav.type && state && state.p > 1 && Date.now() - state.t < 30 * 60 * 1000) {
+			// Powrót: dokładamy strony po kolei (maks. 15) i przewijamy tam, gdzie klient był.
+			try { history.scrollRestoration = 'manual'; } catch (e) {}
+			var want = Math.min(state.p, 16);
+			var step = function () {
+				if (loaded >= want || !next) {
+					window.scrollTo(0, state.y);
+					if (next && loader.isConnected) { io.observe(loader); }
+					return;
+				}
+				loadNext().then(function (ok) { if (ok) { step(); } else { window.scrollTo(0, state.y); } });
+			};
+			step();
+		} else {
+			io.observe(loader);
+		}
 	})();
 
 	/* ---------- Filtry: zamykanie listy po kliknięciu obok i otwieranie jednej naraz ---------- */

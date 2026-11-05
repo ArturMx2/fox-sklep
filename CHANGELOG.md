@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.27.1
+- Kategorie: przy doładowywaniu kolejnych produktów adres w pasku nie zmienia się już na /page/2/, /page/9/… Odświeżenie strony i udostępniony link pokazują listę od początku.
+- Powrót z produktu przyciskiem „Wstecz”: lista wczytuje tyle stron, ile klient widział, i wraca w to samo miejsce (do 16 stron, 30 minut).
+- Linki /page/N/ dla Google zostają bez zmian (ukryta paginacja, te same adresy).
+
 ## 3.27.0 – „Napisz do nas na WhatsApp”
 - Dymek w prawym dolnym rogu z okienkiem: temat (dobór rozmiaru, dostępność, status zamówienia…), pytanie i przycisk „Otwórz WhatsApp” z gotową wiadomością.
 - Do wiadomości dopisujemy produkt, SKU, wybrany rozmiar i link (na karcie produktu), zawartość koszyka albo numer zamówienia.
