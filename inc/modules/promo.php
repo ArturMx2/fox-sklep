@@ -33,6 +33,7 @@ function fx_promo_settings() {
 			'ex_cats'   => array(),
 			'stack'     => 0,
 			'note'      => 1,
+			'rounding'  => '',   // '' = jak w „Przecenach Powerbike”; none | int | 99
 		);
 		$v = get_option( FX_PROMO_OPT, array() );
 		$s = array_merge( $d, is_array( $v ) ? $v : array() );
@@ -149,10 +150,27 @@ function fx_promo_price( $product, $pct, $current = null ) {
 	if ( $reg <= 0 || $pct <= 0 ) {
 		return null;
 	}
-	$deal = round( $reg * ( 1 - $pct / 100 ), wc_get_price_decimals() );
+	$deal = fx_promo_round( $reg * ( 1 - $pct / 100 ) );
 	$cur  = null === $current ? (float) $product->get_price( 'edit' ) : (float) $current;
 	$cur  = $cur > 0 ? $cur : $reg;
 	return $deal < $cur ? $deal : null;
+}
+
+/** Zaokrąglenie ceny jak w „Przecenach Powerbike”: none = do grosza, int = w dół do złotówki, 99 = …,99 (nie wyżej niż wynik). */
+function fx_promo_round( $x ) {
+	$mode = (string) fx_promo_settings()['rounding'];
+	if ( '' === $mode ) {
+		$pbs  = get_option( 'pbs_settings', array() );
+		$mode = is_array( $pbs ) && ! empty( $pbs['rounding'] ) ? (string) $pbs['rounding'] : 'none';
+	}
+	if ( 'int' === $mode ) {
+		return floor( $x + 1e-9 );
+	}
+	if ( '99' === $mode ) {
+		$v = floor( $x + 1e-9 ) + 0.99;
+		return $v > $x + 1e-9 ? $v - 1 : $v;
+	}
+	return round( $x, wc_get_price_decimals() );
 }
 
 /* ---------- Ceny w sklepie ---------- */
@@ -442,6 +460,7 @@ add_action( 'admin_post_fx_promo', function () {
 				'ex_cats'   => array_values( array_filter( array_map( 'absint', (array) ( $in['ex_cats'] ?? array() ) ) ) ),
 				'stack'     => empty( $in['stack'] ) ? 0 : 1,
 				'note'      => empty( $in['note'] ) ? 0 : 1,
+				'rounding'  => in_array( $in['rounding'] ?? '', array( '', 'none', 'int', '99' ), true ) ? $in['rounding'] : '',
 			),
 			false
 		);
@@ -479,6 +498,20 @@ function fx_promo_page() {
 		<h1>Przeceny</h1>
 		<p>Kampania rabatowa (np. Black Week) bez zapisu cen w produktach: w podanym czasie ceny w sklepie, w koszyku i w feedach są obniżone, po końcu wracają same. Każdy rozmiar dostaje <strong>największy pasujący rabat</strong>, liczony od ceny regularnej; jeśli produkt ma już głębszą promocję (np. z „Przecen Powerbike”), zostaje ta głębsza.</p>
 		<?php if ( $msg ) : ?><div class="notice notice-info"><p><?php echo esc_html( $msg ); ?></p></div><?php endif; ?>
+		<?php
+		$pbs_on = class_exists( 'PBS_Engine' );
+		if ( $pbs_on ) :
+			global $wpdb;
+			$pbs_n   = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key = %s", '_pbs_discount' ) ); // phpcs:ignore
+			$pbs_s   = get_option( 'pbs_settings', array() );
+			$pbs_run = (int) get_option( 'pbs_last_run' );
+			?>
+			<div class="card" style="max-width:900px;margin:12px 0">
+				<h2 style="margin-top:0">Stała wyprzedaż – „Przeceny Powerbike”</h2>
+				<p>Działa przez cały rok i zapisuje ceny promocyjne w produktach: <strong>−<?php echo esc_html( wc_format_localized_decimal( (float) ( $pbs_s['percent'] ?? 0 ) ) ); ?>%</strong> na pozycje „Wyprzedaż” (<?php echo (int) $pbs_n; ?> rozmiarów / produktów, automat: <?php echo empty( $pbs_s['auto'] ) ? 'wyłączony' : 'co ' . (int) ( $pbs_s['hours'] ?? 6 ) . ' h'; ?>, ostatnio: <?php echo esc_html( $fmt( $pbs_run ) ); ?>). <a href="<?php echo esc_url( admin_url( 'admin.php?page=pb-sale-sync' ) ); ?>">Ustawienia</a></p>
+				<p class="description">Kampania poniżej działa na nią „z wierzchu”: w czasie kampanii wygrywa większy rabat, po kampanii zostaje stała wyprzedaż. Nic nie trzeba wyłączać.</p>
+			</div>
+		<?php endif; ?>
 		<div class="notice <?php echo $active ? 'notice-success' : 'notice-warning'; ?> inline"><p><strong><?php echo $active ? 'Kampania TRWA' : 'Kampania nieaktywna'; ?></strong><?php echo $s['to'] ? ' · koniec: ' . esc_html( $fmt( fx_promo_ts( $s['to'] ) ) ) : ''; ?></p></div>
 
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -505,6 +538,10 @@ function fx_promo_page() {
 						<?php endforeach; ?>
 					</select><p class="description">Z podkategoriami.</p></td></tr>
 				<tr><th>Łączenie rabatów</th><td><label><input type="checkbox" name="stack" value="1" <?php checked( $s['stack'] ); ?>> dolicz rabat za komplet i „kask + gogle” do ceny z kampanii</label><p class="description">Odznaczone: klient dostaje korzystniejszy rabat, nie oba. Kupony działają według swoich ustawień (np. „Wyklucz produkty w promocji”).</p></td></tr>
+				<tr><th>Zaokrąglenie cen</th><td><select name="rounding">
+					<?php foreach ( array( '' => 'jak w „Przecenach Powerbike”', 'none' => 'do grosza (139,30 zł)', 'int' => 'w dół do pełnych złotych (139 zł)', '99' => 'na …,99 (138,99 zł)' ) as $k => $l ) : ?>
+						<option value="<?php echo esc_attr( $k ); ?>" <?php selected( (string) $s['rounding'], $k ); ?>><?php echo esc_html( $l ); ?></option>
+					<?php endforeach; ?></select></td></tr>
 				<tr><th>Karta produktu</th><td><label><input type="checkbox" name="note" value="1" <?php checked( $s['note'] ); ?>> pasek z rabatem (np. „Black Week: −20%, a na rozmiary dostępne od ręki (M, L) −30%”)</label></td></tr>
 			</table>
 			<p><?php submit_button( 'Zapisz', 'primary', 'submit', false ); ?> <button class="button" name="do" value="pb">Odśwież listę wyprzedaży Powerbike</button></p>
