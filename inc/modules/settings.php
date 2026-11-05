@@ -32,6 +32,7 @@ function fx_tool_defaults() {
 		'size_names'       => "OS = Uniwersalny\nYOS = Junior",
 		'dla_unisex_words' => 'ochraniacz, zbroja, buzer, protektor, nakolannik, nalokietnik, kolnierz, neck brace, stabilizator, orteza, oslon, kamizelka ochronna, roost, guard',
 		'dla_unisex_in'    => true,
+		'filter_order'     => 'size,sale,wysylka24,wsklepie,przedsprzedaz,gender,color,params',
 		'stock_alerts'     => true,
 		'stock_alert_text' => 'Zapisując się, zgadzasz się na jednorazową wiadomość e-mail o dostępności produktu.',
 	);

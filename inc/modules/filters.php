@@ -465,13 +465,103 @@ function fx_filters_data() {
 	return $data;
 }
 
+/** Bloki filtrów do ustawienia kolejności: klucz => nazwa w Dostosuj. */
+function fx_filter_blocks() {
+	return array(
+		'size'          => 'Rozmiar',
+		'sale'          => 'Tylko promocje',
+		'wysylka24'     => 'Wysyłka dziś',
+		'wsklepie'      => 'Dostępny w sklepie stacjonarnym',
+		'przedsprzedaz' => 'Przedsprzedaż',
+		'gender'        => 'Dla kogo',
+		'color'         => 'Kolor',
+		'params'        => 'Parametry z importera (Przeznaczenie, Szybka…)',
+	);
+}
+
+/** Zapis ustawienia: „size,sale,-color” – kolejność, minus = ukryty. */
+function fx_filter_order_raw() {
+	$raw  = array_values( array_filter( array_map( 'trim', explode( ',', (string) fx_tool( 'filter_order' ) ) ) ) );
+	$keys = array();
+	foreach ( $raw as $k ) {
+		$keys[ ltrim( $k, '-' ) ] = 0 !== strpos( $k, '-' );
+	}
+	foreach ( array_keys( fx_filter_blocks() ) as $k ) { // nowe bloki – na końcu, widoczne
+		if ( ! isset( $keys[ $k ] ) ) {
+			$keys[ $k ] = true;
+		}
+	}
+	return $keys;
+}
+
+/** Widoczne bloki w ustawionej kolejności. */
+function fx_filter_order() {
+	return array_keys( array_filter( fx_filter_order_raw() ) );
+}
+
+/** Ukryte bloki. */
+function fx_filter_hidden() {
+	return array_keys( array_filter( fx_filter_order_raw(), function ( $on ) { return ! $on; } ) );
+}
+
+/* Dostosuj → FOX.SKLEP.PL → Filtry w kategoriach: kolejność (przeciąganie) i ukrywanie. */
+add_action( 'customize_register', function ( $wp ) {
+	if ( ! class_exists( 'FX_Filter_Order_Control' ) ) {
+		class FX_Filter_Order_Control extends WP_Customize_Control { // phpcs:ignore
+			public $type = 'fx_filter_order';
+			public function render_content() {
+				$order  = fx_filter_order_raw();
+				$labels = fx_filter_blocks();
+				?>
+				<span class="customize-control-title"><?php echo esc_html( $this->label ); ?></span>
+				<span class="description customize-control-description">Przeciągnij, żeby zmienić kolejność. Odznacz, żeby ukryć filtr. Filtr pokazuje się tylko tam, gdzie ma sens (np. „Kolor”, gdy w kategorii są co najmniej 2 kolory).</span>
+				<ul class="fx-fo" style="margin:8px 0">
+					<?php foreach ( $order as $k => $on ) : ?>
+						<?php if ( isset( $labels[ $k ] ) ) : ?>
+						<li data-k="<?php echo esc_attr( $k ); ?>" style="display:flex;align-items:center;gap:8px;padding:8px 10px;margin:0 0 6px;background:#fff;border:1px solid #c3c4c7;border-radius:4px;cursor:move">
+							<span class="dashicons dashicons-menu" style="color:#8c8f94"></span>
+							<label style="flex:1;cursor:move"><input type="checkbox" <?php checked( $on ); ?>> <?php echo esc_html( $labels[ $k ] ); ?></label>
+						</li>
+						<?php endif; ?>
+					<?php endforeach; ?>
+				</ul>
+				<input type="hidden" class="fx-fo-val" <?php $this->link(); ?> value="<?php echo esc_attr( $this->value() ); ?>">
+				<script>
+				jQuery(function ($) {
+					var c = $('#customize-control-<?php echo esc_js( str_replace( array( '[', ']' ), array( '-', '' ), $this->id ) ); ?>'), ul = c.find('.fx-fo'), inp = c.find('.fx-fo-val');
+					var save = function () {
+						var v = ul.children('li').map(function () { return ($(this).find('input').prop('checked') ? '' : '-') + $(this).data('k'); }).get().join(',');
+						inp.val(v).trigger('change');
+					};
+					ul.sortable({ axis: 'y', update: save });
+					ul.on('change', 'input', save);
+				});
+				</script>
+				<?php
+			}
+		}
+	}
+	$wp->add_section( 'fx_filters', array( 'title' => 'Filtry w kategoriach', 'panel' => 'fx_panel' ) );
+	$wp->add_setting( 'fx_t_filter_order', array(
+		'default'           => fx_tool_defaults()['filter_order'],
+		'sanitize_callback' => function ( $v ) {
+			return implode( ',', array_filter( array_map( function ( $k ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( trim( $k ) ) ); }, explode( ',', (string) $v ) ) ) );
+		},
+	) );
+	$wp->add_control( new FX_Filter_Order_Control( $wp, 'fx_t_filter_order', array( 'section' => 'fx_filters', 'label' => 'Kolejność filtrów' ) ) );
+}, 30 );
+
+add_action( 'customize_controls_enqueue_scripts', function () {
+	wp_enqueue_script( 'jquery-ui-sortable' );
+} );
+
 function fx_filters_sidebar() {
 	$d = fx_filters_data();
 	if ( ! $d ) {
 		return;
 	}
 	echo '<aside class="fx-sidebar" id="fx-filters" aria-label="Filtry"><div class="fx-sidebar__head"><span class="fx-sidebar__title">Filtry</span><button type="button" class="fx-icon-btn fx-sidebar__close" data-fx-filters-close aria-label="Zamknij filtry">' . fx_icon( 'close' ) . '</button></div><div class="fx-sidebar__body">'; // phpcs:ignore
-	// Kolejność: Rozmiar (najważniejszy) → przełączniki (promocje, wysyłka dziś…) → Dla kogo, Kolor, parametry.
+	// Bloki filtrów; kolejność i widoczność z Dostosuj → Filtry w kategoriach.
 	$render_group = function ( $g ) {
 		list( $role, $label, $opts ) = $g;
 		$sel = fx_filter_selected( $role );
@@ -488,20 +578,35 @@ function fx_filters_sidebar() {
 		}
 		echo '</div></details>';
 	};
+	$blocks = array();
+	$add    = function ( $key, $html ) use ( &$blocks ) {
+		$blocks[ $key ] = ( $blocks[ $key ] ?? '' ) . $html;
+	};
+	$param_sw = function_exists( 'fxp_filter_list' ) ? fxp_filter_list()['switches'] : array();
 	foreach ( $d['groups'] as $g ) {
-		if ( 'size' === $g[0] ) {
-			$render_group( $g );
-		}
+		ob_start();
+		$render_group( $g );
+		$add( 0 === strpos( $g[0], 'x_' ) ? 'params' : $g[0], ob_get_clean() );
 	}
 	if ( $d['sale_have'] ) {
+		ob_start();
 		echo '<div class="fx-fgroup fx-fgroup--sale"><a rel="nofollow" class="fx-switch fx-switch--side' . ( $d['sale_on'] ? ' is-on' : '' ) . '" role="switch" aria-checked="' . ( $d['sale_on'] ? 'true' : 'false' ) . '" href="' . esc_url( fx_filter_sale_url() ) . '"><span class="fx-switch__ui" aria-hidden="true"></span>Tylko promocje</a></div>';
+		$add( 'sale', ob_get_clean() );
 	}
 	foreach ( (array) ( $d['switches'] ?? array() ) as $sw ) {
+		ob_start();
 		echo '<div class="fx-fgroup fx-fgroup--sale fx-fgroup--' . esc_attr( $sw['key'] ) . '"><a rel="nofollow" class="fx-switch fx-switch--side' . ( $sw['on'] ? ' is-on' : '' ) . '" role="switch" aria-checked="' . ( $sw['on'] ? 'true' : 'false' ) . '" href="' . esc_url( $sw['url'] ) . '"><span class="fx-switch__ui" aria-hidden="true"></span><span><span class="fx-switch__label"' . ( 'wysylka24' === $sw['key'] ? ' data-fx-shipday="' . esc_attr( $sw['label'] ) . '"' : '' ) . '>' . esc_html( $sw['label'] ) . '</span>' . ( ! empty( $sw['note'] ) ? '<small class="fx-switch__note"' . ( 'wysylka24' === $sw['key'] ? ' data-fx-shipnote' : '' ) . '>' . esc_html( $sw['note'] ) . '</small>' : '' ) . '</span></a></div>';
+		$add( isset( $param_sw[ $sw['key'] ] ) ? 'params' : $sw['key'], ob_get_clean() );
 	}
-	foreach ( $d['groups'] as $g ) {
-		if ( 'size' !== $g[0] ) {
-			$render_group( $g );
+	foreach ( fx_filter_order() as $key ) {
+		if ( isset( $blocks[ $key ] ) ) {
+			echo $blocks[ $key ]; // phpcs:ignore WordPress.Security.EscapeOutput -- zbudowane wyżej z escapowaniem
+		}
+		unset( $blocks[ $key ] );
+	}
+	foreach ( $blocks as $key => $html ) {
+		if ( ! in_array( $key, fx_filter_hidden(), true ) ) {
+			echo $html; // phpcs:ignore WordPress.Security.EscapeOutput
 		}
 	}
 	if ( $d['active'] ) {

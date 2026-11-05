@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.30.0
+- Dostosuj → FOX.SKLEP.PL → Filtry w kategoriach: kolejność filtrów przeciąganiem i ukrywanie (Rozmiar, Tylko promocje, Wysyłka dziś, W sklepie, Przedsprzedaż, Dla kogo, Kolor, Parametry z importera). Podgląd na żywo w Dostosuj. Domyślnie Rozmiar na górze.
+
 ## 3.29.2
 - Filtry: Rozmiar na samej górze (najważniejszy filtr), potem przełączniki (promocje, wysyłka dziś, sklep), Dla kogo, Kolor i parametry.
 
