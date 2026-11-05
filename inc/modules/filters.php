@@ -19,15 +19,67 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/** Parametry w adresie. */
+/** Parametry w adresie: rola => parametr (dodatkowe grupy z modułu parametrów – filtr fx_filter_extra). */
 function fx_filter_params() {
-	return array( 'gender' => 'dla', 'size' => 'rozmiar', 'color' => 'kolor' );
+	$out = array( 'gender' => 'dla', 'size' => 'rozmiar', 'color' => 'kolor' );
+	foreach ( fx_filter_extra() as $role => $x ) {
+		$out[ $role ] = $x['param'];
+	}
+	return $out;
+}
+
+/**
+ * Dodatkowe grupy filtrów z atrybutów (np. parametry z importera):
+ * [ rola => [ 'tax' => 'pa_przeznaczenie', 'label' => 'Przeznaczenie', 'param' => 'przeznaczenie' ] ].
+ */
+function fx_filter_extra() {
+	static $out = null;
+	if ( null === $out ) {
+		$out = array();
+		foreach ( (array) apply_filters( 'fx_filter_extra', array() ) as $role => $x ) {
+			if ( ! empty( $x['tax'] ) && taxonomy_exists( $x['tax'] ) && ! empty( $x['param'] ) ) {
+				$out[ $role ] = $x;
+			}
+		}
+	}
+	return $out;
+}
+
+/** Wszystkie parametry filtrów w adresie (do noindex i przenoszenia między filtrami). */
+function fx_filter_url_params() {
+	$base = array_merge( array_values( fx_filter_params() ), array( 'promocja', 'wysylka24', 'wsklepie', 'przedsprzedaz' ) );
+	return array_values( array_unique( (array) apply_filters( 'fx_filter_url_params', $base ) ) );
+}
+
+/** Ile produktów kategorii (0–1) ma jakąkolwiek wartość atrybutu. Cache 12 h. */
+function fx_filter_coverage( $tax, $term ) {
+	$key   = 'fx_flt_cov_' . md5( $tax . '|' . $term->term_id );
+	$cache = get_transient( $key );
+	if ( false !== $cache ) {
+		return (float) $cache;
+	}
+	$prod = fx_filter_cat_products( $term );
+	$cov  = 0;
+	if ( $prod ) {
+		$ids = get_terms( array( 'taxonomy' => $tax, 'hide_empty' => false, 'fields' => 'ids' ) );
+		$obj = $ids && ! is_wp_error( $ids ) ? get_objects_in_term( $ids, $tax ) : array();
+		$obj = is_wp_error( $obj ) ? array() : array_flip( array_map( 'intval', $obj ) );
+		$n   = 0;
+		foreach ( $prod as $id ) {
+			if ( isset( $obj[ $id ] ) ) {
+				$n++;
+			}
+		}
+		$cov = $n / count( $prod );
+	}
+	set_transient( $key, (string) $cov, isset( $term->ids ) ? 2 * HOUR_IN_SECONDS : 12 * HOUR_IN_SECONDS );
+	return $cov;
 }
 
 /** Czy jest włączony jakikolwiek filtr (rozmiar, kolor, promocje, także stare filter_…). */
 function fx_filters_active() {
 	foreach ( array_keys( $_GET ) as $k ) { // phpcs:ignore WordPress.Security.NonceVerification
-		if ( in_array( $k, array( 'dla', 'rozmiar', 'kolor', 'promocja', 'wysylka24', 'wsklepie', 'przedsprzedaz', 'min_price', 'max_price', 'rating_filter' ), true ) || 0 === strpos( $k, 'filter_' ) ) {
+		if ( in_array( $k, array_merge( fx_filter_url_params(), array( 'min_price', 'max_price', 'rating_filter' ) ), true ) || 0 === strpos( $k, 'filter_' ) ) {
 			return true;
 		}
 	}
@@ -43,6 +95,12 @@ function fx_filter_taxonomies() {
 		return $out;
 	}
 	$out = array( 'size' => array(), 'color' => array() );
+	$extra = array();
+	foreach ( fx_filter_extra() as $role => $x ) {
+		$out[ $role ] = array( $x['tax'] );
+		$extra[]      = $x['tax'];
+	}
+	$extra = array_merge( $extra, (array) apply_filters( 'fx_filter_not_size_color', array() ) ); // np. wszystkie atrybuty z importera
 	$all = function_exists( 'wc_get_attribute_taxonomies' ) ? wc_get_attribute_taxonomies() : array();
 	foreach ( array( 'size' => 'filter_size_attr', 'color' => 'filter_color_attr' ) as $role => $setting ) {
 		$chosen = trim( (string) fx_tool( $setting ) );
@@ -52,7 +110,7 @@ function fx_filter_taxonomies() {
 		$pattern = 'size' === $role ? '/(rozmiar|size|blvariant|wielko)/i' : '/(kolor|color|colour)/i';
 		foreach ( $all as $a ) {
 			$tax = wc_attribute_taxonomy_name( $a->attribute_name );
-			if ( preg_match( $pattern, $a->attribute_name . ' ' . $a->attribute_label ) && taxonomy_exists( $tax ) && ! in_array( $tax, $out[ $role ], true ) ) {
+			if ( preg_match( $pattern, $a->attribute_name . ' ' . $a->attribute_label ) && taxonomy_exists( $tax ) && ! in_array( $tax, $out[ $role ], true ) && ! in_array( $tax, $extra, true ) ) {
 				$out[ $role ][] = $tax;
 			}
 		}
@@ -244,7 +302,7 @@ function fx_filter_selected( $role ) {
 function fx_filter_base_url() {
 	$st  = fx_filter_search_term();
 	$url = $st ? fx_filter_clear_url( $st ) : get_term_link( get_queried_object() );
-	foreach ( array( 'dla', 'rozmiar', 'kolor', 'promocja', 'wysylka24', 'wsklepie', 'przedsprzedaz', 'orderby' ) as $k ) {
+	foreach ( array_merge( fx_filter_url_params(), array( 'orderby' ) ) as $k ) {
 		if ( isset( $_GET[ $k ] ) && '' !== $_GET[ $k ] ) { // phpcs:ignore WordPress.Security.NonceVerification
 			$url = add_query_arg( $k, rawurlencode( sanitize_text_field( wp_unslash( $_GET[ $k ] ) ) ), $url ); // phpcs:ignore WordPress.Security.NonceVerification
 		}
@@ -367,6 +425,18 @@ function fx_filters_data() {
 		$opts = fx_filter_options( $role, $term );
 		if ( count( $opts ) > 1 || fx_filter_selected( $role ) ) {
 			$groups[] = array( $role, $label, $opts );
+		}
+	}
+	// Dodatkowe atrybuty (np. Przeznaczenie, Szybka) – tylko gdy ma je duża część produktów kategorii.
+	$min_cov = (float) apply_filters( 'fx_filter_extra_min_coverage', 0.4 );
+	foreach ( fx_filter_extra() as $role => $x ) {
+		$sel = fx_filter_selected( $role );
+		if ( ! $sel && fx_filter_coverage( $x['tax'], $term ) < $min_cov ) {
+			continue;
+		}
+		$opts = fx_filter_options( $role, $term );
+		if ( count( $opts ) > 1 || $sel ) {
+			$groups[] = array( $role, $x['label'], $opts );
 		}
 	}
 	$sale_on   = fx_filter_sale_on();

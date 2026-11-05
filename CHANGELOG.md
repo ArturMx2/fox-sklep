@@ -1,5 +1,14 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.29.0
+- Nowe: WooCommerce → Parametry z importera. Parametry produktów pobierane prosto z importera Powerbike na airoh (ten sam adres i klucz co Przedsprzedaż), bez BaseLinkera; dopasowanie po SKU, potem po EAN; parametry wszystkich wariantów trafiają do produktu.
+- Zapis jako globalne atrybuty (Przeznaczenie, Wykończenie, Wzór, Szybka, Typ, Materiał, Wiatroszczelne, Rodzaj…) bez zapisu całego produktu; atrybuty wariantowe i ręcznie ustawione/poprawione nie są ruszane.
+- Ujednolicenie wartości („Cross / Enduro” = „Cross/Enduro”, „Męski” = „Męskie”, „Czarny|Szary” = dwie wartości, własne zamiany w ustawieniach).
+- Filtry z parametrów: grupa pokazuje się w kategorii, gdy ma ją co najmniej 40% produktów i są ≥ 2 wartości; parametry Tak/Nie jako przełącznik (np. „Wiatroszczelne”).
+- „Rodzaj” z importera zasila filtr „Dla kogo” („Damskie|Męskie” = Unisex).
+- Codzienna synchronizacja o ustawionej godzinie, zapis partiami w tle, przycisk „Sprawdź importer”, lista pozycji bez dopasowania, dziennik.
+- Filtry: obsługa dodatkowych grup z dowolnych atrybutów (fx_filter_extra).
+
 ## 3.28.0
 - Nowy filtr „Dla kogo” w kategoriach i wynikach wyszukiwania: Męskie / Damskie / Junior / Dziecięce / Unisex (adres ?dla=damskie, strony z filtrem noindex).
 - Rozpoznawanie automatyczne: ręczny wybór w produkcie → atrybut Płeć/Rodzaj (np. z importera, „Damskie|Męskie” = Unisex) → nazwa (lady, women, junior, youth, kids, dziecięce…) → kategoria → rozmiary (same YS/YM/YL = Junior) → produkty dla każdego (kask, gogle, czapka, akcesoria… – lista w Narzędziach sklepu) → pozostałe Męskie.
