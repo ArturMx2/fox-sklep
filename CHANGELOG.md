@@ -1,5 +1,12 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.28.0
+- Nowy filtr „Dla kogo” w kategoriach i wynikach wyszukiwania: Męskie / Damskie / Junior / Dziecięce / Unisex (adres ?dla=damskie, strony z filtrem noindex).
+- Rozpoznawanie automatyczne: ręczny wybór w produkcie → atrybut Płeć/Rodzaj (np. z importera, „Damskie|Męskie” = Unisex) → nazwa (lady, women, junior, youth, kids, dziecięce…) → kategoria → rozmiary (same YS/YM/YL = Junior) → produkty dla każdego (kask, gogle, czapka, akcesoria… – lista w Narzędziach sklepu) → pozostałe Męskie.
+- „Męskie” i „Damskie” pokazują też Unisex (do wyłączenia w Narzędziach sklepu).
+- Panel: pole „Dla kogo” w edycji produktu (Ogólne), kolumna i filtr „Dla kogo” na liście produktów. Po wgraniu motywu wszystkie produkty są przypisywane w tle (400 na pół minuty).
+- Analityka wyszukiwarki liczy też użycie filtra „Dla kogo”.
+
 ## 3.27.1
 - Kategorie: przy doładowywaniu kolejnych produktów adres w pasku nie zmienia się już na /page/2/, /page/9/… Odświeżenie strony i udostępniony link pokazują listę od początku.
 - Powrót z produktu przyciskiem „Wstecz”: lista wczytuje tyle stron, ile klient widział, i wraca w to samo miejsce (do 16 stron, 30 minut).

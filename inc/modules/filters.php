@@ -21,13 +21,13 @@ defined( 'ABSPATH' ) || exit;
 
 /** Parametry w adresie. */
 function fx_filter_params() {
-	return array( 'size' => 'rozmiar', 'color' => 'kolor' );
+	return array( 'gender' => 'dla', 'size' => 'rozmiar', 'color' => 'kolor' );
 }
 
 /** Czy jest włączony jakikolwiek filtr (rozmiar, kolor, promocje, także stare filter_…). */
 function fx_filters_active() {
 	foreach ( array_keys( $_GET ) as $k ) { // phpcs:ignore WordPress.Security.NonceVerification
-		if ( in_array( $k, array( 'rozmiar', 'kolor', 'promocja', 'wysylka24', 'wsklepie', 'przedsprzedaz', 'min_price', 'max_price', 'rating_filter' ), true ) || 0 === strpos( $k, 'filter_' ) ) {
+		if ( in_array( $k, array( 'dla', 'rozmiar', 'kolor', 'promocja', 'wysylka24', 'wsklepie', 'przedsprzedaz', 'min_price', 'max_price', 'rating_filter' ), true ) || 0 === strpos( $k, 'filter_' ) ) {
 			return true;
 		}
 	}
@@ -244,7 +244,7 @@ function fx_filter_selected( $role ) {
 function fx_filter_base_url() {
 	$st  = fx_filter_search_term();
 	$url = $st ? fx_filter_clear_url( $st ) : get_term_link( get_queried_object() );
-	foreach ( array( 'rozmiar', 'kolor', 'promocja', 'wysylka24', 'wsklepie', 'przedsprzedaz', 'orderby' ) as $k ) {
+	foreach ( array( 'dla', 'rozmiar', 'kolor', 'promocja', 'wysylka24', 'wsklepie', 'przedsprzedaz', 'orderby' ) as $k ) {
 		if ( isset( $_GET[ $k ] ) && '' !== $_GET[ $k ] ) { // phpcs:ignore WordPress.Security.NonceVerification
 			$url = add_query_arg( $k, rawurlencode( sanitize_text_field( wp_unslash( $_GET[ $k ] ) ) ), $url ); // phpcs:ignore WordPress.Security.NonceVerification
 		}
@@ -316,7 +316,7 @@ add_action( 'woocommerce_product_query', function ( $q ) {
 	foreach ( array_keys( fx_filter_params() ) as $role ) {
 		$sel = fx_filter_selected( $role );
 		if ( $sel ) {
-			$sets[] = fx_filter_match_ids( $role, $sel );
+			$sets[] = 'gender' === $role ? fx_dla_match_ids( $sel ) : fx_filter_match_ids( $role, $sel );
 		}
 	}
 	if ( fx_filter_sale_on() ) {
@@ -353,6 +353,13 @@ function fx_filters_data() {
 	}
 	$term   = $term ? $term : get_queried_object();
 	$groups = array();
+	// „Dla kogo” – gdy w kategorii są co najmniej dwie grupy (np. męskie i damskie).
+	if ( function_exists( 'fx_dla_options' ) ) {
+		$opts = fx_dla_options( $term );
+		if ( count( $opts ) > 1 || fx_filter_selected( 'gender' ) ) {
+			$groups[] = array( 'gender', 'Dla kogo', $opts );
+		}
+	}
 	foreach ( array( 'size' => 'Rozmiar', 'color' => 'Kolor' ) as $role => $label ) {
 		if ( empty( fx_filter_taxonomies()[ $role ] ) ) {
 			continue;

@@ -931,7 +931,7 @@ function fx_ss_behaviour( $per ) {
 		return (int) $a <=> (int) $b;
 	} );
 	$out['pos'] = $pos;
-	$names      = array( 'rozmiar' => 'rozmiar', 'kolor' => 'kolor', 'promocja' => 'tylko promocje', 'wysylka24' => 'wysyłka dziś', 'wsklepie' => 'w sklepie stacjonarnym', 'przedsprzedaz' => 'przedsprzedaż', 'orderby' => 'sortowanie' );
+	$names      = array( 'dla' => 'dla kogo', 'rozmiar' => 'rozmiar', 'kolor' => 'kolor', 'promocja' => 'tylko promocje', 'wysylka24' => 'wysyłka dziś', 'wsklepie' => 'w sklepie stacjonarnym', 'przedsprzedaz' => 'przedsprzedaż', 'orderby' => 'sortowanie' );
 	$flt        = array();
 	$fval       = array();
 	foreach ( (array) $wpdb->get_col( $wpdb->prepare( "SELECT x FROM $l WHERE ts BETWEEN %d AND %d AND src = 'flt'", $per['from'], $per['to'] ) ) as $x ) { // phpcs:ignore
@@ -942,7 +942,7 @@ function fx_ss_behaviour( $per ) {
 			}
 			$n           = $names[ $kv[0] ] ?? $kv[0];
 			$flt[ $n ]   = ( $flt[ $n ] ?? 0 ) + 1;
-			if ( in_array( $kv[0], array( 'rozmiar', 'kolor', 'orderby' ), true ) ) {
+			if ( in_array( $kv[0], array( 'dla', 'rozmiar', 'kolor', 'orderby' ), true ) ) {
 				foreach ( explode( ',', $kv[1] ) as $v ) {
 					$ord            = array( 'price' => 'cena rosnąco', 'price-desc' => 'cena malejąco', 'date' => 'najnowsze', 'popularity' => 'popularne', 'rating' => 'oceny', 'menu_order' => 'domyślne', 'relevance' => 'trafność' );
 					$label          = $n . ': ' . ( 'rozmiar' === $kv[0] ? strtoupper( $v ) : ( 'orderby' === $kv[0] ? ( $ord[ $v ] ?? $v ) : $v ) );

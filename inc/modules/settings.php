@@ -30,6 +30,8 @@ function fx_tool_defaults() {
 		'ship_cutoff'      => 15,
 		'per_page'         => 12,
 		'size_names'       => "OS = Uniwersalny\nYOS = Junior",
+		'dla_unisex'       => 'kask, helmet, gogle, gogl, goggle, okulary, plecak, torba, torby, nerka, bidon, naklejk, brelok, akcesori, czesci, czapk, bon podarunk, e bon, recznik, kubek, smycz, maseczk',
+		'dla_unisex_in'    => true,
 		'stock_alerts'     => true,
 		'stock_alert_text' => 'Zapisując się, zgadzasz się na jednorazową wiadomość e-mail o dostępności produktu.',
 	);
@@ -54,6 +56,8 @@ add_action( 'customize_register', function ( $wp ) {
 		'badge_sale_pct'   => array( 'checkbox', 'Etykieta promocji z procentem rabatu (np. −20%)', 'fx_sanitize_bool' ),
 		'badge_low_stock'  => array( 'number', 'Etykieta „Ostatnie sztuki”, gdy na stanie jest najwyżej tyle sztuk (0 = wyłączona)', 'absint' ),
 		'size_names'       => array( 'textarea', 'Nazwy rozmiarów w sklepie (jedna linia: „OS = Uniwersalny”). Zmienia tylko wyświetlanie – w produktach i zamówieniach zostaje oryginał.', 'sanitize_textarea_field' ),
+		'dla_unisex'       => array( 'text', 'Filtr „Dla kogo”: produkty dla każdego (Unisex), gdy nazwa ani kategoria nie mówi, dla kogo – początki słów z nazwy lub kategorii, po przecinku. Pozostałe bez oznaczenia = Męskie. Zmiana przelicza produkty w tle.', 'sanitize_text_field' ),
+		'dla_unisex_in'    => array( 'checkbox', 'Filtr „Dla kogo”: wybór „Męskie” lub „Damskie” pokazuje też produkty Unisex (kaski, gogle, akcesoria)', 'fx_sanitize_bool' ),
 		'per_page'         => array( 'number', 'Kategorie: produktów na stronę (12 = jak w obecnym sklepie, te same strony /page/2/; 0 = wiersze × kolumny z ustawień WooCommerce)', 'absint' ),
 		'free_ship'        => array( 'number', 'Koszyk: próg darmowej dostawy w zł (pasek „Brakuje Ci … do darmowej dostawy”; 0 = ukryty)', 'absint' ),
 		'hg_pct'           => array( 'number', 'Kask + gogle: rabat na gogle w %, gdy w koszyku jest kask (jedne gogle na każdy kask; 0 = wyłączone)', 'absint' ),

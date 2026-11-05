@@ -567,13 +567,13 @@
 		}
 		// Strona wyników: zapis wyszukania i kliknięć w produkty.
 		if (C.q) {
-			if (!/\/page\/\d+/.test(location.pathname) && !/[?&]paged=/.test(location.search) && !/[?&](rozmiar|kolor|orderby|promocja|wysylka24|wsklepie)=/.test(location.search)) {
+			if (!/\/page\/\d+/.test(location.pathname) && !/[?&]paged=/.test(location.search) && !/[?&](dla|rozmiar|kolor|orderby|promocja|wysylka24|wsklepie)=/.test(location.search)) {
 				log({ q: C.q, n: C.n, src: 'page', via: takeVia() });
 			}
 			// Filtry i sortowanie użyte na wynikach (raz na frazę i zestaw filtrów w sesji).
 			try {
 				var sp = new URLSearchParams(location.search), fl = [];
-				['rozmiar', 'kolor', 'promocja', 'wysylka24', 'wsklepie', 'przedsprzedaz', 'orderby'].forEach(function (k) { var v = sp.get(k); if (v) { fl.push(k + '=' + v); } });
+				['dla', 'rozmiar', 'kolor', 'promocja', 'wysylka24', 'wsklepie', 'przedsprzedaz', 'orderby'].forEach(function (k) { var v = sp.get(k); if (v) { fl.push(k + '=' + v); } });
 				var fk = 'fxflt|' + C.q + '|' + fl.join('|');
 				if (fl.length && !sessionStorage.getItem(fk)) { sessionStorage.setItem(fk, '1'); log({ q: C.q, n: C.n, src: 'flt', x: fl.join('|') }); }
 			} catch (e) { /* stara przeglądarka / tryb prywatny */ }
