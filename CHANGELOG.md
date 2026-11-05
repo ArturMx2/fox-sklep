@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.29.2
+- Filtry: Rozmiar na samej górze (najważniejszy filtr), potem przełączniki (promocje, wysyłka dziś, sklep), Dla kogo, Kolor i parametry.
+
 ## 3.29.1
 - Filtr „Dla kogo” tylko z nazwy produktu: lady / women → Damskie, junior / youth → Junior, kids → Dziecięce; ochraniacze (nazwa lub kategoria) → Unisex; pozostałe → Męskie. Ręczny wybór w produkcie nadal ma pierwszeństwo.
 - Bez atrybutu „Rodzaj” z importera, kategorii i rozmiarów (importer obejmuje tylko produkty z obecnej oferty Powerbike).

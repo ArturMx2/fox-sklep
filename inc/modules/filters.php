@@ -471,13 +471,8 @@ function fx_filters_sidebar() {
 		return;
 	}
 	echo '<aside class="fx-sidebar" id="fx-filters" aria-label="Filtry"><div class="fx-sidebar__head"><span class="fx-sidebar__title">Filtry</span><button type="button" class="fx-icon-btn fx-sidebar__close" data-fx-filters-close aria-label="Zamknij filtry">' . fx_icon( 'close' ) . '</button></div><div class="fx-sidebar__body">'; // phpcs:ignore
-	if ( $d['sale_have'] ) {
-		echo '<div class="fx-fgroup fx-fgroup--sale"><a rel="nofollow" class="fx-switch fx-switch--side' . ( $d['sale_on'] ? ' is-on' : '' ) . '" role="switch" aria-checked="' . ( $d['sale_on'] ? 'true' : 'false' ) . '" href="' . esc_url( fx_filter_sale_url() ) . '"><span class="fx-switch__ui" aria-hidden="true"></span>Tylko promocje</a></div>';
-	}
-	foreach ( (array) ( $d['switches'] ?? array() ) as $sw ) {
-		echo '<div class="fx-fgroup fx-fgroup--sale fx-fgroup--' . esc_attr( $sw['key'] ) . '"><a rel="nofollow" class="fx-switch fx-switch--side' . ( $sw['on'] ? ' is-on' : '' ) . '" role="switch" aria-checked="' . ( $sw['on'] ? 'true' : 'false' ) . '" href="' . esc_url( $sw['url'] ) . '"><span class="fx-switch__ui" aria-hidden="true"></span><span><span class="fx-switch__label"' . ( 'wysylka24' === $sw['key'] ? ' data-fx-shipday="' . esc_attr( $sw['label'] ) . '"' : '' ) . '>' . esc_html( $sw['label'] ) . '</span>' . ( ! empty( $sw['note'] ) ? '<small class="fx-switch__note"' . ( 'wysylka24' === $sw['key'] ? ' data-fx-shipnote' : '' ) . '>' . esc_html( $sw['note'] ) . '</small>' : '' ) . '</span></a></div>';
-	}
-	foreach ( $d['groups'] as $g ) {
+	// Kolejność: Rozmiar (najważniejszy) → przełączniki (promocje, wysyłka dziś…) → Dla kogo, Kolor, parametry.
+	$render_group = function ( $g ) {
 		list( $role, $label, $opts ) = $g;
 		$sel = fx_filter_selected( $role );
 		echo '<details class="fx-fgroup fx-fgroup--' . esc_attr( $role ) . '" open><summary>' . esc_html( $label ) . ( $sel ? ' <span class="fx-fgroup__n">' . count( $sel ) . '</span>' : '' ) . fx_icon( 'chevron', 16 ) . '</summary><div class="fx-fgroup__opts">'; // phpcs:ignore
@@ -492,6 +487,22 @@ function fx_filters_sidebar() {
 			echo '<a rel="nofollow" class="fx-filter__opt' . ( $on ? ' is-on' : '' ) . ( 'color' === $role ? ' is-color' : '' ) . ( $color ? ' has-swatch' : '' ) . '" href="' . esc_url( fx_filter_toggle_url( $role, $t['slug'] ) ) . '" aria-pressed="' . ( $on ? 'true' : 'false' ) . '"' . $style . '>' . esc_html( $t['name'] ) . '</a>'; // phpcs:ignore
 		}
 		echo '</div></details>';
+	};
+	foreach ( $d['groups'] as $g ) {
+		if ( 'size' === $g[0] ) {
+			$render_group( $g );
+		}
+	}
+	if ( $d['sale_have'] ) {
+		echo '<div class="fx-fgroup fx-fgroup--sale"><a rel="nofollow" class="fx-switch fx-switch--side' . ( $d['sale_on'] ? ' is-on' : '' ) . '" role="switch" aria-checked="' . ( $d['sale_on'] ? 'true' : 'false' ) . '" href="' . esc_url( fx_filter_sale_url() ) . '"><span class="fx-switch__ui" aria-hidden="true"></span>Tylko promocje</a></div>';
+	}
+	foreach ( (array) ( $d['switches'] ?? array() ) as $sw ) {
+		echo '<div class="fx-fgroup fx-fgroup--sale fx-fgroup--' . esc_attr( $sw['key'] ) . '"><a rel="nofollow" class="fx-switch fx-switch--side' . ( $sw['on'] ? ' is-on' : '' ) . '" role="switch" aria-checked="' . ( $sw['on'] ? 'true' : 'false' ) . '" href="' . esc_url( $sw['url'] ) . '"><span class="fx-switch__ui" aria-hidden="true"></span><span><span class="fx-switch__label"' . ( 'wysylka24' === $sw['key'] ? ' data-fx-shipday="' . esc_attr( $sw['label'] ) . '"' : '' ) . '>' . esc_html( $sw['label'] ) . '</span>' . ( ! empty( $sw['note'] ) ? '<small class="fx-switch__note"' . ( 'wysylka24' === $sw['key'] ? ' data-fx-shipnote' : '' ) . '>' . esc_html( $sw['note'] ) . '</small>' : '' ) . '</span></a></div>';
+	}
+	foreach ( $d['groups'] as $g ) {
+		if ( 'size' !== $g[0] ) {
+			$render_group( $g );
+		}
 	}
 	if ( $d['active'] ) {
 		echo '<a rel="nofollow" class="fx-sidebar__clear" href="' . esc_url( fx_filter_clear_url( $d['term'] ) ) . '">Wyczyść wszystkie filtry</a>';
