@@ -1,5 +1,12 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.31.0
+- Nowe: WooCommerce → Przeceny – kampania rabatowa (np. Black Week) w podanym czasie, bez zapisu cen w produktach:
+  wyprzedaż Powerbike (status z importera, po SKU/EAN) −X%, półka (rozmiary w sklepie stacjonarnym) −Y%, pozostałe −Z%.
+  Każdy rozmiar dostaje największy pasujący rabat od ceny regularnej; głębsza istniejąca promocja zostaje.
+- Koszyk: rabat półki tylko na tyle sztuk, ile leży w sklepie (reszta – swój próg); domyślnie bez łączenia z rabatem za komplet i „kask + gogle”.
+- Wykluczenia produktów i kategorii, pasek na karcie produktu („Black Week: −20%, a na rozmiary od ręki (M, L) −30%”), opis przy pozycji w koszyku, „Tylko promocje” obejmuje kampanię, czyszczenie cache na start i koniec.
+
 ## 3.30.0
 - Dostosuj → FOX.SKLEP.PL → Filtry w kategoriach: kolejność filtrów przeciąganiem i ukrywanie (Rozmiar, Tylko promocje, Wysyłka dziś, W sklepie, Przedsprzedaż, Dla kogo, Kolor, Parametry z importera). Podgląd na żywo w Dostosuj. Domyślnie Rozmiar na górze.
 

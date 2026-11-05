@@ -378,7 +378,7 @@ add_action( 'woocommerce_product_query', function ( $q ) {
 		}
 	}
 	if ( fx_filter_sale_on() ) {
-		$sets[] = array_map( 'intval', wc_get_product_ids_on_sale() );
+		$sets[] = array_map( 'intval', (array) apply_filters( 'fx_sale_ids', wc_get_product_ids_on_sale() ) );
 	}
 	$sets = apply_filters( 'fx_filter_sets', $sets );
 	if ( ! $sets ) {
@@ -687,7 +687,7 @@ function fx_filter_sale_in_cat( $term ) {
 	if ( false !== $cache ) {
 		return (bool) $cache;
 	}
-	$sale = array_flip( array_map( 'intval', wc_get_product_ids_on_sale() ) );
+	$sale = array_flip( array_map( 'intval', (array) apply_filters( 'fx_sale_ids', wc_get_product_ids_on_sale() ) ) );
 	$has  = 0;
 	foreach ( fx_filter_cat_products( $term ) as $id ) {
 		if ( isset( $sale[ $id ] ) ) {

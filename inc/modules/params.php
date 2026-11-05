@@ -209,7 +209,7 @@ function fxp_norm_val( $v ) {
 }
 
 /** Pozycje z importera (wszystkie strony). @throws Exception */
-function fxp_fetch( $max_pages = 100, $per_page = 2000 ) {
+function fxp_fetch( $max_pages = 100, $per_page = 2000, $args = array() ) {
 	$s = fxp_settings();
 	if ( '' === trim( $s['source_url'] ) || '' === trim( $s['key'] ) ) {
 		throw new Exception( 'Brak adresu importera lub klucza.' );
@@ -217,7 +217,7 @@ function fxp_fetch( $max_pages = 100, $per_page = 2000 ) {
 	$out  = array();
 	$page = 1;
 	do {
-		$url = add_query_arg( array( 'producer' => $s['producers'], 'page' => $page, 'per_page' => $per_page, 'attributes' => 1, '_' => time() ), trim( $s['source_url'] ) );
+		$url = add_query_arg( array_merge( array( 'producer' => $s['producers'], 'page' => $page, 'per_page' => $per_page, 'attributes' => 1, '_' => time() ), $args ), trim( $s['source_url'] ) );
 		$r   = wp_remote_get( $url, array( 'timeout' => 90, 'headers' => array( 'X-PBI-Key' => trim( $s['key'] ), 'Cache-Control' => 'no-cache' ) ) );
 		if ( is_wp_error( $r ) ) {
 			throw new Exception( 'Importer: ' . $r->get_error_message() );
@@ -270,7 +270,7 @@ function fxp_item_ean( $it ) {
  * Dopasowanie pozycji do produktów sklepu: SKU (wariant albo produkt), potem EAN.
  * Zwraca [ id_produktu_głównego => [ [ pozycja, 'SKU …' | 'EAN …' ], … ] ].
  */
-function fxp_resolve( array $items, &$unmatched = array() ) {
+function fxp_resolve( array $items, &$unmatched = array(), $to_parent = true ) {
 	global $wpdb;
 	$skus = array();
 	$eans = array();
@@ -328,6 +328,10 @@ function fxp_resolve( array $items, &$unmatched = array() ) {
 			} else {
 				$unmatched[] = '';
 			}
+			continue;
+		}
+		if ( ! $to_parent ) {
+			$out[ $id ][] = array( $it, $via ); // wariant / produkt prosty
 			continue;
 		}
 		if ( ! isset( $parent[ $id ] ) ) {
