@@ -2,15 +2,12 @@
 /**
  * Filtr „Dla kogo”: Męskie / Damskie / Junior / Dziecięce / Unisex.
  *
- * Każdy produkt dostaje jedną wartość w ukrytej taksonomii fx_dla (szybkie filtrowanie, bez zapytań po nazwach).
+ * Każdy produkt dostaje jedną wartość w ukrytej taksonomii fx_dla (szybkie filtrowanie).
  * Skąd wartość – pierwsze pasujące:
  *  1) ręcznie w produkcie (Dane produktu → Ogólne → „Dla kogo”),
- *  2) atrybut produktu „Płeć / Gender / Dla kogo / Rodzaj” (np. z importera; „Damskie|Męskie” = Unisex),
- *  3) nazwa produktu: lady/women/damsk → Damskie, junior/youth → Junior, kids/dziecięc → Dziecięce, unisex, men/męsk,
- *  4) kategorie produktu (z nadrzędnymi), np. „Odzież damska”, „Dziecięce”,
- *  5) rozmiary: same młodzieżowe (YS, YM, YL, YOS…) → Junior, same dziecięce (KS, 2T…) → Dziecięce,
- *  6) produkty „dla każdego” (kask, gogle, plecak, akcesoria… – lista w Narzędziach sklepu) → Unisex,
- *  7) pozostałe → Męskie (dorosła odzież i sprzęt bez oznaczenia, jak na foxracing.com).
+ *  2) nazwa produktu: lady / women / damsk → Damskie, junior / youth → Junior, kids / dziecięc → Dziecięce, unisex → Unisex,
+ *  3) ochraniacze (słowa z Narzędzi sklepu w nazwie albo kategorii) → Unisex,
+ *  4) pozostałe → Męskie.
  * Wybór „Męskie” albo „Damskie” pokazuje też produkty Unisex (do wyłączenia w Narzędziach sklepu).
  * Adres: ?dla=damskie,junior – strony z filtrem mają noindex jak pozostałe filtry.
  *
@@ -19,7 +16,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FX_DLA_VER', 1 ); // zmiana reguł = ponowne przypisanie wszystkich produktów w tle
+define( 'FX_DLA_VER', 2 ); // zmiana reguł = ponowne przypisanie wszystkich produktów w tle
 
 /** Wartości w kolejności wyświetlania. */
 function fx_dla_labels() {
@@ -147,7 +144,7 @@ function fx_dla_from_sizes( $sizes ) {
 
 /** Słowa produktów „dla każdego” (Narzędzia sklepu). */
 function fx_dla_unisex_re() {
-	$words = array_filter( array_map( 'trim', explode( ',', (string) fx_tool( 'dla_unisex' ) ) ) );
+	$words = array_filter( array_map( 'trim', explode( ',', (string) fx_tool( 'dla_unisex_words' ) ) ) );
 	if ( ! $words ) {
 		return '';
 	}
@@ -174,47 +171,26 @@ function fx_dla_detect( $product ) {
 	if ( isset( $labels[ $manual ] ) ) {
 		return array( $manual, 'ręcznie' );
 	}
-	foreach ( fx_dla_attr_taxes() as $tax ) {
-		$names = wc_get_product_terms( $product->get_id(), $tax, array( 'fields' => 'names' ) );
-		$v     = fx_dla_from_text( implode( ' ', (array) $names ) );
-		if ( $v ) {
-			return array( $v, 'atrybut' );
-		}
-	}
+	// Nazwa: lady/women → Damskie, junior → Junior, kids → Dziecięce (oraz polskie odpowiedniki, unisex, męskie).
 	$v = fx_dla_from_text( $product->get_name() );
-	if ( $v ) {
+	if ( $v && 'meskie' !== $v ) {
 		return array( $v, 'nazwa' );
 	}
-	// Kategorie z nadrzędnymi – najpierw najgłębsze (najdokładniejsze).
-	$cats = array();
-	foreach ( (array) wc_get_product_terms( $product->get_id(), 'product_cat' ) as $c ) {
-		$depth = count( get_ancestors( $c->term_id, 'product_cat' ) );
-		$cats[] = array( $depth, $c->name . ' ' . str_replace( '-', ' ', $c->slug ) );
-		foreach ( get_ancestors( $c->term_id, 'product_cat' ) as $i => $aid ) {
-			$a = get_term( $aid, 'product_cat' );
-			if ( $a && ! is_wp_error( $a ) ) {
-				$cats[] = array( $depth - $i - 1, $a->name . ' ' . str_replace( '-', ' ', $a->slug ) );
-			}
-		}
-	}
-	usort( $cats, function ( $a, $b ) {
-		return $b[0] <=> $a[0];
-	} );
-	foreach ( $cats as $c ) {
-		$v = fx_dla_from_text( $c[1] );
-		if ( $v ) {
-			return array( $v, 'kategoria' );
-		}
-	}
-	$v = fx_dla_from_sizes( fx_dla_sizes( $product ) );
-	if ( $v ) {
-		return array( $v, 'rozmiary' );
-	}
+	// Ochraniacze (z nazwy albo kategorii) bez oznaczenia damskie/junior/kids = Unisex.
 	$re = fx_dla_unisex_re();
 	if ( $re ) {
-		$hay = fx_dla_norm( $product->get_name() . ' ' . implode( ' ', wp_list_pluck( $cats, 1 ) ) );
-		if ( preg_match( $re, $hay ) ) {
-			return array( 'unisex', 'rodzaj produktu' );
+		$hay = $product->get_name();
+		foreach ( (array) wc_get_product_terms( $product->get_id(), 'product_cat' ) as $c ) {
+			$hay .= ' ' . $c->name;
+			foreach ( get_ancestors( $c->term_id, 'product_cat' ) as $aid ) {
+				$a = get_term( $aid, 'product_cat' );
+				if ( $a && ! is_wp_error( $a ) ) {
+					$hay .= ' ' . $a->name;
+				}
+			}
+		}
+		if ( preg_match( $re, fx_dla_norm( $hay ) ) ) {
+			return array( 'unisex', 'ochraniacze' );
 		}
 	}
 	return array( 'meskie', 'domyślnie' );
@@ -245,7 +221,7 @@ foreach ( array( 'woocommerce_update_product', 'woocommerce_new_product' ) as $f
 /* ---------- Przypisanie wszystkich produktów w tle (po wgraniu motywu i po zmianie ustawień) ---------- */
 
 function fx_dla_sig() {
-	return md5( FX_DLA_VER . '|' . fx_tool( 'dla_unisex' ) . '|' . implode( ',', fx_dla_attr_taxes() ) );
+	return md5( FX_DLA_VER . '|' . fx_tool( 'dla_unisex_words' ) . '|' . implode( ',', fx_dla_attr_taxes() ) );
 }
 
 add_action( 'admin_init', function () {

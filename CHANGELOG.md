@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.29.1
+- Filtr „Dla kogo” tylko z nazwy produktu: lady / women → Damskie, junior / youth → Junior, kids → Dziecięce; ochraniacze (nazwa lub kategoria) → Unisex; pozostałe → Męskie. Ręczny wybór w produkcie nadal ma pierwszeństwo.
+- Bez atrybutu „Rodzaj” z importera, kategorii i rozmiarów (importer obejmuje tylko produkty z obecnej oferty Powerbike).
+- Lista słów Unisex w Narzędziach sklepu: same ochraniacze. Po wgraniu wszystkie produkty są przypisywane od nowa w tle.
+
 ## 3.29.0
 - Nowe: WooCommerce → Parametry z importera. Parametry produktów pobierane prosto z importera Powerbike na airoh (ten sam adres i klucz co Przedsprzedaż), bez BaseLinkera; dopasowanie po SKU, potem po EAN; parametry wszystkich wariantów trafiają do produktu.
 - Zapis jako globalne atrybuty (Przeznaczenie, Wykończenie, Wzór, Szybka, Typ, Materiał, Wiatroszczelne, Rodzaj…) bez zapisu całego produktu; atrybuty wariantowe i ręcznie ustawione/poprawione nie są ruszane.
