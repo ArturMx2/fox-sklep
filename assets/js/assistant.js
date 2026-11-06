@@ -168,6 +168,12 @@
 			});
 			w.appendChild(row);
 		}
+		if (m.more && m.more.url) {
+			var more = el('a', 'fx-ai__all', esc(m.more.label) + ' <span aria-hidden="true">→</span>');
+			more.href = m.more.url;
+			more.setAttribute('data-id', '0');
+			w.appendChild(more);
+		}
 		if (m.wa) {
 			var wa = el('a', 'fx-ai__wa', 'Napisz na WhatsApp');
 			wa.href = m.wa;
@@ -228,7 +234,7 @@
 		var history = st.msgs.slice(-24).map(function (m) { return { role: m.role, content: m.content }; });
 		var body = JSON.stringify({ sid: st.sid, messages: history, product: C.product || 0, page: location.href.split('#')[0] });
 		post(body, !!C.nonce).then(function (res) {
-			st.msgs.push({ role: 'assistant', content: (res && res.text) || 'Przepraszam, spróbuj jeszcze raz.', cards: (res && res.cards) || [], wa: (res && res.wa) || '' });
+			st.msgs.push({ role: 'assistant', content: (res && res.text) || 'Przepraszam, spróbuj jeszcze raz.', cards: (res && res.cards) || [], more: (res && res.more) || null, wa: (res && res.wa) || '' });
 		}).catch(function () {
 			st.msgs.push({ role: 'assistant', content: 'Nie mogę się teraz połączyć. Spróbuj za chwilę.' });
 		}).then(function () {

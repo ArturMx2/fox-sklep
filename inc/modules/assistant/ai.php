@@ -206,7 +206,7 @@ function fx_ai_openai( array $messages, $with_tools = true ) {
 function fx_ai_answer( array $msgs, array $ctx, $dry = false ) {
 	$s   = fx_ai_settings();
 	$kb  = fx_ai_pick_kb( $msgs );
-	$out = array( 'text' => '', 'cards' => array(), 'tools' => array(), 'kb' => array(), 'notfound' => array(), 'handoff' => 0, 'tok_in' => 0, 'tok_out' => 0, 'wa' => '' );
+	$out = array( 'text' => '', 'cards' => array(), 'more' => null, 'tools' => array(), 'kb' => array(), 'notfound' => array(), 'handoff' => 0, 'tok_in' => 0, 'tok_out' => 0, 'wa' => '' );
 	foreach ( array_merge( $kb['ins'], $kb['cases'] ) as $r ) {
 		$out['kb'][] = (int) $r['id'];
 	}
@@ -245,6 +245,11 @@ function fx_ai_answer( array $msgs, array $ctx, $dry = false ) {
 	$out['text']     = trim( preg_replace( array( '/\*\*(.+?)\*\*/s', '/^#+\s*/m', '/\[([^\]]+)\]\((https?:[^)]+)\)/' ), array( '$1', '', '$1' ), $out['text'] ) );
 	$out['tools']    = array_values( array_unique( $out['tools'] ) );
 	$out['cards']    = fx_ai_cards( $GLOBALS['fx_ai_run']['cards'] );
+	$out['more']     = null;
+	if ( $out['cards'] ) {
+		$last        = $GLOBALS['fx_ai_run']['last'] ?? array();
+		$out['more'] = fx_ai_more_link( ! empty( $last['ids'] ) ? $last['ids'] : wp_list_pluck( $out['cards'], 'id' ), (string) ( $last['q'] ?? '' ), (string) ( $last['dla'] ?? '' ), count( $out['cards'] ) + 3 );
+	}
 	$out['notfound'] = $GLOBALS['fx_ai_run']['notfound'];
 	$out['handoff']  = $GLOBALS['fx_ai_run']['handoff'];
 	$out['wa']       = $GLOBALS['fx_ai_run']['wa'];

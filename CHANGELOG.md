@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.32.4
+- Asystent AI: przycisk „Więcej: [kategoria] →” pod kartami produktów – najwęższa kategoria, w której jest co najmniej 80% znalezionych produktów i wyraźnie więcej wyboru niż w czacie (bez Wyprzedaży / Nowości); z filtrem „dla kogo”, gdy klient go podał; zapas – wyniki wyszukiwania dla frazy. Kliknięcia liczone w lejku.
+
 ## 3.32.3
 - Asystent AI: przycisk „Nowa rozmowa” w nagłówku czatu (pojawia się po pierwszej wiadomości) – czyści historię i zaczyna osobną rozmowę (nowy identyfikator w statystykach).
 

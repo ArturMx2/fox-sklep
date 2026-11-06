@@ -40,6 +40,8 @@
 .fx-ai__add,.fx-ai__more{margin-top:auto;display:block;text-align:center;border:1px solid var(--ai-ink);border-radius:999px;padding:6px 8px;font-size:12px;font-weight:600;background:#fff;color:var(--ai-ink);text-decoration:none;cursor:pointer}
 .fx-ai__add{background:var(--ai-ink);color:#fff}
 .fx-ai__add:disabled{opacity:.7;cursor:default}
+.fx-ai__all{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--ai-ink);border-radius:999px;padding:7px 14px;font-weight:600;font-size:13px;color:var(--ai-ink);text-decoration:none;background:#fff}
+.fx-ai__all:hover{background:var(--ai-ink);color:#fff}
 .fx-ai__wa{align-self:flex-start;background:#1d8f4a;color:#fff;border-radius:999px;padding:7px 14px;font-weight:600;font-size:13px;text-decoration:none}
 .fx-ai__chips{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px 0;background:#f7f6f3}
 .fx-ai__chips[hidden]{display:none}

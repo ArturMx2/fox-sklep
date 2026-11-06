@@ -215,9 +215,10 @@ function fx_ai_tool_search( array $a ) {
 			return $t ? (int) $t->term_id : 0;
 		}, $slugs ), 'fx_dla' ) ) );
 	}
-	$out = array();
+	$out   = array();
+	$match = array(); // wszystkie pasujące (do linku „Więcej” – kategoria)
 	foreach ( $ids as $id ) {
-		if ( count( $out ) >= 10 ) {
+		if ( count( $out ) >= 10 && count( $match ) >= 40 ) {
 			break;
 		}
 		$p = wc_get_product( $id );
@@ -247,6 +248,10 @@ function fx_ai_tool_search( array $a ) {
 			if ( ! $sizes ) {
 				continue; // brak tego rozmiaru na stanie (także produkt bez rozmiarów)
 			}
+		}
+		$match[] = (int) $p->get_id();
+		if ( count( $out ) >= 10 ) {
+			continue;
 		}
 		$fit_note = '';
 		if ( $head > 0 ) {
@@ -282,7 +287,11 @@ function fx_ai_tool_search( array $a ) {
 		$GLOBALS['fx_ai_run']['notfound'][] = $q . ( $size ? ' [' . $size . ']' : '' ) . ( $head ? ' [' . $head . ' cm]' : '' );
 		return array( 'wyniki' => array(), 'uwaga' => 'Nic nie znaleziono' . ( $size ? ' w rozmiarze ' . $size : '' ) . ( $skipped ? ' – ' . $skipped . ' modeli ma pasujący rozmiar chwilowo niedostępny' : '' ) . '. Spróbuj szerszej frazy (np. sam rodzaj produktu) albo bez rozmiaru; zaproponuj kontakt ze sklepem. Nie wymyślaj produktów.' );
 	}
+	$GLOBALS['fx_ai_run']['last'] = array( 'q' => $q, 'ids' => $match, 'dla' => $dla );
 	$res = array( 'wyniki' => $out );
+	if ( count( $match ) > count( $out ) ) {
+		$res['wiecej'] = 'Pasuje więcej produktów (' . count( $match ) . '+) – pod kartami klient ma przycisk „Więcej” do kategorii.';
+	}
 	if ( $head ) {
 		$res['info'] = 'Rozmiar dobrany osobno dla każdego modelu z jego tabeli rozmiarów (pole pasujacy_rozmiar).' . ( $skipped ? ' Pominięto ' . $skipped . ' modeli, w których pasujący rozmiar jest niedostępny.' : '' );
 	}
@@ -595,6 +604,69 @@ function fx_ai_cards( array $ids ) {
 		);
 	}
 	return $out;
+}
+
+/**
+ * Link „Więcej”: najwęższa kategoria, w której jest co najmniej 80% pasujących produktów
+ * (bez kategorii pomocniczych typu Wyprzedaż / Nowości); zapas – wyniki wyszukiwania.
+ */
+function fx_ai_more_link( array $ids, $q = '', $dla = '', $min_items = 0 ) {
+	$ids = array_slice( array_values( array_unique( array_map( 'intval', $ids ) ) ), 0, 40 );
+	if ( ! $ids ) {
+		return null;
+	}
+	$weak  = function_exists( 'fx_mc_list' ) ? fx_mc_list( 'bc_weak' ) : array();
+	$count = array();
+	foreach ( $ids as $id ) {
+		$seen = array();
+		foreach ( wc_get_product_cat_ids( $id ) as $cid ) {
+			foreach ( array_merge( array( (int) $cid ), array_map( 'intval', get_ancestors( $cid, 'product_cat', 'taxonomy' ) ) ) as $t ) {
+				$seen[ $t ] = true;
+			}
+		}
+		foreach ( array_keys( $seen ) as $t ) {
+			$count[ $t ] = ( $count[ $t ] ?? 0 ) + 1;
+		}
+	}
+	$need  = max( 1, (int) ceil( 0.8 * count( $ids ) ) );
+	$cands = array();
+	foreach ( $count as $tid => $n ) {
+		if ( $n < $need ) {
+			continue;
+		}
+		$t = get_term( $tid, 'product_cat' );
+		if ( ! $t || is_wp_error( $t ) || 'uncategorized' === $t->slug || ( $weak && function_exists( 'fx_mc_is_weak' ) && fx_mc_is_weak( $t, $weak ) ) ) {
+			continue;
+		}
+		$cands[] = array( $t, count( get_ancestors( $tid, 'product_cat', 'taxonomy' ) ), $n );
+	}
+	usort( $cands, function ( $a, $b ) {
+		return array( $b[1], $b[2] ) <=> array( $a[1], $a[2] );
+	} );
+	// Najwęższa, ale z wyraźnie większym wyborem niż karty w czacie (nie kategoria jednego modelu).
+	$min  = max( 6, $min_items );
+	$best = null;
+	foreach ( $cands as $c ) {
+		$size = function_exists( 'fx_filter_cat_products' ) ? count( fx_filter_cat_products( $c[0] ) ) : (int) $c[0]->count;
+		if ( $size >= $min ) {
+			$best = $c[0];
+			break;
+		}
+	}
+	$args = array( 'src' => 'asystent' );
+	if ( $dla && in_array( $dla, array( 'meskie', 'damskie', 'junior', 'dzieciece' ), true ) ) {
+		$args['dla'] = $dla;
+	}
+	if ( $best ) {
+		$url = get_term_link( $best );
+		if ( ! is_wp_error( $url ) ) {
+			return array( 'url' => add_query_arg( $args, $url ), 'label' => 'Więcej: ' . $best->name );
+		}
+	}
+	if ( '' !== $q ) {
+		return array( 'url' => add_query_arg( array_merge( array( 's' => $q, 'post_type' => 'product' ), $args ), home_url( '/' ) ), 'label' => 'Więcej wyników: „' . $q . '”' );
+	}
+	return null;
 }
 
 /* =====================================================================
