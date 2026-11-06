@@ -58,7 +58,8 @@
 			'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01"/></svg></button>' +
 			'<section class="fx-ai__panel" id="fx-ai-panel" role="dialog" aria-label="' + esc(C.name) + '" hidden>' +
 			'<header class="fx-ai__head"><div><strong>' + esc(C.name) + '</strong><span>' + (C.test ? 'tryb testowy · ' : '') + 'odpowiada od razu</span></div>' +
-			'<button type="button" class="fx-ai__x" aria-label="Zamknij czat"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></header>' +
+			'<div class="fx-ai__tools"><button type="button" class="fx-ai__new" title="Nowa rozmowa" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Nowa rozmowa</span></button>' +
+			'<button type="button" class="fx-ai__x" aria-label="Zamknij czat"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div></header>' +
 			'<div class="fx-ai__list" aria-live="polite"></div>' +
 			'<div class="fx-ai__chips"></div>' +
 			'<form class="fx-ai__form"><textarea rows="1" maxlength="800" placeholder="Napisz wiadomość…" aria-label="Wiadomość"></textarea>' +
@@ -74,6 +75,15 @@
 
 		root.querySelector('.fx-ai__btn').addEventListener('click', function () { toggle(!st.open); });
 		root.querySelector('.fx-ai__x').addEventListener('click', function () { toggle(false); });
+		root.querySelector('.fx-ai__new').addEventListener('click', function () {
+			if (busy) { return; }
+			st = { sid: rid(), msgs: [], open: true }; // nowa rozmowa = nowy identyfikator (osobno w statystykach)
+			save();
+			render();
+			input.value = '';
+			grow();
+			input.focus();
+		});
 		root.querySelector('form').addEventListener('submit', function (e) { e.preventDefault(); send(input.value); });
 		input.addEventListener('keydown', function (e) {
 			if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input.value); }
@@ -138,6 +148,7 @@
 			});
 		}
 		chips.hidden = !chips.children.length;
+		root.querySelector('.fx-ai__new').hidden = !st.msgs.length;
 		list.scrollTop = list.scrollHeight;
 	}
 

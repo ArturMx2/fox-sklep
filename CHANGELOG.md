@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.32.3
+- Asystent AI: przycisk „Nowa rozmowa” w nagłówku czatu (pojawia się po pierwszej wiadomości) – czyści historię i zaczyna osobną rozmowę (nowy identyfikator w statystykach).
+
 ## 3.32.2
 - Asystent AI: dobór rozmiaru dla konkretnego modelu z jego tabeli rozmiarów – nowe narzędzie dopasuj_rozmiar (obwód głowy, pas, klatka, wzrost, stopa w cm; tabele wierszowe i kolumnowe), przy kaskach szukaj_produktow z obwod_glowy_cm (rozmiar dobierany osobno dla każdego modelu).
 - Bezpiecznik: „rozmiar 58” przy kaskach traktowany jako obwód głowy, nie jako nazwa rozmiaru (wcześniej odfiltrowywał wszystkie kaski).

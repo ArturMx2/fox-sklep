@@ -10,6 +10,11 @@
 .fx-ai__head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;background:var(--ai-ink);color:#fff}
 .fx-ai__head strong{display:block;font-size:15px}
 .fx-ai__head span{display:block;font-size:12px;opacity:.75}
+.fx-ai__tools{display:flex;align-items:center;gap:4px}
+.fx-ai__new{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.fx-ai__new:hover{background:rgba(255,255,255,.22)}
+.fx-ai__new[hidden]{display:none}
+.fx-ai__new:focus-visible{outline:3px solid #2a6df4;outline-offset:2px}
 .fx-ai__x{background:none;border:0;color:#fff;cursor:pointer;padding:6px;border-radius:8px;display:grid;place-items:center}
 .fx-ai__list{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:#f7f6f3;overscroll-behavior:contain}
 .fx-ai__msg{display:flex;flex-direction:column;gap:8px;max-width:100%}
