@@ -33,6 +33,15 @@ function fx_ai_defaults() {
 		'keep_days'  => 0,      // 0 = archiwum bez usuwania
 		'price_in'   => 0.40,   // $ za 1 mln tokenów wejścia
 		'price_out'  => 1.60,   // $ za 1 mln tokenów wyjścia
+		'teaser'     => 1,      // zaczepka przy dymku
+		'teaser_s'   => 8,      // po ilu sekundach (albo po przewinięciu 40% strony)
+		't_home'     => 'Cześć! Pomogę dobrać sprzęt FOX na moto albo rower – w Twoim rozmiarze.',
+		't_product'  => 'Pytanie o {produkt}? Rozmiar, dostępność, wysyłka – odpowiem od razu.',
+		't_helmet'   => 'Nie wiesz, jaki rozmiar kasku wybrać? Podaj obwód głowy – dobiorę rozmiar tego modelu.',
+		't_kit'      => 'Dobrać resztę stroju w tej samej grafice? Pokażę, co pasuje i jaki jest rabat za komplet.',
+		't_cat'      => 'Szukasz czegoś w kategorii {kategoria}? Pomogę wybrać – z rozmiarem dostępnym od ręki.',
+		't_cart'     => 'Pytanie przed zamówieniem? Dostawa, zwroty, rozmiar – pytaj śmiało.',
+		't_search'   => 'Nie znalazłeś „{fraza}”? Napisz, czego szukasz – poszukam inaczej.',
 	);
 }
 
@@ -365,6 +374,7 @@ add_action( 'wp_enqueue_scripts', function () {
 	$ver = defined( 'FX_VERSION' ) ? FX_VERSION : '1';
 	wp_enqueue_script( 'fx-assistant', get_template_directory_uri() . '/assets/js/assistant.js', array(), $ver, array( 'in_footer' => true, 'strategy' => 'defer' ) );
 	$quick = array_values( array_filter( array_map( 'trim', preg_split( '/\r?\n/', (string) $s['quick'] ) ) ) );
+	$ctx = fx_ai_page_ctx();
 	wp_localize_script( 'fx-assistant', 'fxAI', array(
 		'url'     => esc_url_raw( rest_url( 'fox/v1/asystent' ) ),
 		'ev'      => esc_url_raw( rest_url( 'fox/v1/asystent-ev' ) ),
@@ -378,7 +388,57 @@ add_action( 'wp_enqueue_scripts', function () {
 		'cartUrl' => function_exists( 'wc_get_cart_url' ) ? wc_get_cart_url() : '',
 		'addUrl'  => class_exists( 'WC_AJAX' ) ? WC_AJAX::get_endpoint( 'add_to_cart' ) : '',
 		'test'    => ! empty( $s['test'] ),
+		'ctx'     => $ctx,
+		'teaserS' => ! empty( $s['teaser'] ) ? max( 3, (int) $s['teaser_s'] ) : 0,
 	) );
+} );
+
+/**
+ * Kontekst strony dla dymka: typ, zaczepka, powitanie i szybkie pytania dopasowane do miejsca w sklepie.
+ */
+function fx_ai_page_ctx() {
+	$s     = fx_ai_settings();
+	$quick = array_slice( array_values( array_filter( array_map( 'trim', preg_split( '/\r?\n/', (string) $s['quick'] ) ) ) ), 0, 6 );
+	$ctx   = array( 'type' => 'other', 'teaser' => '', 'chips' => $quick );
+	$short = function ( $name ) {
+		$name = trim( preg_replace( '/\s+/u', ' ', (string) $name ) );
+		return mb_strlen( $name ) > 42 ? rtrim( mb_substr( $name, 0, 40 ) ) . '…' : $name;
+	};
+	if ( function_exists( 'is_product' ) && is_product() ) {
+		$p = wc_get_product( get_queried_object_id() );
+		if ( $p ) {
+			$helmet = function_exists( 'fox_hc_v3_product_is_helmet' ) && fox_hc_v3_product_is_helmet( $p );
+			$kit    = false;
+			if ( ! $helmet && function_exists( 'fx_kit_resolve' ) ) {
+				$k   = fx_kit_resolve( $p->get_id() );
+				$kit = ! empty( $k['parts'] ) && count( $k['parts'] ) > 1;
+			}
+			if ( $helmet ) {
+				$ctx = array( 'type' => 'helmet', 'teaser' => $s['t_helmet'], 'chips' => array( 'Jaki rozmiar tego kasku dla mnie?', 'Kiedy wyślecie?', 'Pokaż gogle do tego kasku' ) );
+			} elseif ( $kit ) {
+				$ctx = array( 'type' => 'kit', 'teaser' => $s['t_kit'], 'chips' => array( 'Dobierz resztę kompletu', 'Jaki rozmiar wybrać?', 'Kiedy wyślecie?' ) );
+			} else {
+				$ctx = array( 'type' => 'product', 'teaser' => $s['t_product'], 'chips' => array( 'Jaki rozmiar wybrać?', 'Kiedy wyślecie?', 'Pokaż podobne' ) );
+			}
+			$ctx['teaser'] = str_replace( '{produkt}', $short( $p->get_name() ), $ctx['teaser'] );
+		}
+	} elseif ( function_exists( 'fx_srch_is_results' ) && fx_srch_is_results() && ! fx_srch_current()['ids'] ) {
+		$ctx = array( 'type' => 'search', 'teaser' => str_replace( '{fraza}', $short( fx_srch_current_q() ), $s['t_search'] ), 'chips' => array() );
+	} elseif ( function_exists( 'is_product_category' ) && is_product_category() ) {
+		$t   = get_queried_object();
+		$ctx = array( 'type' => 'cat', 'teaser' => str_replace( '{kategoria}', $t ? $t->name : '', $s['t_cat'] ), 'chips' => array_merge( array( 'Pomóż mi wybrać', 'Co jest dostępne od ręki?' ), array_slice( $quick, 0, 2 ) ) );
+	} elseif ( function_exists( 'is_cart' ) && is_cart() ) {
+		$ctx = array( 'type' => 'cart', 'teaser' => $s['t_cart'], 'chips' => array( 'Kiedy dostanę paczkę?', 'Jak wygląda zwrot?', 'Gdzie jest moje zamówienie?' ) );
+	} elseif ( is_front_page() ) {
+		$ctx = array( 'type' => 'home', 'teaser' => $s['t_home'], 'chips' => $quick );
+	}
+	$ctx['teaser'] = trim( (string) $ctx['teaser'] );
+	return $ctx;
+}
+
+/* Gdy asystent działa, zachęta WhatsApp się nie pokazuje (jedna zaczepka naraz). */
+add_filter( 'fx_wa_teaser', function ( $t ) {
+	return fx_ai_enabled_for_user() && ! empty( fx_ai_settings()['teaser'] ) ? '' : $t;
 } );
 
 /* =====================================================================

@@ -117,7 +117,7 @@ add_action( 'wp_footer', function () {
 		'online'  => (string) fx_wa( 'online' ),
 		'offline' => str_replace( '{od}', (string) fx_wa( 'from' ), (string) fx_wa( 'offline' ) ),
 		'hol'     => function_exists( 'fx_ship_cta_conf' ) ? array_values( (array) fx_ship_cta_conf()['blocked'] ) : array(),
-		'teaser'  => 'product' === $ctx['type'] ? (string) fx_wa( 'teaser' ) : '',
+		'teaser'  => 'product' === $ctx['type'] ? (string) apply_filters( 'fx_wa_teaser', (string) fx_wa( 'teaser' ) ) : '',
 		'teaserS' => max( 5, (int) fx_wa( 'teaser_s' ) ),
 		'ctx'     => $ctx,
 	);

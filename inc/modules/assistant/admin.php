@@ -57,7 +57,12 @@ add_action( 'admin_post_fx_ai', function () {
 				'keep_days' => absint( $in['keep_days'] ?? 0 ),
 				'price_in'  => (float) str_replace( ',', '.', (string) ( $in['price_in'] ?? 0 ) ),
 				'price_out' => (float) str_replace( ',', '.', (string) ( $in['price_out'] ?? 0 ) ),
+				'teaser'    => empty( $in['teaser'] ) ? 0 : 1,
+				'teaser_s'  => max( 3, absint( $in['teaser_s'] ?? 8 ) ),
 			);
+			foreach ( array( 't_home', 't_product', 't_helmet', 't_kit', 't_cat', 't_cart', 't_search' ) as $k ) {
+				$new[ $k ] = sanitize_text_field( $in[ $k ] ?? '' );
+			}
 			if ( ! empty( $in['key_clear'] ) ) {
 				$new['key'] = '';
 			}
@@ -545,6 +550,11 @@ function fx_ai_tab_ustawienia() {
 	echo '<tr><th>Model</th><td><input class="regular-text" name="model" value="' . esc_attr( $s['model'] ) . '"><p class="description">Domyślnie gpt-4.1-mini.</p></td></tr>';
 	echo '<tr><th>Nazwa</th><td><input class="regular-text" name="name" value="' . esc_attr( $s['name'] ) . '"></td></tr>';
 	echo '<tr><th>Powitanie</th><td><textarea class="large-text" rows="2" name="greeting">' . esc_textarea( $s['greeting'] ) . '</textarea></td></tr>';
+	echo '<tr><th>Zaczepka przy dymku</th><td><label><input type="checkbox" name="teaser" value="1"' . checked( $s['teaser'], 1, false ) . '> pokazuj dopasowaną do strony zachętę do rozmowy</label> po <input type="number" name="teaser_s" value="' . (int) $s['teaser_s'] . '" min="3" style="width:60px"> s (albo po przewinięciu 40% strony) · raz na wizytę dla danego typu strony, nie po rozpoczęciu rozmowy. Zachęta WhatsApp wtedy się nie pokazuje.<table class="widefat" style="margin-top:8px;max-width:900px"><tbody>';
+	foreach ( array( 't_home' => 'Strona główna', 't_product' => 'Produkt ({produkt})', 't_helmet' => 'Kask', 't_kit' => 'Produkt z kompletu', 't_cat' => 'Kategoria ({kategoria})', 't_cart' => 'Koszyk', 't_search' => 'Brak wyników wyszukiwania ({fraza})' ) as $k => $l ) {
+		echo '<tr><th style="width:230px">' . esc_html( $l ) . '</th><td><input class="large-text" name="' . esc_attr( $k ) . '" value="' . esc_attr( $s[ $k ] ) . '" placeholder="puste = bez zaczepki"></td></tr>';
+	}
+	echo '</tbody></table><p class="description">Ta sama treść jest pierwszą wiadomością asystenta po otwarciu czatu na tej stronie, a szybkie pytania dopasowują się do strony (kask: rozmiar, gogle; komplet: reszta stroju; koszyk: dostawa, zwrot).</p></td></tr>';
 	echo '<tr><th>Szybkie pytania</th><td><textarea class="large-text" rows="4" name="quick">' . esc_textarea( $s['quick'] ) . '</textarea><p class="description">Jedno w linii (maks. 6).</p></td></tr>';
 	echo '<tr><th>Zasady sklepu</th><td><textarea class="large-text" rows="12" name="rules" placeholder="Dostawa: …&#10;Zwroty: 14 dni …&#10;Płatności: …&#10;Sklep stacjonarny: Mokronos Dolny, godziny …">' . esc_textarea( $s['rules'] ) . '</textarea><p class="description">Jedyne źródło odpowiedzi o dostawie, zwrotach, płatnościach i sklepie stacjonarnym. Czego tu nie ma – asystent nie wymyśli.</p></td></tr>';
 	echo '<tr><th>E-mail obsługi</th><td><input type="email" class="regular-text" name="email" value="' . esc_attr( $s['email'] ) . '" placeholder="' . esc_attr( get_option( 'admin_email' ) ) . '"><p class="description">Tu przychodzą sprawy przekazane przez asystenta (z całą rozmową, odpowiedź trafia do klienta – Reply-To).</p></td></tr>';

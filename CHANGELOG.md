@@ -1,5 +1,11 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.33.0
+- Asystent AI: zaczepka dopasowana do strony – kask („Nie wiesz, jaki rozmiar kasku…? Podaj obwód głowy”), produkt z kompletu („Dobrać resztę stroju w tej samej grafice?”), produkt, kategoria, koszyk, brak wyników wyszukiwania, strona główna. Po kilku sekundach albo po przewinięciu 40% strony, raz na typ strony, maks. 3 na wizytę, nie po rozpoczęciu rozmowy.
+- Po otwarciu czatu ta sama zaczepka jest pierwszą wiadomością, a szybkie pytania dopasowują się do strony (kask: rozmiar, gogle; komplet: reszta stroju; koszyk: dostawa, zwrot).
+- Wygląd: ikona „AI” (iskierki), na komputerze napis „Zapytaj asystenta”, znaczek nowej wiadomości przy zaczepce, kropka „online” na telefonie – odróżnia się od dymka WhatsApp.
+- Zachęta WhatsApp nie pokazuje się, gdy działa zaczepka asystenta (jedna zaczepka naraz). Teksty zaczepek, czas i włącznik w Ustawieniach asystenta; zdarzenia dataLayer: assistant_teaser, assistant_teaser_click, assistant_open.
+
 ## 3.32.4
 - Asystent AI: przycisk „Więcej: [kategoria] →” pod kartami produktów – najwęższa kategoria, w której jest co najmniej 80% znalezionych produktów i wyraźnie więcej wyboru niż w czacie (bez Wyprzedaży / Nowości); z filtrem „dla kogo”, gdy klient go podał; zapas – wyniki wyszukiwania dla frazy. Kliknięcia liczone w lejku.
 

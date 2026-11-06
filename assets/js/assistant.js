@@ -6,7 +6,11 @@
 
 	var KEY = 'fxai';
 	var st = load();
-	var root, panel, list, input, sendBtn, chips, busy = false;
+	var root, panel, list, input, sendBtn, chips, tz, busy = false;
+	var CTX = C.ctx || { type: 'other', teaser: '', chips: C.quick || [] };
+	// Pierwsza wiadomość asystenta: dopasowana do strony (produkt, kask, koszyk…), a na głównej – powitanie z ustawień.
+	var HELLO = (CTX.teaser && CTX.type !== 'home' && CTX.type !== 'other') ? CTX.teaser : C.hello;
+	function track(ev) { try { (window.dataLayer = window.dataLayer || []).push({ event: ev, assistant_context: CTX.type }); } catch (e) {} }
 
 	function load() {
 		var s = null;
@@ -54,8 +58,10 @@
 
 		root = el('div', 'fx-ai');
 		root.innerHTML =
+			'<div class="fx-ai__tz" hidden><button type="button" class="fx-ai__tz-x" aria-label="Zamknij zachętę">×</button>' +
+			'<div class="fx-ai__tz-who"><span class="fx-ai__tz-dot" aria-hidden="true"></span>' + esc(C.name) + ' · online</div><p class="fx-ai__tz-txt"></p><span class="fx-ai__tz-cta">Napisz →</span></div>' +
 			'<button type="button" class="fx-ai__btn" aria-expanded="false" aria-controls="fx-ai-panel" aria-label="Otwórz czat: ' + esc(C.name) + '">' +
-			'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01"/></svg></button>' +
+			'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/><path d="M19 14l.8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8z"/><path d="M5 15l.6 1.4L7 17l-1.4.6L5 19l-.6-1.4L3 17l1.4-.6z"/></svg><span class="fx-ai__lbl">Zapytaj asystenta</span><span class="fx-ai__live" aria-hidden="true"></span><span class="fx-ai__badge" aria-hidden="true" hidden>1</span></button>' +
 			'<section class="fx-ai__panel" id="fx-ai-panel" role="dialog" aria-label="' + esc(C.name) + '" hidden>' +
 			'<header class="fx-ai__head"><div><strong>' + esc(C.name) + '</strong><span>' + (C.test ? 'tryb testowy · ' : '') + 'odpowiada od razu</span></div>' +
 			'<div class="fx-ai__tools"><button type="button" class="fx-ai__new" title="Nowa rozmowa" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Nowa rozmowa</span></button>' +
@@ -72,6 +78,12 @@
 		input = root.querySelector('textarea');
 		sendBtn = root.querySelector('.fx-ai__send');
 		chips = root.querySelector('.fx-ai__chips');
+		tz = root.querySelector('.fx-ai__tz');
+		tz.addEventListener('click', function (e) {
+			if (e.target.closest('.fx-ai__tz-x')) { hideTeaser(); return; }
+			track('assistant_teaser_click');
+			toggle(true);
+		});
 
 		root.querySelector('.fx-ai__btn').addEventListener('click', function () { toggle(!st.open); });
 		root.querySelector('.fx-ai__x').addEventListener('click', function () { toggle(false); });
@@ -100,6 +112,42 @@
 		}
 		render();
 		if (st.open) { toggle(true, true); }
+		armTeaser();
+	}
+
+	/* ---------- Zaczepka: po kilku sekundach albo po przewinięciu 40% strony, raz na typ strony ---------- */
+	function tzKey() { return 'fxai_tz_' + CTX.type; }
+	function armTeaser() {
+		if (!C.teaserS || !CTX.teaser || st.open || st.msgs.length) { return; }
+		var seen = null, n = 0;
+		try { seen = sessionStorage.getItem(tzKey()); n = +(sessionStorage.getItem('fxai_tzn') || 0); } catch (e) {}
+		if (seen || n >= 3) { return; }
+		var done = false;
+		var show = function () {
+			if (done || st.open || st.msgs.length) { return; }
+			var wa = document.querySelector('.fx-wa[data-state="open"], .fx-wa__teaser:not([hidden])');
+			if (wa) { return; } // nie zagadujemy dwoma dymkami naraz
+			done = true;
+			window.removeEventListener('scroll', onScroll);
+			tz.querySelector('.fx-ai__tz-txt').textContent = CTX.teaser;
+			tz.hidden = false;
+			root.querySelector('.fx-ai__badge').hidden = false;
+			requestAnimationFrame(function () { tz.classList.add('is-in'); });
+			try { sessionStorage.setItem(tzKey(), '1'); sessionStorage.setItem('fxai_tzn', String(n + 1)); } catch (e) {}
+			track('assistant_teaser');
+		};
+		var onScroll = function () {
+			var h = document.documentElement.scrollHeight - window.innerHeight;
+			if (h > 0 && window.scrollY / h >= 0.4) { show(); }
+		};
+		setTimeout(show, C.teaserS * 1000);
+		window.addEventListener('scroll', onScroll, { passive: true });
+	}
+	function hideTeaser() {
+		if (!tz) { return; }
+		tz.hidden = true;
+		tz.classList.remove('is-in');
+		root.querySelector('.fx-ai__badge').hidden = true;
 	}
 
 	/* Pozycja: nad dymkiem WhatsApp, nad dolnym paskiem zakupu na telefonie. */
@@ -126,6 +174,10 @@
 		panel.hidden = !open;
 		root.classList.toggle('is-open', open);
 		root.querySelector('.fx-ai__btn').setAttribute('aria-expanded', open ? 'true' : 'false');
+		if (open) {
+			hideTeaser();
+			if (!quiet) { track('assistant_open'); }
+		}
 		document.documentElement.classList.toggle('fx-ai-lock', open && window.matchMedia('(max-width: 640px)').matches);
 		if (open) {
 			list.scrollTop = list.scrollHeight;
@@ -136,11 +188,12 @@
 	/* ---------- Wiadomości ---------- */
 	function render() {
 		list.innerHTML = '';
-		list.appendChild(bubble({ role: 'assistant', content: C.hello }));
+		list.appendChild(bubble({ role: 'assistant', content: HELLO }));
 		st.msgs.forEach(function (m) { list.appendChild(bubble(m)); });
 		chips.innerHTML = '';
-		if (!st.msgs.length && C.quick && C.quick.length) {
-			C.quick.forEach(function (q) {
+		var quick = (CTX.chips && CTX.chips.length) ? CTX.chips : (C.quick || []);
+		if (!st.msgs.length && quick.length) {
+			quick.forEach(function (q) {
 				var b = el('button', 'fx-ai__chip', esc(q));
 				b.type = 'button';
 				b.addEventListener('click', function () { send(q); });
