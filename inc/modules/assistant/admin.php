@@ -64,8 +64,20 @@ add_action( 'admin_post_fx_ai', function () {
 			update_option( FX_AI_OPT, $new, false );
 			$GLOBALS['fx_ai_reload'] = true;
 			do_action( 'litespeed_purge_all' );
-			break;
+			if ( empty( $in['then_test'] ) ) {
+				break;
+			}
+			// „Zapisz i testuj połączenie” – test na właśnie zapisanym kluczu.
+			if ( '' === fx_ai_key() ) {
+				$msg = 'Zapisano, ale brak klucza OpenAI – wklej klucz (sk-…) w pole „Klucz OpenAI” i kliknij „Zapisz i testuj połączenie”.';
+				break;
+			}
+			// fall through
 		case 'test_api':
+			if ( '' === fx_ai_key() && 'test_api' === $do ) {
+				$msg = 'Brak zapisanego klucza OpenAI – wklej klucz i kliknij „Zapisz i testuj połączenie”.';
+				break;
+			}
 			$r   = fx_ai_openai( array( array( 'role' => 'user', 'content' => 'Odpowiedz jednym słowem: OK' ) ), false );
 			$msg = is_wp_error( $r ) ? 'Błąd połączenia: ' . $r->get_error_message() : 'Połączenie działa (model ' . esc_html( $r['model'] ?? '' ) . '): ' . wp_strip_all_tags( (string) ( $r['choices'][0]['message']['content'] ?? '' ) );
 			break;
@@ -529,7 +541,7 @@ function fx_ai_tab_ustawienia() {
 	fx_ai_form_open( 'settings' );
 	echo '<table class="form-table">';
 	echo '<tr><th>Włączony</th><td><label><input type="checkbox" name="on" value="1"' . checked( $s['on'], 1, false ) . '> dymek czatu na stronach sklepu (poza kasą)</label><br><label><input type="checkbox" name="test" value="1"' . checked( $s['test'], 1, false ) . '> tryb testowy – dymek widzą tylko administratorzy</label></td></tr>';
-	echo '<tr><th>Klucz OpenAI</th><td>' . ( $def ? '<p>Klucz ustawiony w wp-config.php (FOX_AI_KEY).</p>' : '<input type="password" class="regular-text" name="key" value="" autocomplete="off" placeholder="' . ( $s['key'] ? '•••••• (zapisany – wpisz nowy, by zmienić)' : 'sk-…' ) . '">' . ( $s['key'] ? ' <label><input type="checkbox" name="key_clear" value="1"> usuń</label>' : '' ) . '<p class="description">Osobny projekt w OpenAI z miesięcznym budżetem (na start 20–30 $, alert przy 80%). Klucz nie trafia do przeglądarki.</p>' ) . '</td></tr>';
+	echo '<tr><th>Klucz OpenAI</th><td>' . ( $def ? '<p>Klucz ustawiony w wp-config.php (FOX_AI_KEY).</p>' : '<input type="password" class="regular-text" name="key" value="" autocomplete="off" placeholder="' . ( $s['key'] ? '•••••• (zapisany – wpisz nowy, by zmienić)' : 'sk-…' ) . '"> ' . ( $s['key'] ? '<strong style="color:#00a32a">✓ klucz zapisany (…' . esc_html( substr( $s['key'], -4 ) ) . ')</strong>' : '<strong style="color:#d63638">brak klucza</strong>' ) . ( $s['key'] ? ' <label><input type="checkbox" name="key_clear" value="1"> usuń</label>' : '' ) . '<p class="description">Osobny projekt w OpenAI z miesięcznym budżetem (na start 20–30 $, alert przy 80%). Klucz nie trafia do przeglądarki.</p>' ) . '</td></tr>';
 	echo '<tr><th>Model</th><td><input class="regular-text" name="model" value="' . esc_attr( $s['model'] ) . '"><p class="description">Domyślnie gpt-4.1-mini.</p></td></tr>';
 	echo '<tr><th>Nazwa</th><td><input class="regular-text" name="name" value="' . esc_attr( $s['name'] ) . '"></td></tr>';
 	echo '<tr><th>Powitanie</th><td><textarea class="large-text" rows="2" name="greeting">' . esc_textarea( $s['greeting'] ) . '</textarea></td></tr>';
@@ -542,9 +554,6 @@ function fx_ai_tab_ustawienia() {
 	echo '<tr><th>Archiwum</th><td>usuwaj rozmowy starsze niż <input type="number" name="keep_days" value="' . (int) $s['keep_days'] . '" style="width:80px"> dni (0 = bez usuwania)</td></tr>';
 	echo '<tr><th>Cena modelu</th><td>$ <input name="price_in" value="' . esc_attr( $s['price_in'] ) . '" style="width:70px"> za 1 mln tokenów wejścia · $ <input name="price_out" value="' . esc_attr( $s['price_out'] ) . '" style="width:70px"> wyjścia <span class="description">(do szacowania kosztów)</span></td></tr>';
 	echo '</table>';
-	submit_button( 'Zapisz' );
-	echo '</form>';
-	fx_ai_form_open( 'test_api' );
-	submit_button( 'Testuj połączenie z OpenAI', 'secondary', 'submit', false );
+	echo '<p class="submit"><button type="submit" class="button button-primary">Zapisz</button> <button type="submit" class="button" name="then_test" value="1">Zapisz i testuj połączenie z OpenAI</button></p>';
 	echo '</form>';
 }

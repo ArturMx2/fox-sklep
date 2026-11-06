@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.32.1
+- Asystent AI: przycisk „Zapisz i testuj połączenie” w formularzu ustawień (wcześniej test szedł bez wpisanego, niezapisanego klucza), przy polu klucza widać, czy jest zapisany (…ostatnie 4 znaki).
+
 ## 3.32.0
 - Nowe: Asystent AI (WooCommerce → Asystent AI) – czat w dymku na stronach sklepu (poza kasą), OpenAI z narzędziami; fakty wyłącznie ze sklepu.
   - szukaj_produktow (własna wyszukiwarka foxa, filtr ceny, rozmiaru na stanie i „dla kogo”, termin wysyłki każdego rozmiaru, przedsprzedaż), szczegoly_produktu (opis, parametry, tabela rozmiarów, kask – obwód głowy, części kompletu i rabat za komplet), pokaz_produkty (karty z ceną, „Wysyłka dziś”, link ?src=asystent, „Do koszyka” przy produktach prostych).
