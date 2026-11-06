@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.32.2
+- Asystent AI: dobór rozmiaru dla konkretnego modelu z jego tabeli rozmiarów – nowe narzędzie dopasuj_rozmiar (obwód głowy, pas, klatka, wzrost, stopa w cm; tabele wierszowe i kolumnowe), przy kaskach szukaj_produktow z obwod_glowy_cm (rozmiar dobierany osobno dla każdego modelu).
+- Bezpiecznik: „rozmiar 58” przy kaskach traktowany jako obwód głowy, nie jako nazwa rozmiaru (wcześniej odfiltrowywał wszystkie kaski).
+- Zasady: gdy klient nie zna wymiaru – M lub L jako najczęstszy wybór i „Tabela rozmiarów”; przed „nie mamy” – ponowne szersze wyszukiwanie. Zaktualizowane instrukcje „Dobór kasku” i „Rozmiary FOX” (o ile nie były zmieniane w panelu).
+
 ## 3.32.1
 - Asystent AI: przycisk „Zapisz i testuj połączenie” w formularzu ustawień (wcześniej test szedł bez wpisanego, niezapisanego klucza), przy polu klucza widać, czy jest zapisany (…ostatnie 4 znaki).
 

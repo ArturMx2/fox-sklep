@@ -23,13 +23,19 @@ function fx_ai_tool_defs() {
 			'zapytanie'      => array( 'type' => 'string', 'description' => 'Fraza po polsku, np. „spodnie motocrossowe”, „kask mtb”' ),
 			'cena_min'       => array( 'type' => 'number' ),
 			'cena_max'       => array( 'type' => 'number' ),
-			'rozmiar'        => array( 'type' => 'string', 'description' => 'Rozmiar, który musi być na stanie, np. 32, M, XL, YM, 10 (US). Pomiń, gdy klient nie podał.' ),
+			'rozmiar'        => array( 'type' => 'string', 'description' => 'NAZWA rozmiaru, który musi być na stanie, np. M, XL, 32 (spodnie w calach), YM, 10 (buty US). NIE wpisuj tu centymetrów (np. obwodu głowy 58) – do tego jest obwod_glowy_cm. Pomiń, gdy klient nie podał.' ),
+			'obwod_glowy_cm' => array( 'type' => 'number', 'description' => 'Dla kasków: obwód głowy klienta w cm (np. 58). Rozmiar zostanie dobrany osobno dla każdego modelu z jego tabeli rozmiarów.' ),
 			'dla_kogo'       => array( 'type' => 'string', 'enum' => array( 'meskie', 'damskie', 'junior', 'dzieciece' ) ),
 			'tylko_dostepne' => array( 'type' => 'boolean', 'description' => 'Domyślnie true' ),
 		), array( 'zapytanie' ) ),
 		$f( 'szczegoly_produktu', 'Szczegóły produktu: opis, parametry, rozmiary na stanie z terminem wysyłki, tabela rozmiarów, części kompletu w tej samej grafice.', array(
 			'id' => array( 'type' => 'integer' ),
 		), array( 'id' ) ),
+		$f( 'dopasuj_rozmiar', 'Dobiera rozmiar KONKRETNEGO modelu z jego tabeli rozmiarów na podstawie wymiaru klienta (cm) i mówi, czy ten rozmiar jest na stanie. Rozmiary różnią się między modelami – używaj zawsze, gdy klient poda wymiar.', array(
+			'id'         => array( 'type' => 'integer' ),
+			'wymiar'     => array( 'type' => 'string', 'enum' => array( 'obwod_glowy', 'pas', 'klatka', 'wzrost', 'stopa', 'biodra' ) ),
+			'wartosc_cm' => array( 'type' => 'number' ),
+		), array( 'id', 'wymiar', 'wartosc_cm' ) ),
 		$f( 'pokaz_produkty', 'Pokazuje klientowi karty produktów pod odpowiedzią (zdjęcie, cena, link). Używaj ZAWSZE, gdy polecasz produkty. 2–6 id z wyników narzędzi.', array(
 			'ids' => array( 'type' => 'array', 'items' => array( 'type' => 'integer' ), 'minItems' => 1, 'maxItems' => 6 ),
 		), array( 'ids' ) ),
@@ -52,6 +58,8 @@ function fx_ai_run_tool( $name, array $a ) {
 			return fx_ai_tool_search( $a );
 		case 'szczegoly_produktu':
 			return fx_ai_tool_details( (int) ( $a['id'] ?? 0 ) );
+		case 'dopasuj_rozmiar':
+			return fx_ai_tool_fit( (int) ( $a['id'] ?? 0 ), (string) ( $a['wymiar'] ?? '' ), (float) ( $a['wartosc_cm'] ?? 0 ) );
 		case 'pokaz_produkty':
 			return fx_ai_tool_show( (array) ( $a['ids'] ?? array() ) );
 		case 'status_zamowienia':
@@ -178,6 +186,13 @@ function fx_ai_tool_search( array $a ) {
 	$size = isset( $a['rozmiar'] ) ? fx_ai_size_key( $a['rozmiar'] ) : '';
 	$dla  = isset( $a['dla_kogo'] ) ? sanitize_key( $a['dla_kogo'] ) : '';
 	$only = ! isset( $a['tylko_dostepne'] ) || false !== $a['tylko_dostepne'];
+	$head = isset( $a['obwod_glowy_cm'] ) ? (float) str_replace( ',', '.', (string) $a['obwod_glowy_cm'] ) : 0;
+	// Bezpiecznik: „rozmiar 58” przy kaskach to obwód głowy, nie nazwa rozmiaru.
+	if ( ! $head && preg_match( '/^\d{2}([.,]\d)?$/', $size ) && (float) $size >= 46 && (float) $size <= 66 && preg_match( '/kask|helmet|full ?face/iu', $q ) ) {
+		$head = (float) str_replace( ',', '.', $size );
+		$size = '';
+	}
+	$skipped = 0;
 	if ( '' === $q ) {
 		return array( 'blad' => 'Podaj zapytanie.' );
 	}
@@ -233,22 +248,229 @@ function fx_ai_tool_search( array $a ) {
 				continue; // brak tego rozmiaru na stanie (także produkt bez rozmiarów)
 			}
 		}
+		$fit_note = '';
+		if ( $head > 0 ) {
+			$fit = fx_ai_fit( $p, 'obwod_glowy', $head );
+			if ( $fit['rozmiar'] ) {
+				$ok = array_values( array_filter( $sizes, function ( $s ) use ( $fit ) {
+					return fx_ai_size_key( preg_split( '/\s*\/\s*/', $s['r'] )[0] ) === fx_ai_size_key( $fit['rozmiar'] );
+				} ) );
+				if ( ! $ok ) {
+					$skipped++;
+					continue; // pasujący rozmiar tego modelu niedostępny
+				}
+				$fit_note = $fit['rozmiar'] . ( $fit['zakres'] ? ' (' . $fit['zakres'] . ')' : '' ) . ': ' . $ok[0]['wysylka'];
+			} else {
+				$fit_note = $fit['tabela'] ? 'obwód poza tabelą modelu – ' . $fit['tabela'] : 'brak tabeli w formie tekstu – rozmiar trzeba sprawdzić w „Tabela rozmiarów” na karcie produktu';
+			}
+		}
 		$row = array(
 			'id'       => $p->get_id(),
 			'nazwa'    => $p->get_name(),
 			'kategoria' => fx_ai_cat_name( $p->get_id() ),
 			'swiat'    => fx_ai_world( $p->get_id() ),
 		) + fx_ai_price_row( $p );
+		if ( '' !== $fit_note ) {
+			$row['pasujacy_rozmiar'] = $fit_note;
+		}
 		$row['rozmiary'] = array_map( function ( $s ) {
 			return $s['r'] . ': ' . $s['wysylka'];
 		}, array_slice( $sizes, 0, 12 ) );
 		$out[] = $row;
 	}
 	if ( ! $out ) {
-		$GLOBALS['fx_ai_run']['notfound'][] = $q . ( $size ? ' [' . $size . ']' : '' );
-		return array( 'wyniki' => array(), 'uwaga' => 'Nic nie znaleziono' . ( $size ? ' w rozmiarze ' . $size : '' ) . '. Zaproponuj inną frazę, inny rozmiar albo kontakt ze sklepem. Nie wymyślaj produktów.' );
+		$GLOBALS['fx_ai_run']['notfound'][] = $q . ( $size ? ' [' . $size . ']' : '' ) . ( $head ? ' [' . $head . ' cm]' : '' );
+		return array( 'wyniki' => array(), 'uwaga' => 'Nic nie znaleziono' . ( $size ? ' w rozmiarze ' . $size : '' ) . ( $skipped ? ' – ' . $skipped . ' modeli ma pasujący rozmiar chwilowo niedostępny' : '' ) . '. Spróbuj szerszej frazy (np. sam rodzaj produktu) albo bez rozmiaru; zaproponuj kontakt ze sklepem. Nie wymyślaj produktów.' );
 	}
-	return array( 'wyniki' => $out );
+	$res = array( 'wyniki' => $out );
+	if ( $head ) {
+		$res['info'] = 'Rozmiar dobrany osobno dla każdego modelu z jego tabeli rozmiarów (pole pasujacy_rozmiar).' . ( $skipped ? ' Pominięto ' . $skipped . ' modeli, w których pasujący rozmiar jest niedostępny.' : '' );
+	}
+	return $res;
+}
+
+/* =====================================================================
+ * Tabele rozmiarów: odczyt i dopasowanie wymiaru do rozmiaru modelu
+ * ===================================================================== */
+
+/** Tabele z tabeli rozmiarów modelu: [ [ [komórki wiersza 1], [wiersza 2] … ], … ]. */
+function fx_ai_size_tables( WC_Product $p ) {
+	$gid = function_exists( 'fx_size_guide_for' ) ? fx_size_guide_for( $p ) : 0;
+	if ( ! $gid || ! class_exists( 'DOMDocument' ) ) {
+		return array();
+	}
+	$html = (string) get_post_field( 'post_content', $gid );
+	if ( false === stripos( $html, '<table' ) ) {
+		$html = apply_filters( 'the_content', $html ); // np. bloki / shortcode
+	}
+	if ( false === stripos( $html, '<table' ) ) {
+		return array();
+	}
+	$doc = new DOMDocument();
+	libxml_use_internal_errors( true );
+	$doc->loadHTML( '<?xml encoding="utf-8"?><div>' . $html . '</div>' );
+	libxml_clear_errors();
+	$out = array();
+	foreach ( $doc->getElementsByTagName( 'table' ) as $t ) {
+		$rows = array();
+		foreach ( $t->getElementsByTagName( 'tr' ) as $tr ) {
+			$cells = array();
+			foreach ( $tr->childNodes as $td ) {
+				if ( in_array( strtolower( (string) $td->nodeName ), array( 'td', 'th' ), true ) ) {
+					$cells[] = trim( preg_replace( '/\s+/u', ' ', $td->textContent ) );
+				}
+			}
+			if ( $cells ) {
+				$rows[] = $cells;
+			}
+		}
+		if ( $rows ) {
+			$out[] = $rows;
+		}
+	}
+	return $out;
+}
+
+/** Nazwa rozmiaru z komórki („M”, „L/XL”, „YM”, „32”) albo ''. */
+function fx_ai_cell_size( $c ) {
+	$c = trim( (string) $c );
+	if ( preg_match( '/^((?:Y|K)?(?:XXS|XS|S|M|L|XL|XXL|[2-5]XL)(?:\s*\/\s*(?:XXS|XS|S|M|L|XL|XXL|[2-5]XL))?|YOS|OS|\d{1,2}(?:[.,]5)?)(?=$|[\s(])/i', $c, $m ) ) {
+		return strtoupper( str_replace( ' ', '', $m[1] ) );
+	}
+	return '';
+}
+
+/** Zakres w cm z komórki („57-58”, „57–58 cm”, „58”) albo null. */
+function fx_ai_cell_range( $c ) {
+	if ( ! preg_match_all( '/\d+(?:[.,]\d+)?/', (string) $c, $m ) || ! $m[0] ) {
+		return null;
+	}
+	$n = array_map( function ( $x ) {
+		return (float) str_replace( ',', '.', $x );
+	}, $m[0] );
+	return array( min( $n ), max( $n ) );
+}
+
+/**
+ * Rozmiar modelu dla wymiaru klienta: [ rozmiar, zakres, tabela (tekst zakresów) ].
+ * Działa na tabelach wierszowych (Rozmiar | Obwód głowy) i kolumnowych (S M L / Obwód …).
+ */
+function fx_ai_fit( WC_Product $p, $kind, $cm ) {
+	$re = array(
+		'obwod_glowy' => '/g[lł]ow|head|obw[oó]d(?!.*(pas|klat|bio))/iu',
+		'pas'         => '/pas|talia|waist/iu',
+		'klatka'      => '/klat|biust|chest/iu',
+		'wzrost'      => '/wzrost|height/iu',
+		'stopa'       => '/stop|wk[lł]ad|foot/iu',
+		'biodra'      => '/biod|hip/iu',
+	);
+	$out = array( 'rozmiar' => '', 'zakres' => '', 'tabela' => '' );
+	if ( ! isset( $re[ $kind ] ) || $cm <= 0 ) {
+		return $out;
+	}
+	$pairs = array(); // [ rozmiar, min, max ]
+	foreach ( fx_ai_size_tables( $p ) as $rows ) {
+		$head = $rows[0];
+		// Wierszowa: kolumna z wymiarem w nagłówku.
+		$col = -1;
+		foreach ( $head as $i => $h ) {
+			if ( preg_match( $re[ $kind ], $h ) ) {
+				$col = $i;
+				break;
+			}
+		}
+		if ( $col >= 0 ) {
+			$scol = 0;
+			foreach ( $head as $i => $h ) {
+				if ( preg_match( '/rozmiar|size/iu', $h ) ) {
+					$scol = $i;
+					break;
+				}
+			}
+			foreach ( array_slice( $rows, 1 ) as $r ) {
+				$sz = fx_ai_cell_size( $r[ $scol ] ?? '' );
+				$rg = fx_ai_cell_range( $r[ $col ] ?? '' );
+				if ( $sz && $rg ) {
+					$pairs[] = array( $sz, $rg[0], $rg[1] );
+				}
+			}
+			continue;
+		}
+		// Kolumnowa: wiersz z wymiarem w pierwszej komórce, rozmiary w pierwszym wierszu.
+		foreach ( $rows as $r ) {
+			if ( preg_match( $re[ $kind ], $r[0] ?? '' ) ) {
+				foreach ( $head as $i => $h ) {
+					$sz = $i ? fx_ai_cell_size( $h ) : '';
+					$rg = fx_ai_cell_range( $r[ $i ] ?? '' );
+					if ( $sz && $rg ) {
+						$pairs[] = array( $sz, $rg[0], $rg[1] );
+					}
+				}
+			}
+		}
+		// Prosta tabela bez nagłówka: „M | 57-58” (tylko dla kasków – jedyny wymiar).
+		if ( ! $pairs && 'obwod_glowy' === $kind ) {
+			foreach ( $rows as $r ) {
+				$sz = fx_ai_cell_size( $r[0] ?? '' );
+				$rg = isset( $r[1] ) ? fx_ai_cell_range( $r[1] ) : null;
+				if ( $sz && $rg && $rg[0] >= 40 && $rg[1] <= 70 ) {
+					$pairs[] = array( $sz, $rg[0], $rg[1] );
+				}
+			}
+		}
+	}
+	if ( ! $pairs ) {
+		return $out;
+	}
+	$fmt = function ( $a, $b ) {
+		$f = function ( $x ) {
+			return rtrim( rtrim( number_format( $x, 1, ',', '' ), '0' ), ',' );
+		};
+		return $a === $b ? $f( $a ) . ' cm' : $f( $a ) . '–' . $f( $b ) . ' cm';
+	};
+	$out['tabela'] = implode( ', ', array_map( function ( $x ) use ( $fmt ) {
+		return $x[0] . ' ' . $fmt( $x[1], $x[2] );
+	}, $pairs ) );
+	foreach ( $pairs as $x ) {
+		// Zakres „57–58” obejmuje też 58,5 (do następnego pełnego cm).
+		if ( $cm >= $x[1] - 0.01 && $cm < $x[2] + 1 ) {
+			$out['rozmiar'] = $x[0];
+			$out['zakres']  = $fmt( $x[1], $x[2] );
+			break;
+		}
+	}
+	return $out;
+}
+
+function fx_ai_tool_fit( $id, $kind, $cm ) {
+	$p = wc_get_product( $id );
+	if ( $p && $p->is_type( 'variation' ) ) {
+		$p = wc_get_product( $p->get_parent_id() );
+	}
+	if ( ! $p || 'publish' !== $p->get_status() ) {
+		return array( 'blad' => 'Nie ma takiego produktu.' );
+	}
+	$fit = fx_ai_fit( $p, $kind, $cm );
+	$out = array( 'produkt' => $p->get_name(), 'wymiar_klienta' => $cm . ' cm' );
+	if ( ! $fit['tabela'] ) {
+		$out['wynik'] = 'Nie umiem odczytać tabeli rozmiarów tego modelu (brak tabeli w formie tekstu). Odeślij klienta do przycisku „Tabela rozmiarów” na karcie produktu albo do telefonu sklepu. Nie zgaduj rozmiaru.';
+		return $out;
+	}
+	$out['tabela_modelu'] = $fit['tabela'];
+	if ( ! $fit['rozmiar'] ) {
+		$out['wynik'] = 'Wymiar klienta jest poza tabelą tego modelu – powiedz to i zaproponuj inny model albo kontakt ze sklepem.';
+		return $out;
+	}
+	$out['pasujacy_rozmiar'] = $fit['rozmiar'] . ' (' . $fit['zakres'] . ')';
+	$stock = null;
+	foreach ( fx_ai_sizes( $p ) as $s ) {
+		if ( fx_ai_size_key( preg_split( '/\s*\/\s*/', $s['r'] )[0] ) === fx_ai_size_key( $fit['rozmiar'] ) ) {
+			$stock = $s['wysylka'];
+			break;
+		}
+	}
+	$out['dostepnosc'] = null === $stock ? 'ten rozmiar jest chwilowo niedostępny – zaproponuj inny model w tym rozmiarze (szukaj_produktow z wymiarem)' : 'na stanie: ' . $stock;
+	return $out;
 }
 
 /* =====================================================================
@@ -298,7 +520,11 @@ function fx_ai_tool_details( $id ) {
 		$out['tabela_rozmiarow_info'] = 'Na karcie produktu jest przycisk „Tabela rozmiarów”.';
 	}
 	if ( function_exists( 'fox_hc_v3_product_is_helmet' ) && fox_hc_v3_product_is_helmet( $p ) ) {
-		$out['kask'] = 'Rozmiar kasku dobiera się po obwodzie głowy (centymetr nad brwiami i uszami). Przy zamówieniu kasku sklep prosi o podanie obwodu głowy.';
+		$out['kask'] = 'Rozmiar kasku dobiera się po obwodzie głowy (centymetr nad brwiami i uszami) – do dopasowania użyj dopasuj_rozmiar. Przy zamówieniu kasku sklep prosi o podanie obwodu głowy.';
+		$t = fx_ai_fit( $p, 'obwod_glowy', 1 );
+		if ( $t['tabela'] ) {
+			$out['rozmiary_wg_obwodu_glowy'] = $t['tabela'];
+		}
 	}
 	if ( function_exists( 'fx_kit_resolve' ) ) {
 		$kit = fx_kit_resolve( $p->get_id() );

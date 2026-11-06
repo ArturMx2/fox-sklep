@@ -8,7 +8,7 @@
 defined( 'ABSPATH' ) || exit;
 
 define( 'FX_AI_OPT', 'fx_ai_settings' );
-define( 'FX_AI_DB', 2 );
+define( 'FX_AI_DB', 3 );
 
 /* =====================================================================
  * Ustawienia
@@ -126,6 +126,18 @@ function fx_ai_install() {
 		PRIMARY KEY  (id),
 		KEY type (type)
 	) {$c};" );
+	// Aktualizacja instrukcji startowych – tylko tych, których nikt nie zmienił w panelu.
+	$old = array( 'Dobór kasku' => 'f398d727253c3895d58c2dd29dd1a416', 'Rozmiary FOX' => '09186e1aac6bb1b0b5905ecb7f585824' );
+	if ( get_option( 'fx_ai_seeded' ) ) {
+		foreach ( fx_ai_starter_kb() as $row ) {
+			if ( isset( $old[ $row['title'] ] ) ) {
+				$cur = $wpdb->get_row( $wpdb->prepare( "SELECT id, body FROM {$kb} WHERE type = 'ins' AND title = %s", $row['title'] ), ARRAY_A ); // phpcs:ignore
+				if ( $cur && md5( $cur['body'] ) === $old[ $row['title'] ] ) {
+					$wpdb->update( $kb, array( 'body' => $row['body'], 'keywords' => $row['keywords'] ), array( 'id' => (int) $cur['id'] ) );
+				}
+			}
+		}
+	}
 	if ( ! get_option( 'fx_ai_seeded' ) ) {
 		foreach ( fx_ai_starter_kb() as $row ) {
 			$wpdb->insert( $kb, $row + array( 'type' => 'ins', 'active' => 1, 'created' => current_time( 'mysql' ) ) );
@@ -147,14 +159,14 @@ function fx_ai_starter_kb() {
 		array(
 			'title'    => 'Dobór kasku',
 			'always'   => 0,
-			'keywords' => 'kask, kaski, helmet, obwód, głowy, mips, v1, v3, rampage, proframe, speedframe, dropframe',
-			'body'     => "Kask dobiera się po obwodzie głowy: zmierz centymetrem krawieckim nad brwiami i uszami, najszerszy obwód. Zapytaj o obwód i porównaj z tabelą rozmiarów produktu (szczegoly_produktu). Gdy wynik jest na granicy dwóch rozmiarów – zaproponuj kontakt ze sklepem albo przymiarkę w sklepie stacjonarnym.\nRozróżnij świat: kask moto (MX/enduro, homologacja ECE 22.06) i rowerowy (MTB: otwarty trail/enduro, full face do enduro/DH). Kask moto nie jest do roweru i odwrotnie.\nMIPS i podobne systemy ochrony – wspominaj tylko, jeśli są w danych produktu.",
+			'keywords' => 'kask, kaski, helmet, full face, obwód, głowy, mips, v1, v3, rampage, proframe, speedframe, dropframe, mainframe',
+			'body'     => "1. Najpierw ustal świat i typ: moto (MX/enduro) albo rower (otwarty trail/enduro, full face do enduro/DH). Kask moto nie jest do roweru i odwrotnie.\n2. Zapytaj o obwód głowy w cm (centymetr nad brwiami i uszami, najszerszy obwód).\n3. Szukaj modeli: szukaj_produktow z zapytaniem (np. „kask rowerowy full face”) i obwod_glowy_cm – NIGDY nie wpisuj centymetrów w pole rozmiar. Rozmiar każdego modelu jest dobierany z jego tabeli (pole pasujacy_rozmiar). Dla jednego wybranego modelu użyj dopasuj_rozmiar.\n4. Rozmiary różnią się między modelami (np. 58 cm to w jednym modelu M, w innym L) – zawsze podawaj rozmiar dla konkretnego modelu z jego tabeli.\n5. Klient nie zna obwodu i nie może zmierzyć: powiedz, że u dorosłych najczęściej pasuje M lub L, pokaż modele i odeślij do „Tabela rozmiarów” na karcie produktu (albo przymiarka w sklepie stacjonarnym).\n6. Obwód na granicy dwóch rozmiarów – podaj obie opcje i zaproponuj telefon do sklepu. MIPS i inne systemy – tylko jeśli są w danych produktu.",
 		),
 		array(
 			'title'    => 'Rozmiary FOX',
 			'always'   => 0,
-			'keywords' => 'rozmiar, rozmiary, rozmiarówka, rozmiaru, size, jaki rozmiar, uciska, mały, duży, tabela',
-			'body'     => "Rozmiary FOX: spodnie moto w calach w pasie (28, 30, 32, 34, 36, 38), bluzy i odzież S–XXL, rozmiary młodzieżowe z literą Y (YS, YM, YL, YXL), buty w rozmiarach US, rękawice S–XXL (młodzieżowe YS–YL). Rozmiar zawsze sprawdzaj w tabeli rozmiarów produktu (szczegoly_produktu) – nie zgaduj. Jeśli klient jest pomiędzy rozmiarami – podaj obie opcje i zaproponuj telefon do sklepu.",
+			'keywords' => 'rozmiar, rozmiary, rozmiarówka, rozmiaru, size, jaki rozmiar, uciska, mały, duży, tabela, cm, pas, wzrost',
+			'body'     => "Rozmiar dobieraj zawsze dla KONKRETNEGO modelu z jego tabeli rozmiarów – narzędzie dopasuj_rozmiar (wymiar klienta w cm: obwód głowy, pas, klatka, wzrost, stopa). Centymetry to nie nazwa rozmiaru.\nNazwy rozmiarów FOX: spodnie moto w calach w pasie (28–38), bluzy i odzież S–XXL, młodzieżowe YS–YXL, buty US, rękawice S–XXL.\nKlient nie zna wymiarów: najpierw poproś o pomiar; jeśli nie może – powiedz, że u dorosłych najczęściej pasuje M lub L, i odeślij do „Tabela rozmiarów” na karcie produktu. Pomiędzy rozmiarami – podaj obie opcje i zaproponuj telefon do sklepu.",
 		),
 		array(
 			'title'    => 'Komplety w jednej grafice',
