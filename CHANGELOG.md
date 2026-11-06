@@ -1,5 +1,14 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.32.0
+- Nowe: Asystent AI (WooCommerce → Asystent AI) – czat w dymku na stronach sklepu (poza kasą), OpenAI z narzędziami; fakty wyłącznie ze sklepu.
+  - szukaj_produktow (własna wyszukiwarka foxa, filtr ceny, rozmiaru na stanie i „dla kogo”, termin wysyłki każdego rozmiaru, przedsprzedaż), szczegoly_produktu (opis, parametry, tabela rozmiarów, kask – obwód głowy, części kompletu i rabat za komplet), pokaz_produkty (karty z ceną, „Wysyłka dziś”, link ?src=asystent, „Do koszyka” przy produktach prostych).
+  - status_zamowienia: numer + telefon (ostatnie 9 cyfr), BaseLinker (status, zwroty, przesyłki z linkiem do śledzenia, PackingList bez kodów odbioru), zapas WooCommerce, 6 prób na godzinę; wytyczne do statusów w panelu.
+  - przekaz_do_obslugi: e-mail z całą rozmową (Reply-To klienta), opcjonalnie przycisk WhatsApp.
+  - Trening: instrukcje do tematów (4 startowe: badanie potrzeb, dobór kasku, rozmiary FOX, komplety) i case’y „Popraw tę odpowiedź” z rozmów, dobór po rdzeniach słów, tester.
+  - Statystyki: lejek (rozmowy → polecenia → klik → koszyk → zamówienie do 7 dni → z poleconym produktem), wartość, koszt OpenAI, dzień po dniu, „czego nie znalazł”; archiwum rozmów z wyszukiwaniem, filtrami i CSV; link do rozmowy w zamówieniu.
+  - Bezpieczeństwo: tryb testowy (tylko administratorzy), limity (IP, dzień, rozmowa, obsługa), walidacja wejścia, klucz tylko na serwerze, bez danych osobowych dla modelu.
+
 ## 3.31.2
 - Przeceny: „Tylko marki” (domyślnie FOX) – marka z pola marki produktu (WooCommerce Brands) albo atrybutu „Marka / Producent”, a gdy produkt jej nie ma – z nazwy.
 - Przeceny: „Tylko promocje” w kategoriach liczone zbiorczo i trzymane w pamięci (szybko przy 20 tys. produktów).
