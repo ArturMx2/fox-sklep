@@ -189,7 +189,7 @@
 	if (alertForm && window.fxWish) {
 		var $vf = $('form.variations_form');
 		$vf.on('found_variation', function (e, variation) {
-			var oos = variation && !variation.is_in_stock;
+			var oos = variation && !variation.is_in_stock && !variation.fx_ask;
 			alertForm.classList.toggle('fx-hide', !oos);
 			alertForm.querySelector('[name=variation_id]').value = oos ? variation.variation_id : 0;
 			alertForm.querySelector('.fx-alert__msg').textContent = '';
@@ -214,6 +214,58 @@
 			}).fail(function () {
 				msg.textContent = 'Błąd połączenia. Spróbuj ponownie.'; msg.classList.add('is-error');
 			}).always(function () { btn.disabled = false; });
+		});
+	}
+
+	/* ---------- Zapytaj o cenę (produkty za 0 zł) ---------- */
+	var ask = document.querySelector('[data-fx-ask]');
+	if (ask && window.fxWish) {
+		var askForm = ask.querySelector('form');
+		var askOpen = ask.querySelector('.fx-ask__open');
+		var $avf = $('form.variations_form');
+		var cartBits = function (show) {
+			$avf.find('.woocommerce-variation-add-to-cart').toggleClass('fx-hide', !show);
+		};
+		askOpen.addEventListener('click', function () {
+			var open = askForm.hidden;
+			askForm.hidden = !open;
+			askOpen.setAttribute('aria-expanded', open ? 'true' : 'false');
+			if (open) { askForm.querySelector('[name=contact]').focus(); }
+		});
+		$avf.on('found_variation', function (e, v) {
+			var on = !!(v && v.fx_ask);
+			ask.classList.toggle('fx-hide', !on);
+			askForm.querySelector('[name=variation_id]').value = on ? v.variation_id : 0;
+			cartBits(!on);
+		});
+		$avf.on('reset_data hide_variation', function () {
+			if (ask.hasAttribute('data-partial')) { ask.classList.add('fx-hide'); }
+			cartBits(true);
+		});
+		if (ask.classList.contains('fx-hide')) { ask.setAttribute('data-partial', '1'); }
+		askForm.addEventListener('submit', function (e) {
+			e.preventDefault();
+			var msg = askForm.querySelector('.fx-ask__msg');
+			var btn = askForm.querySelector('button[type=submit]');
+			var contact = askForm.querySelector('[name=contact]').value.trim();
+			msg.classList.remove('is-error');
+			if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact) && contact.replace(/\D/g, '').length < 9) {
+				msg.textContent = 'Podaj numer telefonu albo adres e-mail.'; msg.classList.add('is-error'); return;
+			}
+			btn.disabled = true;
+			$.post(window.fxWish.url.replace('%%endpoint%%', 'fx_price_ask'), {
+				contact: contact,
+				message: askForm.querySelector('[name=message]').value,
+				website: askForm.querySelector('[name=website]').value,
+				product_id: ask.getAttribute('data-product'),
+				variation_id: askForm.querySelector('[name=variation_id]').value
+			}).done(function (res) {
+				msg.textContent = (res && res.data && res.data.message) || 'Dziękujemy!';
+				msg.classList.toggle('is-error', !(res && res.success));
+				if (res && res.success) { askForm.querySelectorAll('input:not([type=hidden]),textarea,button').forEach(function (el) { el.disabled = true; }); }
+			}).fail(function () {
+				msg.textContent = 'Błąd połączenia. Spróbuj ponownie albo zadzwoń.'; msg.classList.add('is-error');
+			}).always(function () { if (!askForm.querySelector('textarea').disabled) { btn.disabled = false; } });
 		});
 	}
 

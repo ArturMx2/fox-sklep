@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.37.0
+- Nowy moduł „Zapytaj o cenę” (inc/modules/price-ask.php): produkty i warianty z ceną 0 zł (albo bez ceny) nie są do kupienia – także gdy już leżały w koszyku.
+- Zamiast „0,00 zł” – „Cena na zapytanie” (karta produktu, kategorie, wyszukiwarka). Przy produktach wariantowych zakres ceny / „Od…” liczy się bez wariantów za 0 zł.
+- Na karcie produktu przycisk „Zapytaj o cenę”: rozwija formularz (telefon lub e-mail + wiadomość), zapytanie idzie e-mailem do sklepu (adres z ustawień asystenta, inaczej nadawca WooCommerce) z nazwą, wariantem, SKU i linkiem; obok telefon sklepu. Przy wariantowym przycisk zastępuje „Do koszyka” tylko po wybraniu rozmiaru za 0 zł. Ochrona: pole-pułapka i limit 5 zapytań / 10 min.
+
 ## 3.36.3
 - Asystent AI: nie wypisuje modeli w tekście i nie pyta „pokazać karty?”. Gdy wyszukał produkty, a nie pokazał kart, motyw pokazuje je sam (do 5 na rodzaj), a pytanie o pokazanie znika z odpowiedzi. Gdy potrzeba jest zbyt ogólna – najpierw pyta, bez wymieniania modeli.
 

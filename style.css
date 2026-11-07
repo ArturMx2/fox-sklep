@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.36.3
+Version: 3.37.0
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -608,6 +608,16 @@ button,input,select,textarea{font:inherit;color:inherit}
 .fx-alert__msg{font-size:14px;font-weight:500;margin-top:8px}
 .fx-alert__msg:empty{display:none}
 .fx-alert__msg.is-error,.fx-kit__msg.is-error{color:var(--fx-sale)}
+.fx-ask{margin:8px 0 18px}
+.fx-ask__form{background:var(--fx-soft);padding:16px;margin-top:10px;display:flex;flex-direction:column;gap:8px}
+.fx-ask__form[hidden]{display:none}
+.fx-ask__lead{margin:0;font-size:14px}
+.fx-ask__form input[type=text],.fx-ask__form textarea{width:100%;min-height:48px;border:1.5px solid #cfccc5;padding:10px 14px;background:#fff;font:inherit;font-size:16px}
+.fx-ask__msg{font-size:14px;font-weight:600;color:#14783c}
+.fx-ask__msg.is-error{color:#c0392b}
+.fx-ask__tel{margin:10px 0 0;font-size:14px;color:var(--fx-muted)}
+.fx-ask__tel a{color:inherit;font-weight:700}
+.fx-ask-price{font-weight:700}
 .fx-hp{position:absolute!important;left:-9999px!important;width:1px;height:1px;opacity:0}
 
 /* Obwód głowy przy zamówieniu kasku (style z dotychczasowego kodu, w kolorach motywu) */
