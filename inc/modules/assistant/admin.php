@@ -115,6 +115,28 @@ add_action( 'admin_post_fx_ai', function () {
 			}
 			$msg = 'case' === $type ? 'Case zapisany.' : 'Instrukcja zapisana.';
 			break;
+		case 'reset':
+			$tab   = 'rozmowy';
+			$scope = sanitize_key( $in['scope'] ?? '' );
+			if ( 'TAK' !== strtoupper( trim( (string) ( $in['confirm'] ?? '' ) ) ) ) {
+				$msg = 'Nic nie usunięto – wpisz TAK w polu potwierdzenia.';
+				break;
+			}
+			$t = fx_ai_table( 'chat' );
+			if ( 'all' === $scope ) {
+				$n = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t}" ); // phpcs:ignore
+				$wpdb->query( "TRUNCATE TABLE {$t}" ); // phpcs:ignore
+			} else {
+				$n = (int) $wpdb->query( "DELETE FROM {$t} WHERE test = 1" ); // phpcs:ignore
+			}
+			if ( ! empty( $in['reset_used'] ) ) {
+				$wpdb->query( 'UPDATE ' . fx_ai_table( 'kb' ) . ' SET used = 0' ); // phpcs:ignore
+			}
+			// Case’y zostają – tracą tylko link do usuniętej rozmowy.
+			$wpdb->query( 'UPDATE ' . fx_ai_table( 'kb' ) . " SET chat_id = 0 WHERE chat_id > 0 AND chat_id NOT IN (SELECT id FROM {$t})" ); // phpcs:ignore
+			delete_option( 'fx_ai_errors' );
+			$msg = 'Usunięto rozmów: ' . $n . ( 'all' === $scope ? ' (wszystkie – statystyki od zera)' : ' (testowe)' ) . '. Instrukcje i case’y w Treningu zostały.';
+			break;
 		case 'kb_del':
 			$tab = 'trening';
 			$wpdb->delete( fx_ai_table( 'kb' ), array( 'id' => absint( $in['id'] ?? 0 ) ) );
@@ -349,6 +371,7 @@ function fx_ai_tab_rozmowy() {
 		echo '<tr><td colspan="9">Brak rozmów.</td></tr>';
 	}
 	echo '</tbody></table>';
+	fx_ai_reset_form();
 	if ( $total > 50 ) {
 		echo '<p>';
 		for ( $i = 1; $i <= ceil( $total / 50 ) && $i <= 40; $i++ ) {
@@ -356,6 +379,22 @@ function fx_ai_tab_rozmowy() {
 		}
 		echo '</p>';
 	}
+}
+
+/** „Wyczyść dane” – rozmowy testowe albo wszystkie (statystyki liczą się z rozmów). */
+function fx_ai_reset_form() {
+	global $wpdb;
+	$t    = fx_ai_table( 'chat' );
+	$all  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t}" ); // phpcs:ignore
+	$test = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t} WHERE test = 1" ); // phpcs:ignore
+	echo '<details class="card" style="margin-top:24px;max-width:900px"><summary style="cursor:pointer;font-weight:600">Wyczyść dane (rozmowy i statystyki)</summary>';
+	echo '<p>Statystyki liczą się z zapisanych rozmów, więc usunięcie rozmów zeruje też statystyki za ten okres. <strong>Instrukcje i case’y w Treningu zostają.</strong> Tego nie da się cofnąć – jeśli chcesz zachować kopię, najpierw zrób „Eksport CSV”.</p>';
+	fx_ai_form_open( 'reset', ' onsubmit="return confirm(\'Na pewno usunąć wybrane rozmowy? Tego nie da się cofnąć.\')"' );
+	echo '<p><label><input type="radio" name="scope" value="test" checked> tylko rozmowy testowe – z trybu testowego (' . (int) $test . ')</label><br><label><input type="radio" name="scope" value="all"> wszystkie rozmowy i statystyki (' . (int) $all . ')</label></p>';
+	echo '<p><label><input type="checkbox" name="reset_used" value="1" checked> wyzeruj też liczniki „Użyto” w Treningu</label></p>';
+	echo '<p>Wpisz <strong>TAK</strong>, aby potwierdzić: <input type="text" name="confirm" size="5" autocomplete="off"> ';
+	submit_button( 'Usuń', 'delete', 'submit', false );
+	echo '</p></form></details>';
 }
 
 function fx_ai_chat_view( $id ) {

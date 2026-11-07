@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.35.1
+- Asystent AI: „Wyczyść dane” w zakładce Rozmowy – usunięcie tylko rozmów testowych (z trybu testowego) albo wszystkich rozmów i statystyk, opcjonalnie wyzerowanie liczników „Użyto”; potwierdzenie wpisaniem TAK. Instrukcje i case’y w Treningu zostają (tracą tylko link do usuniętej rozmowy).
+
 ## 3.35.0
 - Asystent AI – każdy produkt osobno: zapytanie o kilka rodzajów naraz („kask, rękawice i gogle”) jest dzielone na osobne wyszukiwania; wynik musi być tego rodzaju produktu (nazwa albo kategoria); asystent omawia produkty po kolei, każdy z własnym rozmiarem.
 - Dobór rozmiaru po wzroście, wadze, wieku, pasie, klatce i obwodzie głowy z tabeli konkretnego modelu (wierszowe i kolumnowe tabele; przy różnych wskazaniach – większy rozmiar); dopasuj_rozmiar zwraca też pełny tekst tabeli. Komplet cross można dobrać po wzroście i wadze.
