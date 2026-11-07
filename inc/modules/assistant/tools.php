@@ -36,6 +36,9 @@ function fx_ai_tool_defs() {
 			'wymiar'     => array( 'type' => 'string', 'enum' => array( 'obwod_glowy', 'pas', 'klatka', 'wzrost', 'stopa', 'biodra' ) ),
 			'wartosc_cm' => array( 'type' => 'number' ),
 		), array( 'id', 'wymiar', 'wartosc_cm' ) ),
+		$f( 'sprawdz_u_producenta', 'Sprawdza informacje o produkcie na stronach FOX (foxracing.co.uk, foxracing.com) po numerze modelu z SKU albo EAN: opis, specyfikację, materiał, pojemność, wagę, technologie. Używaj, gdy klient pyta o konkretny parametr, którego nie ma w szczegoly_produktu.', array(
+			'id' => array( 'type' => 'integer' ),
+		), array( 'id' ) ),
 		$f( 'pokaz_produkty', 'Pokazuje klientowi karty produktów pod odpowiedzią (zdjęcie, cena, link). Używaj ZAWSZE, gdy polecasz produkty. 2–6 id z wyników narzędzi.', array(
 			'ids' => array( 'type' => 'array', 'items' => array( 'type' => 'integer' ), 'minItems' => 1, 'maxItems' => 6 ),
 		), array( 'ids' ) ),
@@ -60,6 +63,8 @@ function fx_ai_run_tool( $name, array $a ) {
 			return fx_ai_tool_details( (int) ( $a['id'] ?? 0 ) );
 		case 'dopasuj_rozmiar':
 			return fx_ai_tool_fit( (int) ( $a['id'] ?? 0 ), (string) ( $a['wymiar'] ?? '' ), (float) ( $a['wartosc_cm'] ?? 0 ) );
+		case 'sprawdz_u_producenta':
+			return function_exists( 'fx_ai_tool_fox' ) ? fx_ai_tool_fox( (int) ( $a['id'] ?? 0 ) ) : array( 'blad' => 'Niedostępne.' );
 		case 'pokaz_produkty':
 			return fx_ai_tool_show( (array) ( $a['ids'] ?? array() ) );
 		case 'status_zamowienia':
@@ -551,6 +556,7 @@ function fx_ai_tool_details( $id ) {
 		}
 	}
 	$out['link'] = get_permalink( $p->get_id() );
+	$out['brak_danych'] = 'Jeśli klient pyta o parametr, którego tu nie ma (materiał, pojemność, waga, technologia…) – użyj sprawdz_u_producenta z tym id, zanim powiesz, że nie wiesz.';
 	return $out;
 }
 

@@ -15,6 +15,7 @@ define( 'FX_AI_DIR', __DIR__ . '/assistant/' );
 require FX_AI_DIR . 'core.php';
 require FX_AI_DIR . 'tools.php';
 require FX_AI_DIR . 'order.php';
+require FX_AI_DIR . 'web.php';
 require FX_AI_DIR . 'ai.php';
 if ( is_admin() ) {
 	require FX_AI_DIR . 'admin.php';

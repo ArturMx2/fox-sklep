@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.34.0
+- Asystent AI: nowe narzędzie sprawdz_u_producenta – gdy klient pyta o cechę produktu, której nie ma w danych sklepu (materiał, pojemność, waga, technologia), asystent sprawdza foxracing.co.uk, potem foxracing.com: po numerze modelu z SKU (np. 36248_001_OS → 36248-001-OS / 36248), a gdy nie trafi – wyszukiwarką producenta po modelu i EAN.
+- Ze strony brany jest tylko opis i specyfikacja (bez menu, stopki, polecanych); bezpiecznik – strona musi zawierać numer modelu. Asystent podaje, że to informacja producenta FOX, i nie dopisuje nic od siebie. Pamięć 7 dni (brak wyniku – 1 dzień), limity zapytań.
+
 ## 3.33.0
 - Asystent AI: zaczepka dopasowana do strony – kask („Nie wiesz, jaki rozmiar kasku…? Podaj obwód głowy”), produkt z kompletu („Dobrać resztę stroju w tej samej grafice?”), produkt, kategoria, koszyk, brak wyników wyszukiwania, strona główna. Po kilku sekundach albo po przewinięciu 40% strony, raz na typ strony, maks. 3 na wizytę, nie po rozpoczęciu rozmowy.
 - Po otwarciu czatu ta sama zaczepka jest pierwszą wiadomością, a szybkie pytania dopasowują się do strony (kask: rozmiar, gogle; komplet: reszta stroju; koszyk: dostawa, zwrot).
