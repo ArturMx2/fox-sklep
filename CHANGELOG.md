@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.36.3
+- Asystent AI: nie wypisuje modeli w tekście i nie pyta „pokazać karty?”. Gdy wyszukał produkty, a nie pokazał kart, motyw pokazuje je sam (do 5 na rodzaj), a pytanie o pokazanie znika z odpowiedzi. Gdy potrzeba jest zbyt ogólna – najpierw pyta, bez wymieniania modeli.
+
 ## 3.36.2
 - Asystent AI: nie pyta o wagę. Rozmiar dobiera po wzroście (dzieci: wiek i wzrost), a do doprecyzowania – obwód klatki piersiowej (bluzy, kurtki) albo obwód bioder lub pasa (spodnie); kask – obwód głowy. Waga liczy się tylko, gdy klient sam ją poda.
 - Dobór rozmiaru: nowy wymiar „obwód bioder” (biodra_cm) z tabel rozmiarów.

@@ -118,7 +118,8 @@ function fx_ai_system( array $ctx, array $kb ) {
 15. NIGDY nie piszę „nie mamy”, „nie ma” ani „brak”. Gdy nie ma dokładnie tego, o co klient prosi (rozmiar, kolor, model), pokazuję najbliższe dostępne propozycje (narzędzie samo poszerza wyszukiwanie) i mówię wprost, czym się różnią. Gdy nie ma żadnej propozycji – piszę, że sprawdzimy dostępność albo zamówimy, podaję telefon sklepu i pokazuję okienko „Zostaw numer” (pokaz_formularz_telefonu).
 16. Każdy produkt dobieram OSOBNO: jedno wyszukiwanie = jeden rodzaj produktu (bluza, spodnie, kask, rękawice, gogle, buty). Przy kilku produktach omawiam je po kolei, każdy z własnym rozmiarem z tabeli modelu.
 17. Rozmiar: NIE pytam o wagę. Pytam o wzrost (dzieci: wiek i wzrost); gdy trzeba doprecyzować – przy bluzach, kurtkach i koszulkach o obwód klatki piersiowej, przy spodniach o obwód bioder (lub pasa); przy kasku o obwód głowy. Potem dopasuj_rozmiar dla konkretnego modelu. Wagę uwzględniam tylko, gdy klient sam ją podał. U dzieci rozmiary są juniorskie (YS–YXL, spodnie junior w calach) – „M” dla dziecka to zwykle YM.
-18. Słowo, którego nie rozumiem (np. „buzzer”, „nitro”, „ranger”, „flexair”) to najpewniej nazwa modelu, grafiki albo kolekcji FOX – NAJPIERW szukam go narzędziem szukaj_produktow (z rodzajem produktu z rozmowy, a gdy nic – samą frazą). Nigdy nie pytam klienta, co oznacza nazwa, zanim jej nie wyszukam.";
+18. Słowo, którego nie rozumiem (np. „buzzer”, „nitro”, „ranger”, „flexair”) to najpewniej nazwa modelu, grafiki albo kolekcji FOX – NAJPIERW szukam go narzędziem szukaj_produktow (z rodzajem produktu z rozmowy, a gdy nic – samą frazą). Nigdy nie pytam klienta, co oznacza nazwa, zanim jej nie wyszukam.
+19. NIGDY nie wypisuję produktów w tekście (listy modeli z rozmiarami) i NIGDY nie pytam „pokazać karty?”. Gdy wiem, czego klient szuka – od razu pokaz_produkty, a w tekście jedno zdanie (model i rozmiar) plus ewentualnie jedno pytanie doprecyzowujące (np. dla kogo, rozmiar, kolor). Gdy potrzeba jest zbyt ogólna, najpierw pytam (bez wyszukiwania i bez wymieniania modeli).";
 	$facts   = array();
 	$facts[] = 'Wysyłka tego samego dnia: produkty z oznaczeniem „wysyłka dziś” przy zamówieniu do ' . $cut . ' w dzień roboczy; pozostałe – zwykle następnego dnia roboczego (dokładny termin podaje narzędzie).';
 	if ( function_exists( 'fx_tool' ) ) {
@@ -142,7 +143,7 @@ function fx_ai_system( array $ctx, array $kb ) {
 	} else {
 		$lines[] = 'ZASADY SKLEPU: brak w panelu – o dostawę, zwroty i płatności odsyłam do strony sklepu albo telefonu.';
 	}
-	if ( $ctx['product'] ) {
+	if ( ! empty( $ctx['product'] ) ) {
 		$p = wc_get_product( $ctx['product'] );
 		if ( $p && 'publish' === $p->get_status() ) {
 			$lines[] = 'KLIENT OGLĄDA TERAZ PRODUKT: „' . $p->get_name() . '” (id ' . $p->get_id() . '). Gdy pyta o „ten produkt” / rozmiar / dostępność – użyj szczegoly_produktu z tym id.';
@@ -303,7 +304,29 @@ function fx_ai_answer( array $msgs, array $ctx, $dry = false ) {
 	// Bez markdownu: pogrubienia i nagłówki → zwykły tekst.
 	$out['text']     = trim( preg_replace( array( '/\*\*(.+?)\*\*/s', '/^#+\s*/m', '/\[([^\]]+)\]\((https?:[^)]+)\)/' ), array( '$1', '', '$1' ), $out['text'] ) );
 	$out['tools']    = array_values( array_unique( $out['tools'] ) );
-	$out['cards']    = fx_ai_cards( fx_ai_fill_cards( array_map( 'intval', $GLOBALS['fx_ai_run']['cards'] ) ) );
+	$shown = array_map( 'intval', $GLOBALS['fx_ai_run']['cards'] );
+	// Model wyszukał produkty, ale nie pokazał kart (np. wypisał je w tekście albo pyta „pokazać?”) – pokazujemy od razu.
+	if ( ! $shown && ! empty( $GLOBALS['fx_ai_run']['last']['ids'] ) && in_array( 'szukaj_produktow', $out['tools'], true ) ) {
+		$seen = array();
+		foreach ( array_map( 'intval', $GLOBALS['fx_ai_run']['last']['ids'] ) as $id ) {
+			$t = fx_ai_product_type( $id );
+			if ( ! isset( $seen[ $t ] ) ) {
+				$seen[ $t ] = 1;
+				$shown[]    = $id; // pierwszy z każdego rodzaju – resztę dołoży fx_ai_fill_cards
+			}
+		}
+	}
+	$out['cards']    = fx_ai_cards( fx_ai_fill_cards( $shown ) );
+	if ( $out['cards'] ) { // karty już są – bez pytania „pokazać?”
+		$out['text'] = trim( preg_replace( '/[^.!?\n]*(pokaza[ćcł]\w*|pokażę|pokaze)[^.!?\n]*(kart|propozycj|produkt|je|ich)[^.!?\n]*\?/iu', '', $out['text'] ) );
+		$out['text'] = trim( preg_replace_callback( '/\s*Je[sś]li tak,\s*(\p{L})/u', function ( $m ) {
+			return ' ' . mb_strtoupper( $m[1], 'UTF-8' );
+		}, $out['text'] ) );
+		$out['text'] = trim( preg_replace( '/\n{3,}/', "\n\n", $out['text'] ) );
+		if ( '' === $out['text'] ) {
+			$out['text'] = 'Oto propozycje:';
+		}
+	}
 	$out['more']     = null;
 	$out['groups']   = $out['cards'] ? fx_ai_card_groups( $out['cards'] ) : array();
 	$out['notfound'] = $GLOBALS['fx_ai_run']['notfound'];
