@@ -26,10 +26,11 @@ function fx_ai_tool_defs() {
 			'rozmiar'        => array( 'type' => 'string', 'description' => 'NAZWA rozmiaru, który musi być na stanie, np. M, XL, 32 (spodnie w calach), YM, 10 (buty US). NIE wpisuj tu centymetrów (np. obwodu głowy 58) – do tego jest obwod_glowy_cm. Pomiń, gdy klient nie podał.' ),
 			'obwod_glowy_cm' => array( 'type' => 'number', 'description' => 'Dla kasków: obwód głowy klienta w cm (np. 58). Rozmiar zostanie dobrany osobno dla każdego modelu z jego tabeli rozmiarów.' ),
 			'wzrost_cm'      => array( 'type' => 'number', 'description' => 'Wzrost osoby w cm – do doboru rozmiaru bluz, spodni, kompletów (osobno dla każdego modelu z jego tabeli).' ),
-			'waga_kg'        => array( 'type' => 'number' ),
+			'waga_kg'        => array( 'type' => 'number', 'description' => 'Tylko gdy klient SAM podał wagę – nie pytaj o nią.' ),
 			'wiek'           => array( 'type' => 'number', 'description' => 'Wiek dziecka w latach (rozmiary juniorskie).' ),
 			'pas_cm'         => array( 'type' => 'number', 'description' => 'Obwód pasa w cm (spodnie).' ),
 			'klatka_cm'      => array( 'type' => 'number', 'description' => 'Obwód klatki piersiowej w cm (bluzy, kurtki).' ),
+			'biodra_cm'      => array( 'type' => 'number', 'description' => 'Obwód bioder w cm (spodnie, szczególnie damskie).' ),
 			'dla_kogo'       => array( 'type' => 'string', 'enum' => array( 'meskie', 'damskie', 'junior', 'dzieciece' ) ),
 			'kolor'          => array( 'type' => 'string', 'description' => 'Kolor, którego szuka klient, po polsku, np. „czarny”, „biały”, „czerwony”, „niebieski”, „różowy”, „camo”. Kilka kolorów – oddziel przecinkiem („czarny, szary”). Pomiń, gdy klientowi kolor jest obojętny. NIE dopisuj koloru do pola zapytanie.' ),
 			'tylko_dostepne' => array( 'type' => 'boolean', 'description' => 'Domyślnie true' ),
@@ -37,13 +38,14 @@ function fx_ai_tool_defs() {
 		$f( 'szczegoly_produktu', 'Szczegóły produktu: opis, parametry, rozmiary na stanie z terminem wysyłki, tabela rozmiarów, części kompletu w tej samej grafice.', array(
 			'id' => array( 'type' => 'integer' ),
 		), array( 'id' ) ),
-		$f( 'dopasuj_rozmiar', 'Dobiera rozmiar KONKRETNEGO modelu z jego tabeli rozmiarów na podstawie wymiarów osoby (wzrost, waga, wiek, pas, klatka, obwód głowy) i mówi, czy ten rozmiar jest na stanie. Zwraca też pełny tekst tabeli. Rozmiary różnią się między modelami – używaj dla każdego produktu osobno.', array(
+		$f( 'dopasuj_rozmiar', 'Dobiera rozmiar KONKRETNEGO modelu z jego tabeli rozmiarów na podstawie wymiarów osoby (wzrost, u dzieci wiek, obwód klatki, pasa, bioder, głowy; waga tylko gdy klient sam ją podał) i mówi, czy ten rozmiar jest na stanie. Zwraca też pełny tekst tabeli. Rozmiary różnią się między modelami – używaj dla każdego produktu osobno.', array(
 			'id'             => array( 'type' => 'integer' ),
 			'wzrost_cm'      => array( 'type' => 'number' ),
 			'waga_kg'        => array( 'type' => 'number' ),
 			'wiek'           => array( 'type' => 'number' ),
 			'pas_cm'         => array( 'type' => 'number' ),
 			'klatka_cm'      => array( 'type' => 'number' ),
+			'biodra_cm'      => array( 'type' => 'number' ),
 			'obwod_glowy_cm' => array( 'type' => 'number' ),
 			'stopa_cm'       => array( 'type' => 'number' ),
 		), array( 'id' ) ),
@@ -236,7 +238,7 @@ function fx_ai_size_set( $size, $kid ) {
 
 /** Wymiary klienta z parametrów narzędzia: [ rodzaj => wartość ]. */
 function fx_ai_measures( array $a ) {
-	$map = array( 'obwod_glowy_cm' => 'obwod_glowy', 'wzrost_cm' => 'wzrost', 'waga_kg' => 'waga', 'pas_cm' => 'pas', 'klatka_cm' => 'klatka', 'wiek' => 'wiek', 'stopa_cm' => 'stopa' );
+	$map = array( 'obwod_glowy_cm' => 'obwod_glowy', 'wzrost_cm' => 'wzrost', 'waga_kg' => 'waga', 'pas_cm' => 'pas', 'klatka_cm' => 'klatka', 'biodra_cm' => 'biodra', 'wiek' => 'wiek', 'stopa_cm' => 'stopa' );
 	$out = array();
 	foreach ( $map as $k => $kind ) {
 		if ( isset( $a[ $k ] ) && (float) str_replace( ',', '.', (string) $a[ $k ] ) > 0 ) {
@@ -471,7 +473,7 @@ function fx_ai_search_wide( array $a, $limit ) {
 	}
 	$base = '' !== $noc ? $noc : $q;
 	$b2   = $a;
-	unset( $b2['kolor'], $b2['rozmiar'], $b2['obwod_glowy_cm'], $b2['wzrost_cm'], $b2['waga_kg'], $b2['pas_cm'], $b2['klatka_cm'], $b2['wiek'], $b2['stopa_cm'] );
+	unset( $b2['kolor'], $b2['rozmiar'], $b2['obwod_glowy_cm'], $b2['wzrost_cm'], $b2['waga_kg'], $b2['pas_cm'], $b2['klatka_cm'], $b2['biodra_cm'], $b2['wiek'], $b2['stopa_cm'] );
 	if ( $b2 !== $a ) {
 		$steps[] = array( array_merge( $b2, array( 'zapytanie' => $base ) ), 'w tym rozmiarze nic nie ma na stanie – pokazuję te modele w dostępnych rozmiarach' );
 	}
@@ -770,7 +772,7 @@ function fx_ai_tool_fit( $id, array $a ) {
 		$meas[ sanitize_key( $a['wymiar'] ) ] = (float) $a['wartosc_cm'];
 	}
 	if ( ! $meas ) {
-		return array( 'blad' => 'Podaj wymiary klienta: wzrost (cm), waga (kg), u dzieci wiek; przy kaskach obwód głowy; przy spodniach opcjonalnie obwód pasa.' );
+		return array( 'blad' => 'Podaj wymiary klienta: wzrost (cm), u dzieci wiek; przy bluzach/kurtkach opcjonalnie obwód klatki, przy spodniach obwód pasa lub bioder; przy kaskach obwód głowy. Nie pytaj o wagę.' );
 	}
 	$fit   = fx_ai_fit_multi( $p, $meas );
 	$sizes = fx_ai_sizes( $p );
@@ -794,7 +796,7 @@ function fx_ai_tool_fit( $id, array $a ) {
 		}
 		$out['dostepnosc'] = null === $stock ? 'ten rozmiar jest chwilowo niedostępny – zaproponuj inny model w tym rozmiarze (szukaj_produktow z tymi wymiarami); nie pisz „nie mamy”' : 'na stanie: ' . $stock;
 	} elseif ( ! empty( $out['tabela_tekst'] ) ) {
-		$out['wynik'] = 'Automat nie dopasował rozmiaru – odczytaj go sam z tabela_tekst (wzrost/waga/wiek/pas). Jeśli tabela nie podaje tych wymiarów, poproś o inny wymiar z tabeli albo zaproponuj telefon do sklepu.';
+		$out['wynik'] = 'Automat nie dopasował rozmiaru – odczytaj go sam z tabela_tekst (wzrost/wiek/klatka/pas/biodra). Jeśli tabela nie podaje tych wymiarów, poproś o inny wymiar z tabeli albo zaproponuj telefon do sklepu.';
 	} else {
 		$out['wynik'] = 'Ten model nie ma tabeli rozmiarów w formie tekstu. Dorośli: najczęściej M lub L; dzieci: zaproponuj telefon do sklepu albo „Zostaw numer” – pomożemy dobrać. Nie zgaduj na pewno.';
 	}

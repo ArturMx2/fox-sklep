@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.36.2
+- Asystent AI: nie pyta o wagę. Rozmiar dobiera po wzroście (dzieci: wiek i wzrost), a do doprecyzowania – obwód klatki piersiowej (bluzy, kurtki) albo obwód bioder lub pasa (spodnie); kask – obwód głowy. Waga liczy się tylko, gdy klient sam ją poda.
+- Dobór rozmiaru: nowy wymiar „obwód bioder” (biodra_cm) z tabel rozmiarów.
+- Instrukcje startowe „Badanie potrzeb” i „Rozmiary FOX” zaktualizowane (tylko gdy nie były zmieniane w panelu).
+
 ## 3.36.1
 - Asystent AI: nieznane słowo (np. „buzzer”, „nitro”) najpierw wyszukuje w sklepie, zamiast pytać klienta, co znaczy. Krótka fraza klienta jest od razu sprawdzana wyszukiwarką sklepu (także z literówką) – gdy pasują produkty, model dostaje ich nazwy i pokazuje karty. Sam rodzaj, kolor czy rozmiar („kask”, „czarne”, „XL”) nie włącza podpowiedzi – wtedy zostaje zwykły wywiad.
 

@@ -8,7 +8,7 @@
 defined( 'ABSPATH' ) || exit;
 
 define( 'FX_AI_OPT', 'fx_ai_settings' );
-define( 'FX_AI_DB', 4 );
+define( 'FX_AI_DB', 5 );
 
 /* =====================================================================
  * Ustawienia
@@ -138,8 +138,8 @@ function fx_ai_install() {
 	// Aktualizacja instrukcji startowych – tylko tych, których nikt nie zmienił w panelu.
 	$old = array(
 		'Dobór kasku'     => array( 'f398d727253c3895d58c2dd29dd1a416' ),
-		'Rozmiary FOX'    => array( '09186e1aac6bb1b0b5905ecb7f585824', '1a5662d9fcc9bb2556d5ddf45b09ccbc' ),
-		'Badanie potrzeb' => array( 'c0a16c6e5f98ecd1eb1f84051b29d0e5' ),
+		'Rozmiary FOX'    => array( '09186e1aac6bb1b0b5905ecb7f585824', '1a5662d9fcc9bb2556d5ddf45b09ccbc', 'a93a6c51e08f6b737375f42c3eba9347' ),
+		'Badanie potrzeb' => array( 'c0a16c6e5f98ecd1eb1f84051b29d0e5', '6860a7203bb988be1294db31eaffe45d' ),
 	);
 	if ( get_option( 'fx_ai_seeded' ) ) {
 		foreach ( fx_ai_starter_kb() as $row ) {
@@ -167,7 +167,7 @@ function fx_ai_starter_kb() {
 			'title'    => 'Badanie potrzeb',
 			'always'   => 1,
 			'keywords' => '',
-			'body'     => "Zanim polecisz sprzęt, ustal po kolei – pytaj tylko o to, czego klient jeszcze nie powiedział, maksymalnie 2 pytania naraz:\n1. Świat i dyscyplina: Moto (MX/cross, enduro, ADV, quad) czy Rower (MTB enduro, trail, downhill, gravel/XC, rekreacja).\n2. Dla kogo: mężczyzna, kobieta, junior/dziecko (u dzieci zapytaj o wiek).\n3. Rodzaj produktu. Gdy klient chce kilka rzeczy (np. komplet + kask + rękawice + gogle) – dobieraj KAŻDY PRODUKT OSOBNO, po kolei: najpierw jeden (np. bluza i spodnie), potem kask, potem rękawice, potem gogle. Dla każdego osobne wyszukiwanie i osobny rozmiar.\n4. Wymiary do rozmiaru: dorośli – wzrost (cm) i waga (kg), przy spodniach opcjonalnie obwód pasa; dzieci – wiek, wzrost i waga; kask – obwód głowy. Rozmiar dobierz z tabeli KONKRETNEGO modelu (dopasuj_rozmiar albo szukaj_produktow z wzrost_cm/waga_kg/wiek/obwod_glowy_cm). Komplet cross (bluza + spodnie) można dobrać po wzroście i wadze.\n5. Kolor / grafika, budżet orientacyjny, ważne cechy (wentylacja, wodoodporność, ochrona).\nGdy znasz rodzaj i wymiary – pokaż 2–4 produkty z pasującym rozmiarem i przejdź do następnego produktu. Klienta, który wie, czego chce, nie przesłuchuj.\nNigdy nie pisz „nie mamy”: gdy nie ma dokładnie tego, pokaż najbliższe propozycje i powiedz, czym się różnią; gdy nie ma nic – telefon sklepu i okienko „Zostaw numer”.",
+			'body'     => "Zanim polecisz sprzęt, ustal po kolei – pytaj tylko o to, czego klient jeszcze nie powiedział, maksymalnie 2 pytania naraz:\n1. Świat i dyscyplina: Moto (MX/cross, enduro, ADV, quad) czy Rower (MTB enduro, trail, downhill, gravel/XC, rekreacja).\n2. Dla kogo: mężczyzna, kobieta, junior/dziecko (u dzieci zapytaj o wiek).\n3. Rodzaj produktu. Gdy klient chce kilka rzeczy (np. komplet + kask + rękawice + gogle) – dobieraj KAŻDY PRODUKT OSOBNO, po kolei: najpierw jeden (np. bluza i spodnie), potem kask, potem rękawice, potem gogle. Dla każdego osobne wyszukiwanie i osobny rozmiar.\n4. Wymiary do rozmiaru – NIE pytaj o wagę: dorośli – wzrost (cm); do doprecyzowania bluzy/kurtki – obwód klatki piersiowej, spodnie – obwód bioder (lub pasa); dzieci – wiek i wzrost; kask – obwód głowy. Rozmiar dobierz z tabeli KONKRETNEGO modelu (dopasuj_rozmiar albo szukaj_produktow z wzrost_cm/klatka_cm/biodra_cm/pas_cm/wiek/obwod_glowy_cm). Komplet cross (bluza + spodnie) można dobrać po wzroście.\n5. Kolor / grafika, budżet orientacyjny, ważne cechy (wentylacja, wodoodporność, ochrona).\nGdy znasz rodzaj i wymiary – pokaż 2–4 produkty z pasującym rozmiarem i przejdź do następnego produktu. Klienta, który wie, czego chce, nie przesłuchuj.\nNigdy nie pisz „nie mamy”: gdy nie ma dokładnie tego, pokaż najbliższe propozycje i powiedz, czym się różnią; gdy nie ma nic – telefon sklepu i okienko „Zostaw numer”.",
 		),
 		array(
 			'title'    => 'Dobór kasku',
@@ -179,7 +179,7 @@ function fx_ai_starter_kb() {
 			'title'    => 'Rozmiary FOX',
 			'always'   => 0,
 			'keywords' => 'rozmiar, rozmiary, rozmiarówka, rozmiaru, size, jaki rozmiar, uciska, mały, duży, tabela, cm, pas, wzrost, waga, junior, dziecko, dziecka, syn, córka, lat',
-			'body'     => "Rozmiar dobieraj zawsze dla KONKRETNEGO modelu z jego tabeli rozmiarów – dopasuj_rozmiar z wymiarami osoby (wzrost cm, waga kg, u dzieci wiek; spodnie – opcjonalnie pas; kask – obwód głowy). Centymetry to nie nazwa rozmiaru.\nWywiad: dorośli – zapytaj o wzrost i wagę; dzieci – o wiek, wzrost i wagę. Gdy wymiary wskazują dwa rozmiary – podaj większy (dzieci rosną) i zaproponuj telefon do sklepu.\nNazwy rozmiarów FOX: dorośli – bluzy i odzież S–XXL, spodnie moto w calach w pasie (28–38); junior/dzieci – rozmiary z literą Y: YS, YM, YL, YXL (bluzy, rękawice, kaski), spodnie junior w calach (np. 22–28), najmłodsze dzieci – K/Kids. Gdy klient pisze „M” dla dziecka – dopytaj, czy chodzi o rozmiar dziecięcy YM (narzędzie traktuje M i YM u dzieci tak samo).\nKlient nie zna wymiarów: poproś o pomiar; jeśli nie może – dorośli najczęściej M lub L; dzieci – telefon do sklepu albo okienko „Zostaw numer”, pomożemy dobrać.",
+			'body'     => "Rozmiar dobieraj zawsze dla KONKRETNEGO modelu z jego tabeli rozmiarów – dopasuj_rozmiar z wymiarami osoby (wzrost cm, u dzieci wiek; bluzy/kurtki – obwód klatki; spodnie – obwód bioder lub pasa; kask – obwód głowy). Centymetry to nie nazwa rozmiaru.\nWywiad: NIE pytaj o wagę. Dorośli – zapytaj o wzrost, a gdy trzeba doprecyzować: przy bluzach/kurtkach o obwód klatki piersiowej, przy spodniach o obwód bioder; dzieci – o wiek i wzrost. Gdy wymiary wskazują dwa rozmiary – podaj większy (dzieci rosną) i zaproponuj telefon do sklepu.\nNazwy rozmiarów FOX: dorośli – bluzy i odzież S–XXL, spodnie moto w calach w pasie (28–38); junior/dzieci – rozmiary z literą Y: YS, YM, YL, YXL (bluzy, rękawice, kaski), spodnie junior w calach (np. 22–28), najmłodsze dzieci – K/Kids. Gdy klient pisze „M” dla dziecka – dopytaj, czy chodzi o rozmiar dziecięcy YM (narzędzie traktuje M i YM u dzieci tak samo).\nKlient nie zna wymiarów: poproś o pomiar; jeśli nie może – dorośli najczęściej M lub L; dzieci – telefon do sklepu albo okienko „Zostaw numer”, pomożemy dobrać.",
 		),
 		array(
 			'title'    => 'Komplety w jednej grafice',
