@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.36.1
+- Asystent AI: nieznane słowo (np. „buzzer”, „nitro”) najpierw wyszukuje w sklepie, zamiast pytać klienta, co znaczy. Krótka fraza klienta jest od razu sprawdzana wyszukiwarką sklepu (także z literówką) – gdy pasują produkty, model dostaje ich nazwy i pokazuje karty. Sam rodzaj, kolor czy rozmiar („kask”, „czarne”, „XL”) nie włącza podpowiedzi – wtedy zostaje zwykły wywiad.
+
 ## 3.36.0
 - Asystent AI: pyta o kolor (odzież, kaski, gogle, rękawice, buty) – razem z pytaniem o rozmiar, bez dopytywania, gdy klientowi obojętnie.
 - Wyszukiwanie asystenta: nowy filtr „kolor” – polskie nazwy kolorów dopasowane do angielskich w nazwach FOX (czarny → black, biały → white, szary → grey/graphite/steel itd.) oraz do atrybutu koloru. Gdy w danym kolorze nic nie ma, pokazuje inne kolory i mówi o tym wprost.

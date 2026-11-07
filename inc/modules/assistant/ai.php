@@ -117,7 +117,8 @@ function fx_ai_system( array $ctx, array $kb ) {
 14. Gdy klient pyta o konkretną cechę produktu (materiał, pojemność, waga, technologia, wymiary), a nie ma jej w danych sklepu – sprawdzam u producenta (sprawdz_u_producenta) i podaję, że to informacja ze strony FOX. Dopiero gdy i tam jej nie ma, mówię, że nie wiem, i proponuję kontakt ze sklepem.
 15. NIGDY nie piszę „nie mamy”, „nie ma” ani „brak”. Gdy nie ma dokładnie tego, o co klient prosi (rozmiar, kolor, model), pokazuję najbliższe dostępne propozycje (narzędzie samo poszerza wyszukiwanie) i mówię wprost, czym się różnią. Gdy nie ma żadnej propozycji – piszę, że sprawdzimy dostępność albo zamówimy, podaję telefon sklepu i pokazuję okienko „Zostaw numer” (pokaz_formularz_telefonu).
 16. Każdy produkt dobieram OSOBNO: jedno wyszukiwanie = jeden rodzaj produktu (bluza, spodnie, kask, rękawice, gogle, buty). Przy kilku produktach omawiam je po kolei, każdy z własnym rozmiarem z tabeli modelu.
-17. Rozmiar: wywiad o wzrost i wagę (dzieci: wiek, wzrost, waga; kask: obwód głowy), potem dopasuj_rozmiar dla konkretnego modelu. U dzieci rozmiary są juniorskie (YS–YXL, spodnie junior w calach) – „M” dla dziecka to zwykle YM.";
+17. Rozmiar: wywiad o wzrost i wagę (dzieci: wiek, wzrost, waga; kask: obwód głowy), potem dopasuj_rozmiar dla konkretnego modelu. U dzieci rozmiary są juniorskie (YS–YXL, spodnie junior w calach) – „M” dla dziecka to zwykle YM.
+18. Słowo, którego nie rozumiem (np. „buzzer”, „nitro”, „ranger”, „flexair”) to najpewniej nazwa modelu, grafiki albo kolekcji FOX – NAJPIERW szukam go narzędziem szukaj_produktow (z rodzajem produktu z rozmowy, a gdy nic – samą frazą). Nigdy nie pytam klienta, co oznacza nazwa, zanim jej nie wyszukam.";
 	$facts   = array();
 	$facts[] = 'Wysyłka tego samego dnia: produkty z oznaczeniem „wysyłka dziś” przy zamówieniu do ' . $cut . ' w dzień roboczy; pozostałe – zwykle następnego dnia roboczego (dokładny termin podaje narzędzie).';
 	if ( function_exists( 'fx_tool' ) ) {
@@ -203,6 +204,56 @@ function fx_ai_openai( array $messages, $with_tools = true ) {
 }
 
 /**
+ * Podpowiedź ze sklepu: krótka fraza klienta (np. „a buzer?”) od razu przepuszczona przez wyszukiwarkę sklepu.
+ * Gdy coś znajduje – model dostaje nazwy produktów i nie dopytuje, co ta fraza znaczy.
+ */
+function fx_ai_hint( array $msgs ) {
+	$last = '';
+	for ( $i = count( $msgs ) - 1; $i >= 0; $i-- ) {
+		if ( 'user' === ( $msgs[ $i ]['role'] ?? '' ) ) {
+			$last = (string) $msgs[ $i ]['content'];
+			break;
+		}
+	}
+	$q = mb_strtolower( wp_strip_all_tags( $last ), 'UTF-8' );
+	$q = preg_replace( '/[?!.,;:„”"\'()]+/u', ' ', $q );
+	$q = preg_replace( '/\b(a|i|to|czy|macie|jest|są|sa|może|moze|coś|cos|jakieś|jakies|jakiś|jakis|mam|chcę|chce|szukam|poproszę|poprosze|pokaż|pokaz|z|w|na|do|dla|ten|ta|te|ok|no|tak|a co|co|z serii|seria|serii|grafika|grafiką|grafice|kolekcja|kolekcji)\b/u', ' ', $q );
+	$q = trim( preg_replace( '/\s+/', ' ', $q ) );
+	if ( '' === $q || mb_strlen( $q ) < 3 || substr_count( $q, ' ' ) > 3 || preg_match( '/^\d+( ?cm| ?kg| lat)?$/', $q ) || ! function_exists( 'fx_srch_query' ) ) {
+		return '';
+	}
+	// Sam rodzaj produktu, kolor albo rozmiar („kask”, „czarne”, „xl”) – to nie nazwa, zostaje zwykły wywiad.
+	$rest = $q;
+	if ( function_exists( 'fx_ai_types' ) ) {
+		foreach ( fx_ai_types() as $re ) {
+			$rest = preg_replace( $re, ' ', $rest );
+		}
+	}
+	if ( function_exists( 'fx_ai_color_re' ) && ( $cre = fx_ai_color_re( str_replace( ' ', ',', $rest ), true ) ) ) {
+		$rest = preg_replace( $cre, ' ', $rest );
+	}
+	$rest = trim( preg_replace( '/\b(y?[xsml]{1,3}l?|junior|dzieci\w*|damsk\w*|męsk\w*|mesk\w*|mx|motocross\w*|cross\w*|enduro|mtb|rower\w*|nie|dzięki|dzieki|dziękuję|dziekuje|obojętnie|obojetnie|dowolny|dowolnie)\b/u', ' ', $rest ) );
+	if ( mb_strlen( $rest ) < 3 ) {
+		return '';
+	}
+	$r     = fx_srch_query( $q );
+	$names = array();
+	foreach ( array_slice( (array) ( $r['ids'] ?? array() ), 0, 30 ) as $id ) {
+		$p = wc_get_product( $id );
+		if ( $p && 'publish' === $p->get_status() && $p->is_visible() && $p->is_in_stock() ) {
+			$names[] = $p->get_name();
+		}
+		if ( count( $names ) >= 6 ) {
+			break;
+		}
+	}
+	if ( ! $names ) {
+		return '';
+	}
+	return 'PODPOWIEDŹ SKLEPU (nie od klienta): wyszukiwarka sklepu dla frazy „' . $q . '” znajduje produkty, np.: ' . implode( '; ', $names ) . '. To nazwa modelu, grafiki albo kolekcji FOX – NIE dopytuj klienta, co znaczy. Wywołaj szukaj_produktow z tą frazą (dodaj rodzaj produktu i dla kogo z wcześniejszej rozmowy, jeśli pasują; gdy wtedy nic nie ma – szukaj samej frazy) i pokaż karty.';
+}
+
+/**
  * Odpowiedź asystenta na historię rozmowy.
  *
  * @return array text, cards, tools[], kb[], notfound[], handoff, tok_in, tok_out, wa
@@ -216,6 +267,10 @@ function fx_ai_answer( array $msgs, array $ctx, $dry = false ) {
 	}
 	$GLOBALS['fx_ai_run'] = array( 'cards' => array(), 'notfound' => array(), 'handoff' => 0, 'wa' => '', 'ctx' => $ctx, 'dry' => $dry, 'msgs' => $msgs, 'callback' => 0 );
 	$messages = array_merge( array( array( 'role' => 'system', 'content' => fx_ai_system( $ctx, $kb ) ) ), $msgs );
+	$hint     = fx_ai_hint( $msgs );
+	if ( '' !== $hint ) {
+		$messages[] = array( 'role' => 'system', 'content' => $hint );
+	}
 	$fail     = 'Przepraszam, mam chwilowy problem z odpowiedzią. Spróbuj za moment albo zadzwoń: ' . $s['phone'] . '.';
 	for ( $round = 0; $round < 6; $round++ ) {
 		$data = fx_ai_openai( $messages, $round < 5 );

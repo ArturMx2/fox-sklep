@@ -248,7 +248,7 @@ function fx_ai_measures( array $a ) {
 
 /** Jedno wyszukiwanie (jeden rodzaj produktu). @return array [ wyniki[], pasujace_id[], pominiete ] */
 /** Wyrażenie dla koloru klienta (PL + EN, jak w nazwach FOX). Pusty string = bez filtra. */
-function fx_ai_color_re( $kolor ) {
+function fx_ai_color_re( $kolor, $known_only = false ) {
 	$map = array(
 		'czarn|black'                    => 'black|blk|czarn\\w*',
 		'bia[lł]|white'                  => 'white|wht|bia[lł]\\w*',
@@ -278,7 +278,7 @@ function fx_ai_color_re( $kolor ) {
 				$hit     = true;
 			}
 		}
-		if ( ! $hit ) {
+		if ( ! $hit && ! $known_only ) {
 			$parts[] = preg_quote( $c, '/' );
 		}
 	}
