@@ -31,6 +31,7 @@ function fx_ai_tool_defs() {
 			'pas_cm'         => array( 'type' => 'number', 'description' => 'Obwód pasa w cm (spodnie).' ),
 			'klatka_cm'      => array( 'type' => 'number', 'description' => 'Obwód klatki piersiowej w cm (bluzy, kurtki).' ),
 			'dla_kogo'       => array( 'type' => 'string', 'enum' => array( 'meskie', 'damskie', 'junior', 'dzieciece' ) ),
+			'kolor'          => array( 'type' => 'string', 'description' => 'Kolor, którego szuka klient, po polsku, np. „czarny”, „biały”, „czerwony”, „niebieski”, „różowy”, „camo”. Kilka kolorów – oddziel przecinkiem („czarny, szary”). Pomiń, gdy klientowi kolor jest obojętny. NIE dopisuj koloru do pola zapytanie.' ),
 			'tylko_dostepne' => array( 'type' => 'boolean', 'description' => 'Domyślnie true' ),
 		), array( 'zapytanie' ) ),
 		$f( 'szczegoly_produktu', 'Szczegóły produktu: opis, parametry, rozmiary na stanie z terminem wysyłki, tabela rozmiarów, części kompletu w tej samej grafice.', array(
@@ -246,6 +247,60 @@ function fx_ai_measures( array $a ) {
 }
 
 /** Jedno wyszukiwanie (jeden rodzaj produktu). @return array [ wyniki[], pasujace_id[], pominiete ] */
+/** Wyrażenie dla koloru klienta (PL + EN, jak w nazwach FOX). Pusty string = bez filtra. */
+function fx_ai_color_re( $kolor ) {
+	$map = array(
+		'czarn|black'                    => 'black|blk|czarn\\w*',
+		'bia[lł]|white'                  => 'white|wht|bia[lł]\\w*',
+		'czerwon|red|bordo|burgund'      => 'red|flo red|czerwon\\w*|burgundy|maroon|bordo\\w*',
+		'niebiesk|blue|granat|navy'      => 'blue|blu|navy|cobalt|indigo|niebiesk\\w*|granat\\w*',
+		'szar|grey|gray|grafit|srebr|silver' => 'grey|gray|gry|graphite|steel|silver|charcoal|szar\\w*|grafit\\w*|srebr\\w*',
+		'zielon|green|khaki|oliw|olive'  => 'green|grn|olive|khaki|army|moss|zielon\\w*|oliw\\w*',
+		'r[oó][zż]|pink|magent'          => 'pink|pnk|magenta|fuchsia|r[oó][zż]ow\\w*',
+		'pomara|orange'                  => 'orange|org|flo orange|pomara\\w*',
+		'[zż][oó][lł]t|yellow|fluo'      => 'yellow|ylw|flo yellow|fluo\\w*|[zż][oó][lł]t\\w*',
+		'fiolet|purple|lila'             => 'purple|prpl|violet|lilac|fiolet\\w*',
+		'camo|moro|kamufl'               => 'camo|moro|kamufla\\w*',
+		'br[aą]z|brown|be[zż]|beige|tan' => 'brown|brn|tan|beige|sand|chestnut|br[aą]zow\\w*|be[zż]ow\\w*',
+		'z[lł]ot|gold'                   => 'gold|z[lł]ot\\w*',
+		'turkus|teal|aqua|mint'          => 'teal|aqua|turquoise|mint|turkus\\w*',
+	);
+	$parts = array();
+	foreach ( preg_split( '/\s*[,;\/]\s*|\s+(?:i|lub|albo|or|and)\s+/u', mb_strtolower( (string) $kolor, 'UTF-8' ) ) as $c ) {
+		$c = trim( $c );
+		if ( '' === $c || preg_match( '/oboj[eę]tn|dowoln|jakikolwiek|wszystko|any/u', $c ) ) {
+			continue;
+		}
+		$hit = false;
+		foreach ( $map as $k => $re ) {
+			if ( preg_match( '/' . $k . '/u', $c ) ) {
+				$parts[] = $re;
+				$hit     = true;
+			}
+		}
+		if ( ! $hit ) {
+			$parts[] = preg_quote( $c, '/' );
+		}
+	}
+	return $parts ? '/\b(?:' . implode( '|', array_unique( $parts ) ) . ')\b/iu' : '';
+}
+
+/** Tekst do sprawdzenia koloru: nazwa + atrybuty z „kolor/color” w nazwie. */
+function fx_ai_color_hay( WC_Product $p ) {
+	$hay = $p->get_name();
+	foreach ( $p->get_attributes() as $key => $attr ) {
+		if ( ! preg_match( '/kolor|color|colour/i', $key . ' ' . ( is_object( $attr ) ? $attr->get_name() : '' ) ) ) {
+			continue;
+		}
+		if ( is_object( $attr ) && $attr->is_taxonomy() ) {
+			$hay .= ' ' . implode( ' ', wc_get_product_terms( $p->get_id(), $attr->get_name(), array( 'fields' => 'names' ) ) );
+		} elseif ( is_object( $attr ) ) {
+			$hay .= ' ' . implode( ' ', $attr->get_options() );
+		}
+	}
+	return mb_strtolower( $hay, 'UTF-8' );
+}
+
 function fx_ai_search_one( array $a, $limit = 10 ) {
 	$q    = trim( mb_substr( wp_strip_all_tags( (string) ( $a['zapytanie'] ?? '' ) ), 0, 120 ) );
 	$min  = isset( $a['cena_min'] ) ? (float) $a['cena_min'] : 0;
@@ -254,6 +309,7 @@ function fx_ai_search_one( array $a, $limit = 10 ) {
 	$dla  = isset( $a['dla_kogo'] ) ? sanitize_key( $a['dla_kogo'] ) : '';
 	$only = ! isset( $a['tylko_dostepne'] ) || false !== $a['tylko_dostepne'];
 	$meas = fx_ai_measures( $a );
+	$col  = fx_ai_color_re( $a['kolor'] ?? '' );
 	// Bezpiecznik: „rozmiar 58” przy kaskach to obwód głowy, nie nazwa rozmiaru.
 	if ( empty( $meas['obwod_glowy'] ) && preg_match( '/^\d{2}([.,]\d)?$/', $size ) && (float) $size >= 46 && (float) $size <= 66 && preg_match( '/kask|helmet|full ?face/iu', $q ) ) {
 		$meas['obwod_glowy'] = (float) str_replace( ',', '.', $size );
@@ -312,6 +368,9 @@ function fx_ai_search_one( array $a, $limit = 10 ) {
 			continue;
 		}
 		if ( null !== $dla_ids && ! isset( $dla_ids[ (int) $id ] ) ) {
+			continue;
+		}
+		if ( $col && ! preg_match( $col, fx_ai_color_hay( $p ) ) ) {
 			continue;
 		}
 		if ( $type_re ) {
@@ -405,9 +464,14 @@ function fx_ai_search_wide( array $a, $limit ) {
 	if ( $noc !== $q && '' !== $noc ) {
 		$steps[] = array( array_merge( $a, array( 'zapytanie' => $noc ) ), 'w tym kolorze nic nie ma – pokazuję inne kolory' );
 	}
+	if ( ! empty( $a['kolor'] ) ) {
+		$nc = $a;
+		unset( $nc['kolor'] );
+		$steps[] = array( $nc, 'w kolorze „' . sanitize_text_field( $a['kolor'] ) . '” nic nie pasuje – pokazuję inne kolory' );
+	}
 	$base = '' !== $noc ? $noc : $q;
 	$b2   = $a;
-	unset( $b2['rozmiar'], $b2['obwod_glowy_cm'], $b2['wzrost_cm'], $b2['waga_kg'], $b2['pas_cm'], $b2['klatka_cm'], $b2['wiek'], $b2['stopa_cm'] );
+	unset( $b2['kolor'], $b2['rozmiar'], $b2['obwod_glowy_cm'], $b2['wzrost_cm'], $b2['waga_kg'], $b2['pas_cm'], $b2['klatka_cm'], $b2['wiek'], $b2['stopa_cm'] );
 	if ( $b2 !== $a ) {
 		$steps[] = array( array_merge( $b2, array( 'zapytanie' => $base ) ), 'w tym rozmiarze nic nie ma na stanie – pokazuję te modele w dostępnych rozmiarach' );
 	}

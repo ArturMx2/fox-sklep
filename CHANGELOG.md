@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.36.0
+- Asystent AI: pyta o kolor (odzież, kaski, gogle, rękawice, buty) – razem z pytaniem o rozmiar, bez dopytywania, gdy klientowi obojętnie.
+- Wyszukiwanie asystenta: nowy filtr „kolor” – polskie nazwy kolorów dopasowane do angielskich w nazwach FOX (czarny → black, biały → white, szary → grey/graphite/steel itd.) oraz do atrybutu koloru. Gdy w danym kolorze nic nie ma, pokazuje inne kolory i mówi o tym wprost.
+
 ## 3.35.3
 - Asystent AI: pokazuje wszystkie pasujące modele (np. V1 i V3 w tym samym rozmiarze), nie jeden – gdy model wybierze mniej kart, motyw dokłada kolejne z ostatniego wyszukiwania danego rodzaju (ten sam rozmiar, dostępne; do 5 na rodzaj, 10 razem).
 - Asystent AI: krótsze odpowiedzi przy propozycjach – w tekście tylko model i rozmiar, bez pełnych nazw produktów, kolorów i cen (klient ogląda karty).
