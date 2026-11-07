@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.35.3
+- Asystent AI: pokazuje wszystkie pasujące modele (np. V1 i V3 w tym samym rozmiarze), nie jeden – gdy model wybierze mniej kart, motyw dokłada kolejne z ostatniego wyszukiwania danego rodzaju (ten sam rozmiar, dostępne; do 5 na rodzaj, 10 razem).
+- Asystent AI: krótsze odpowiedzi przy propozycjach – w tekście tylko model i rozmiar, bez pełnych nazw produktów, kolorów i cen (klient ogląda karty).
+
 ## 3.35.2
 - Asystent AI: karty produktów w osobnych wierszach według rodzaju (np. BLUZY, SPODNIE, KASKI) – maks. 5 kart w wierszu i przycisk „Więcej: [kategoria] →” pod każdym wierszem (kategoria liczona z produktów tego rodzaju); do 10 kart w odpowiedzi.
 - Wyszukiwanie: gdy nazwa produktu wskazuje inny rodzaj niż szukany (np. kask w kategorii spodni), produkt jest pomijany.

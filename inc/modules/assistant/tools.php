@@ -838,6 +838,10 @@ function fx_ai_product_type( $id ) {
 
 /** Pasujące produkty z wyszukiwań tej odpowiedzi – według rodzaju (do „Więcej” w każdym wierszu kart). */
 function fx_ai_remember_types( array $ids, $dla ) {
+	// Liczy się ostatnie wyszukiwanie danego rodzaju (np. już z rozmiarem) – wcześniejsze wyniki tego rodzaju odpadają.
+	foreach ( array_unique( array_map( 'fx_ai_product_type', $ids ) ) as $t ) {
+		unset( $GLOBALS['fx_ai_run']['bytype'][ $t ] );
+	}
 	foreach ( $ids as $id ) {
 		$t = fx_ai_product_type( $id );
 		if ( ! isset( $GLOBALS['fx_ai_run']['bytype'][ $t ] ) ) {
@@ -866,7 +870,36 @@ function fx_ai_tool_show( array $ids ) {
 		$ok[]      = $p->get_id();
 	}
 	$GLOBALS['fx_ai_run']['cards'] = array_slice( array_values( array_unique( array_merge( $GLOBALS['fx_ai_run']['cards'], $ok ) ) ), 0, 10 );
-	return $ok ? array( 'pokazano' => count( $ok ), 'info' => 'Karty są pod Twoją odpowiedzią, osobny wiersz dla każdego rodzaju produktu (np. bluzy, spodnie) z przyciskiem „Więcej”. Nie wypisuj linków ani pełnej listy cen.' ) : array( 'blad' => 'Te produkty nie są dostępne.' );
+	return $ok ? array( 'pokazano' => count( $ok ), 'info' => 'Karty są pod Twoją odpowiedzią, osobny wiersz dla każdego rodzaju produktu (np. bluzy, spodnie) z przyciskiem „Więcej”. Pasujące modele z wyszukiwania dołożę sam (do 5 na rodzaj). W tekście NIE wymieniaj nazw produktów ani cen – tylko model i rozmiar, np. „Kaski V1 i V3 w rozmiarze YM (54 cm) – wysyłka dziś”.' ) : array( 'blad' => 'Te produkty nie są dostępne.' );
+}
+
+/**
+ * Dopełnia karty: gdy model pokazał mniej kart danego rodzaju niż pasuje z ostatniego wyszukiwania
+ * (ten sam rozmiar, dostępne), dokłada kolejne – do 5 na rodzaj, 10 razem.
+ */
+function fx_ai_fill_cards( array $ids ) {
+	$bytype = $GLOBALS['fx_ai_run']['bytype'] ?? array();
+	if ( ! $ids || ! $bytype ) {
+		return $ids;
+	}
+	$per = array();
+	foreach ( $ids as $id ) {
+		$t         = fx_ai_product_type( $id );
+		$per[ $t ] = ( $per[ $t ] ?? 0 ) + 1;
+	}
+	foreach ( array_keys( $per ) as $t ) {
+		foreach ( (array) ( $bytype[ $t ]['ids'] ?? array() ) as $id ) {
+			if ( count( $ids ) >= 10 || $per[ $t ] >= 5 ) {
+				break;
+			}
+			if ( in_array( (int) $id, $ids, true ) ) {
+				continue;
+			}
+			$ids[]     = (int) $id;
+			$per[ $t ]++;
+		}
+	}
+	return $ids;
 }
 
 /** Karty w wierszach według rodzaju: [ [ label, cards[], more ] ]. */
