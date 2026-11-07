@@ -208,25 +208,19 @@
 	function bubble(m) {
 		var w = el('div', 'fx-ai__msg fx-ai__msg--' + (m.role === 'user' ? 'me' : 'ai'));
 		w.appendChild(el('div', 'fx-ai__txt', m.role === 'user' ? esc(m.content) : linkify(m.content)));
-		if (m.cards && m.cards.length) {
+		var groups = (m.groups && m.groups.length) ? m.groups : ((m.cards && m.cards.length) ? [{ label: '', cards: m.cards, more: m.more }] : []);
+		groups.forEach(function (g) {
+			if (groups.length > 1 && g.label) { w.appendChild(el('div', 'fx-ai__glabel', esc(g.label))); }
 			var row = el('div', 'fx-ai__cards');
-			m.cards.forEach(function (c) {
-				var card = el('div', 'fx-ai__card');
-				card.innerHTML =
-					'<a class="fx-ai__cimg" href="' + esc(c.url) + '" data-id="' + c.id + '"><img src="' + esc(c.img) + '" alt="" loading="lazy" width="160" height="160">' + (c.today ? '<span class="fx-ai__today">Wysyłka dziś</span>' : '') + '</a>' +
-					'<a class="fx-ai__cname" href="' + esc(c.url) + '" data-id="' + c.id + '">' + esc(c.name) + '</a>' +
-					'<div class="fx-ai__cprice">' + (c.price || '') + '</div>' +
-					(c.add ? '<button type="button" class="fx-ai__add" data-add="' + c.id + '">Do koszyka</button>' : '<a class="fx-ai__more" href="' + esc(c.url) + '" data-id="' + c.id + '">Wybierz rozmiar</a>');
-				row.appendChild(card);
-			});
+			g.cards.forEach(function (c) { row.appendChild(card(c)); });
 			w.appendChild(row);
-		}
-		if (m.more && m.more.url) {
-			var more = el('a', 'fx-ai__all', esc(m.more.label) + ' <span aria-hidden="true">→</span>');
-			more.href = m.more.url;
-			more.setAttribute('data-id', '0');
-			w.appendChild(more);
-		}
+			if (g.more && g.more.url) {
+				var more = el('a', 'fx-ai__all', esc(g.more.label) + ' <span aria-hidden="true">→</span>');
+				more.href = g.more.url;
+				more.setAttribute('data-id', '0');
+				w.appendChild(more);
+			}
+		});
 		if (m.callback) {
 			var f = el('form', 'fx-ai__cb');
 			if (m.cbDone) {
@@ -249,6 +243,16 @@
 			w.appendChild(wa);
 		}
 		return w;
+	}
+
+	function card(c) {
+		var cd = el('div', 'fx-ai__card');
+		cd.innerHTML =
+			'<a class="fx-ai__cimg" href="' + esc(c.url) + '" data-id="' + c.id + '"><img src="' + esc(c.img) + '" alt="" loading="lazy" width="160" height="160">' + (c.today ? '<span class="fx-ai__today">Wysyłka dziś</span>' : '') + '</a>' +
+			'<a class="fx-ai__cname" href="' + esc(c.url) + '" data-id="' + c.id + '">' + esc(c.name) + '</a>' +
+			'<div class="fx-ai__cprice">' + (c.price || '') + '</div>' +
+			(c.add ? '<button type="button" class="fx-ai__add" data-add="' + c.id + '">Do koszyka</button>' : '<a class="fx-ai__more" href="' + esc(c.url) + '" data-id="' + c.id + '">Wybierz rozmiar</a>');
+		return cd;
 	}
 
 	function onListClick(e) {
@@ -319,7 +323,7 @@
 		var history = st.msgs.slice(-24).map(function (m) { return { role: m.role, content: m.content }; });
 		var body = JSON.stringify({ sid: st.sid, messages: history, product: C.product || 0, page: location.href.split('#')[0] });
 		post(body, !!C.nonce).then(function (res) {
-			st.msgs.push({ role: 'assistant', content: (res && res.text) || 'Przepraszam, spróbuj jeszcze raz.', cards: (res && res.cards) || [], more: (res && res.more) || null, wa: (res && res.wa) || '', callback: !!(res && res.callback) });
+			st.msgs.push({ role: 'assistant', content: (res && res.text) || 'Przepraszam, spróbuj jeszcze raz.', cards: (res && res.cards) || [], groups: (res && res.groups) || [], more: (res && res.more) || null, wa: (res && res.wa) || '', callback: !!(res && res.callback) });
 		}).catch(function () {
 			st.msgs.push({ role: 'assistant', content: 'Nie mogę się teraz połączyć. Spróbuj za chwilę.' });
 		}).then(function () {

@@ -52,8 +52,8 @@ function fx_ai_tool_defs() {
 		$f( 'sprawdz_u_producenta', 'Sprawdza informacje o produkcie na stronach FOX (foxracing.co.uk, foxracing.com) po numerze modelu z SKU albo EAN: opis, specyfikację, materiał, pojemność, wagę, technologie. Używaj, gdy klient pyta o konkretny parametr, którego nie ma w szczegoly_produktu.', array(
 			'id' => array( 'type' => 'integer' ),
 		), array( 'id' ) ),
-		$f( 'pokaz_produkty', 'Pokazuje klientowi karty produktów pod odpowiedzią (zdjęcie, cena, link). Używaj ZAWSZE, gdy polecasz produkty. 2–6 id z wyników narzędzi.', array(
-			'ids' => array( 'type' => 'array', 'items' => array( 'type' => 'integer' ), 'minItems' => 1, 'maxItems' => 6 ),
+		$f( 'pokaz_produkty', 'Pokazuje klientowi karty produktów pod odpowiedzią (zdjęcie, cena, link). Używaj ZAWSZE, gdy polecasz produkty. Do 5 id na rodzaj produktu; przy kilku rodzajach (np. bluzy i spodnie) podaj je razem – każdy rodzaj będzie w osobnym wierszu z przyciskiem „Więcej”.', array(
+			'ids' => array( 'type' => 'array', 'items' => array( 'type' => 'integer' ), 'minItems' => 1, 'maxItems' => 10 ),
 		), array( 'ids' ) ),
 		$f( 'status_zamowienia', 'Status zamówienia, zwrotu i przesyłki. Wymaga numeru zamówienia i telefonu podanego przy zamówieniu.', array(
 			'numer'   => array( 'type' => 'string' ),
@@ -316,6 +316,10 @@ function fx_ai_search_one( array $a, $limit = 10 ) {
 		}
 		if ( $type_re ) {
 			$hay = mb_strtolower( $p->get_name(), 'UTF-8' );
+			$pt  = fx_ai_product_type( $p->get_id() );
+			if ( '' !== $pt && ( fx_ai_types()[ $pt ] ?? '' ) !== $type_re ) {
+				continue; // nazwa wskazuje inny rodzaj (np. kask w kategorii spodni)
+			}
 			if ( ! preg_match( $type_re, $hay ) ) {
 				$cats = wc_get_product_terms( $p->get_id(), 'product_cat', array( 'fields' => 'names' ) );
 				if ( ! preg_match( $type_re, mb_strtolower( implode( ' ', (array) $cats ), 'UTF-8' ) ) ) {
@@ -474,6 +478,7 @@ function fx_ai_tool_search( array $a ) {
 			$all      = array_merge( $all, $match );
 		}
 		$GLOBALS['fx_ai_run']['last'] = array( 'q' => $q, 'ids' => array_slice( array_unique( $all ), 0, 40 ), 'dla' => (string) ( $a['dla_kogo'] ?? '' ) );
+		fx_ai_remember_types( $all, (string) ( $a['dla_kogo'] ?? '' ) );
 		return array(
 			'grupy' => $groups,
 			'info'  => 'Każdy produkt wyszukany osobno. Omów je po kolei (najpierw jeden, np. kask – rozmiar i propozycje, potem następny), rozmiar dobieraj osobno dla każdego modelu (dopasuj_rozmiar). Pokaż karty z każdej grupy.',
@@ -486,6 +491,7 @@ function fx_ai_tool_search( array $a ) {
 		return array( 'wyniki' => array(), 'uwaga' => 'Brak propozycji nawet po poszerzeniu wyszukiwania. ' . $no_result );
 	}
 	$GLOBALS['fx_ai_run']['last'] = array( 'q' => $q, 'ids' => $match, 'dla' => (string) ( $a['dla_kogo'] ?? '' ) );
+	fx_ai_remember_types( $match, (string) ( $a['dla_kogo'] ?? '' ) );
 	$res = array( 'wyniki' => $out );
 	if ( $note ) {
 		$res['uwaga'] = ucfirst( $note ) . '. Powiedz to klientowi wprost i pokaż te propozycje (nie pisz „nie mamy”).';
@@ -808,25 +814,89 @@ function fx_ai_tool_details( $id ) {
  * pokaz_produkty i karty
  * ===================================================================== */
 
+/** Rodzaj produktu (kask, bluza, spodnie…) z nazwy albo kategorii; '' = inny. */
+function fx_ai_product_type( $id ) {
+	static $cache = array();
+	$id = (int) $id;
+	if ( isset( $cache[ $id ] ) ) {
+		return $cache[ $id ];
+	}
+	$name = mb_strtolower( get_the_title( $id ), 'UTF-8' );
+	foreach ( fx_ai_types() as $t => $re ) {
+		if ( preg_match( $re, $name ) ) {
+			return $cache[ $id ] = $t;
+		}
+	}
+	$cats = mb_strtolower( implode( ' ', (array) wc_get_product_terms( $id, 'product_cat', array( 'fields' => 'names' ) ) ), 'UTF-8' );
+	foreach ( fx_ai_types() as $t => $re ) {
+		if ( preg_match( $re, $cats ) ) {
+			return $cache[ $id ] = $t;
+		}
+	}
+	return $cache[ $id ] = '';
+}
+
+/** Pasujące produkty z wyszukiwań tej odpowiedzi – według rodzaju (do „Więcej” w każdym wierszu kart). */
+function fx_ai_remember_types( array $ids, $dla ) {
+	foreach ( $ids as $id ) {
+		$t = fx_ai_product_type( $id );
+		if ( ! isset( $GLOBALS['fx_ai_run']['bytype'][ $t ] ) ) {
+			$GLOBALS['fx_ai_run']['bytype'][ $t ] = array( 'ids' => array(), 'dla' => $dla );
+		}
+		$GLOBALS['fx_ai_run']['bytype'][ $t ]['ids'][] = (int) $id;
+	}
+}
+
 function fx_ai_tool_show( array $ids ) {
-	$ok = array();
-	foreach ( array_slice( array_map( 'intval', $ids ), 0, 6 ) as $id ) {
+	$ok  = array();
+	$per = array();
+	foreach ( array_slice( array_map( 'intval', $ids ), 0, 12 ) as $id ) {
 		$p = wc_get_product( $id );
 		if ( $p && $p->is_type( 'variation' ) ) {
 			$p = wc_get_product( $p->get_parent_id() );
 		}
-		if ( $p && 'publish' === $p->get_status() && $p->is_visible() && ! in_array( $p->get_id(), $ok, true ) ) {
-			$ok[] = $p->get_id();
+		if ( ! $p || 'publish' !== $p->get_status() || ! $p->is_visible() || in_array( $p->get_id(), $ok, true ) ) {
+			continue;
+		}
+		$t = fx_ai_product_type( $p->get_id() );
+		if ( ( $per[ $t ] ?? 0 ) >= 5 ) {
+			continue; // maks. 5 kart na rodzaj – resztę pokaże „Więcej”
+		}
+		$per[ $t ] = ( $per[ $t ] ?? 0 ) + 1;
+		$ok[]      = $p->get_id();
+	}
+	$GLOBALS['fx_ai_run']['cards'] = array_slice( array_values( array_unique( array_merge( $GLOBALS['fx_ai_run']['cards'], $ok ) ) ), 0, 10 );
+	return $ok ? array( 'pokazano' => count( $ok ), 'info' => 'Karty są pod Twoją odpowiedzią, osobny wiersz dla każdego rodzaju produktu (np. bluzy, spodnie) z przyciskiem „Więcej”. Nie wypisuj linków ani pełnej listy cen.' ) : array( 'blad' => 'Te produkty nie są dostępne.' );
+}
+
+/** Karty w wierszach według rodzaju: [ [ label, cards[], more ] ]. */
+function fx_ai_card_groups( array $cards ) {
+	$labels = array( 'kask' => 'Kaski', 'gogle' => 'Gogle', 'rękawice' => 'Rękawice', 'bluza' => 'Bluzy', 'spodnie' => 'Spodnie', 'buty' => 'Buty', 'ochraniacze' => 'Ochraniacze', 'kurtka' => 'Kurtki', '' => 'Propozycje' );
+	$groups = array();
+	foreach ( $cards as $c ) {
+		$t = fx_ai_product_type( $c['id'] );
+		if ( ! isset( $groups[ $t ] ) ) {
+			$groups[ $t ] = array( 'label' => $labels[ $t ] ?? ucfirst( $t ), 'cards' => array(), 'more' => null );
+		}
+		if ( count( $groups[ $t ]['cards'] ) < 5 ) {
+			$groups[ $t ]['cards'][] = $c;
 		}
 	}
-	$GLOBALS['fx_ai_run']['cards'] = array_values( array_unique( array_merge( $GLOBALS['fx_ai_run']['cards'], $ok ) ) );
-	return $ok ? array( 'pokazano' => count( $ok ), 'info' => 'Karty są pod Twoją odpowiedzią – nie wypisuj linków ani pełnej listy cen.' ) : array( 'blad' => 'Te produkty nie są dostępne.' );
+	$bytype = $GLOBALS['fx_ai_run']['bytype'] ?? array();
+	$last   = $GLOBALS['fx_ai_run']['last'] ?? array();
+	foreach ( $groups as $t => &$g ) {
+		$src       = ! empty( $bytype[ $t ]['ids'] ) ? $bytype[ $t ]['ids'] : wp_list_pluck( $g['cards'], 'id' );
+		$dla       = (string) ( $bytype[ $t ]['dla'] ?? ( $last['dla'] ?? '' ) );
+		$g['more'] = fx_ai_more_link( $src, 1 === count( $groups ) ? (string) ( $last['q'] ?? '' ) : ( '' !== $t ? $t : '' ), $dla, count( $g['cards'] ) + 3 );
+	}
+	unset( $g );
+	return array_values( $groups );
 }
 
 /** Karty dla dymku. */
 function fx_ai_cards( array $ids ) {
 	$out = array();
-	foreach ( array_slice( $ids, 0, 6 ) as $id ) {
+	foreach ( array_slice( $ids, 0, 10 ) as $id ) {
 		$p = wc_get_product( $id );
 		if ( ! $p ) {
 			continue;

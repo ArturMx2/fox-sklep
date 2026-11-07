@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.35.2
+- Asystent AI: karty produktów w osobnych wierszach według rodzaju (np. BLUZY, SPODNIE, KASKI) – maks. 5 kart w wierszu i przycisk „Więcej: [kategoria] →” pod każdym wierszem (kategoria liczona z produktów tego rodzaju); do 10 kart w odpowiedzi.
+- Wyszukiwanie: gdy nazwa produktu wskazuje inny rodzaj niż szukany (np. kask w kategorii spodni), produkt jest pomijany.
+
 ## 3.35.1
 - Asystent AI: „Wyczyść dane” w zakładce Rozmowy – usunięcie tylko rozmów testowych (z trybu testowego) albo wszystkich rozmów i statystyk, opcjonalnie wyzerowanie liczników „Użyto”; potwierdzenie wpisaniem TAK. Instrukcje i case’y w Treningu zostają (tracą tylko link do usuniętej rozmowy).
 

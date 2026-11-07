@@ -350,7 +350,7 @@ function fx_ai_rest_chat( WP_REST_Request $req ) {
 		'tok_in'   => $out['tok_in'],
 		'tok_out'  => $out['tok_out'],
 	), array( 'page' => $ctx['page'], 'test' => ! empty( $s['test'] ) ) );
-	$res = new WP_REST_Response( array( 'text' => $out['text'], 'cards' => $out['cards'], 'more' => $out['more'], 'wa' => $out['wa'], 'callback' => $out['callback'] ), 200 );
+	$res = new WP_REST_Response( array( 'text' => $out['text'], 'cards' => $out['cards'], 'groups' => $out['groups'], 'more' => $out['more'], 'wa' => $out['wa'], 'callback' => $out['callback'] ), 200 );
 	$res->header( 'Cache-Control', 'no-store' );
 	return $res;
 }

@@ -59,6 +59,7 @@
 .fx-ai__add,.fx-ai__more{margin-top:auto;display:block;text-align:center;border:1px solid var(--ai-ink);border-radius:999px;padding:6px 8px;font-size:12px;font-weight:600;background:#fff;color:var(--ai-ink);text-decoration:none;cursor:pointer}
 .fx-ai__add{background:var(--ai-ink);color:#fff}
 .fx-ai__add:disabled{opacity:.7;cursor:default}
+.fx-ai__glabel{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ai-muted);margin:6px 0 -2px}
 .fx-ai__all{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--ai-ink);border-radius:999px;padding:7px 14px;font-weight:600;font-size:13px;color:var(--ai-ink);text-decoration:none;background:#fff}
 .fx-ai__all:hover{background:var(--ai-ink);color:#fff}
 .fx-ai__cb{align-self:stretch;background:#fff;border:1px solid var(--ai-line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;font-size:14px}
