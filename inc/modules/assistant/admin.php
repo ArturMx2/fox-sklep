@@ -384,6 +384,10 @@ function fx_ai_chat_view( $id ) {
 			echo '<div class="m u">' . esc_html( $m['t'] ) . '</div>';
 			continue;
 		}
+		if ( 'system' === $m['r'] ) {
+			echo '<div class="m" style="background:#fcf9e8;border:1px solid #dba617">📞 ' . esc_html( $m['t'] ) . '</div>';
+			continue;
+		}
 		$is_fixed = isset( $fixed[ md5( trim( $m['t'] ) ) ] );
 		echo '<div class="m a' . ( $is_fixed ? ' fixed' : '' ) . '">' . esc_html( $m['t'] );
 		$meta = array();

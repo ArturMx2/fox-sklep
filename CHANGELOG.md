@@ -1,5 +1,12 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.35.0
+- Asystent AI – każdy produkt osobno: zapytanie o kilka rodzajów naraz („kask, rękawice i gogle”) jest dzielone na osobne wyszukiwania; wynik musi być tego rodzaju produktu (nazwa albo kategoria); asystent omawia produkty po kolei, każdy z własnym rozmiarem.
+- Dobór rozmiaru po wzroście, wadze, wieku, pasie, klatce i obwodzie głowy z tabeli konkretnego modelu (wierszowe i kolumnowe tabele; przy różnych wskazaniach – większy rozmiar); dopasuj_rozmiar zwraca też pełny tekst tabeli. Komplet cross można dobrać po wzroście i wadze.
+- Junior: dziecko w rozmowie → najpierw produkty juniorskie/dziecięce; „M” dla dziecka = YM (S = YS, L = YL…); spodnie junior w calach; jasna informacja, gdy pokazuje produkty w rozmiarach dorosłych.
+- Bez „nie mamy”: wyszukiwanie samo się poszerza (bez koloru → bez rozmiaru → sam rodzaj produktu) i mówi, czym propozycje różnią się od prośby; gdy nie ma nic – telefon i okienko „Zostaw numer – oddzwonimy” (e-mail do obsługi z całą rozmową, wpis w rozmowie, oznaczenie „do obsługi”, limit 3/h, zabezpieczenie przed botami, zdarzenie dataLayer assistant_callback).
+- Zasady 15–17 i zaktualizowane instrukcje „Badanie potrzeb” i „Rozmiary FOX” (wywiad: dorośli – wzrost i waga, dzieci – wiek, wzrost i waga), o ile nie były zmieniane w panelu.
+
 ## 3.34.0
 - Asystent AI: nowe narzędzie sprawdz_u_producenta – gdy klient pyta o cechę produktu, której nie ma w danych sklepu (materiał, pojemność, waga, technologia), asystent sprawdza foxracing.co.uk, potem foxracing.com: po numerze modelu z SKU (np. 36248_001_OS → 36248-001-OS / 36248), a gdy nie trafi – wyszukiwarką producenta po modelu i EAN.
 - Ze strony brany jest tylko opis i specyfikacja (bez menu, stopki, polecanych); bezpiecznik – strona musi zawierać numer modelu. Asystent podaje, że to informacja producenta FOX, i nie dopisuje nic od siebie. Pamięć 7 dni (brak wyniku – 1 dzień), limity zapytań.

@@ -8,7 +8,7 @@
 defined( 'ABSPATH' ) || exit;
 
 define( 'FX_AI_OPT', 'fx_ai_settings' );
-define( 'FX_AI_DB', 3 );
+define( 'FX_AI_DB', 4 );
 
 /* =====================================================================
  * Ustawienia
@@ -136,12 +136,16 @@ function fx_ai_install() {
 		KEY type (type)
 	) {$c};" );
 	// Aktualizacja instrukcji startowych – tylko tych, których nikt nie zmienił w panelu.
-	$old = array( 'Dobór kasku' => 'f398d727253c3895d58c2dd29dd1a416', 'Rozmiary FOX' => '09186e1aac6bb1b0b5905ecb7f585824' );
+	$old = array(
+		'Dobór kasku'     => array( 'f398d727253c3895d58c2dd29dd1a416' ),
+		'Rozmiary FOX'    => array( '09186e1aac6bb1b0b5905ecb7f585824', '1a5662d9fcc9bb2556d5ddf45b09ccbc' ),
+		'Badanie potrzeb' => array( 'c0a16c6e5f98ecd1eb1f84051b29d0e5' ),
+	);
 	if ( get_option( 'fx_ai_seeded' ) ) {
 		foreach ( fx_ai_starter_kb() as $row ) {
 			if ( isset( $old[ $row['title'] ] ) ) {
 				$cur = $wpdb->get_row( $wpdb->prepare( "SELECT id, body FROM {$kb} WHERE type = 'ins' AND title = %s", $row['title'] ), ARRAY_A ); // phpcs:ignore
-				if ( $cur && md5( $cur['body'] ) === $old[ $row['title'] ] ) {
+				if ( $cur && in_array( md5( $cur['body'] ), $old[ $row['title'] ], true ) ) {
 					$wpdb->update( $kb, array( 'body' => $row['body'], 'keywords' => $row['keywords'] ), array( 'id' => (int) $cur['id'] ) );
 				}
 			}
@@ -163,7 +167,7 @@ function fx_ai_starter_kb() {
 			'title'    => 'Badanie potrzeb',
 			'always'   => 1,
 			'keywords' => '',
-			'body'     => "Zanim polecisz sprzęt, ustal po kolei – pytaj tylko o to, czego klient jeszcze nie powiedział, maksymalnie 2 pytania naraz:\n1. Świat i dyscyplina: Moto (MX/cross, enduro, ADV/turystyka, quad) czy Rower (MTB enduro, trail, downhill, gravel/XC, rekreacja); rekreacyjnie czy zawody.\n2. Dla kogo: mężczyzna, kobieta, junior/dziecko (osobne rozmiarówki młodzieżowe).\n3. Rodzaj produktu: komplet (bluza + spodnie), kask, gogle, buty, rękawice, ochraniacze, casual.\n4. Rozmiar: spodnie moto w calach (28–38), bluzy i odzież S–XXL, kaski po obwodzie głowy, buty w rozmiarach US. Gdy klient nie zna rozmiaru – tabela rozmiarów na karcie produktu albo telefon do sklepu.\n5. Kolor / grafika (pod motocykl, rower albo w komplecie z resztą stroju).\n6. Budżet orientacyjny.\n7. Ważne cechy: wentylacja, wodoodporność, poziom ochrony (kask: MIPS, homologacja), waga.\nGdy znasz świat, rodzaj i rozmiar – pokaż 2–4 produkty i zaproponuj dobranie reszty kompletu w tej samej grafice. Klienta, który wie, czego chce, nie przesłuchuj.",
+			'body'     => "Zanim polecisz sprzęt, ustal po kolei – pytaj tylko o to, czego klient jeszcze nie powiedział, maksymalnie 2 pytania naraz:\n1. Świat i dyscyplina: Moto (MX/cross, enduro, ADV, quad) czy Rower (MTB enduro, trail, downhill, gravel/XC, rekreacja).\n2. Dla kogo: mężczyzna, kobieta, junior/dziecko (u dzieci zapytaj o wiek).\n3. Rodzaj produktu. Gdy klient chce kilka rzeczy (np. komplet + kask + rękawice + gogle) – dobieraj KAŻDY PRODUKT OSOBNO, po kolei: najpierw jeden (np. bluza i spodnie), potem kask, potem rękawice, potem gogle. Dla każdego osobne wyszukiwanie i osobny rozmiar.\n4. Wymiary do rozmiaru: dorośli – wzrost (cm) i waga (kg), przy spodniach opcjonalnie obwód pasa; dzieci – wiek, wzrost i waga; kask – obwód głowy. Rozmiar dobierz z tabeli KONKRETNEGO modelu (dopasuj_rozmiar albo szukaj_produktow z wzrost_cm/waga_kg/wiek/obwod_glowy_cm). Komplet cross (bluza + spodnie) można dobrać po wzroście i wadze.\n5. Kolor / grafika, budżet orientacyjny, ważne cechy (wentylacja, wodoodporność, ochrona).\nGdy znasz rodzaj i wymiary – pokaż 2–4 produkty z pasującym rozmiarem i przejdź do następnego produktu. Klienta, który wie, czego chce, nie przesłuchuj.\nNigdy nie pisz „nie mamy”: gdy nie ma dokładnie tego, pokaż najbliższe propozycje i powiedz, czym się różnią; gdy nie ma nic – telefon sklepu i okienko „Zostaw numer”.",
 		),
 		array(
 			'title'    => 'Dobór kasku',
@@ -174,8 +178,8 @@ function fx_ai_starter_kb() {
 		array(
 			'title'    => 'Rozmiary FOX',
 			'always'   => 0,
-			'keywords' => 'rozmiar, rozmiary, rozmiarówka, rozmiaru, size, jaki rozmiar, uciska, mały, duży, tabela, cm, pas, wzrost',
-			'body'     => "Rozmiar dobieraj zawsze dla KONKRETNEGO modelu z jego tabeli rozmiarów – narzędzie dopasuj_rozmiar (wymiar klienta w cm: obwód głowy, pas, klatka, wzrost, stopa). Centymetry to nie nazwa rozmiaru.\nNazwy rozmiarów FOX: spodnie moto w calach w pasie (28–38), bluzy i odzież S–XXL, młodzieżowe YS–YXL, buty US, rękawice S–XXL.\nKlient nie zna wymiarów: najpierw poproś o pomiar; jeśli nie może – powiedz, że u dorosłych najczęściej pasuje M lub L, i odeślij do „Tabela rozmiarów” na karcie produktu. Pomiędzy rozmiarami – podaj obie opcje i zaproponuj telefon do sklepu.",
+			'keywords' => 'rozmiar, rozmiary, rozmiarówka, rozmiaru, size, jaki rozmiar, uciska, mały, duży, tabela, cm, pas, wzrost, waga, junior, dziecko, dziecka, syn, córka, lat',
+			'body'     => "Rozmiar dobieraj zawsze dla KONKRETNEGO modelu z jego tabeli rozmiarów – dopasuj_rozmiar z wymiarami osoby (wzrost cm, waga kg, u dzieci wiek; spodnie – opcjonalnie pas; kask – obwód głowy). Centymetry to nie nazwa rozmiaru.\nWywiad: dorośli – zapytaj o wzrost i wagę; dzieci – o wiek, wzrost i wagę. Gdy wymiary wskazują dwa rozmiary – podaj większy (dzieci rosną) i zaproponuj telefon do sklepu.\nNazwy rozmiarów FOX: dorośli – bluzy i odzież S–XXL, spodnie moto w calach w pasie (28–38); junior/dzieci – rozmiary z literą Y: YS, YM, YL, YXL (bluzy, rękawice, kaski), spodnie junior w calach (np. 22–28), najmłodsze dzieci – K/Kids. Gdy klient pisze „M” dla dziecka – dopytaj, czy chodzi o rozmiar dziecięcy YM (narzędzie traktuje M i YM u dzieci tak samo).\nKlient nie zna wymiarów: poproś o pomiar; jeśli nie może – dorośli najczęściej M lub L; dzieci – telefon do sklepu albo okienko „Zostaw numer”, pomożemy dobrać.",
 		),
 		array(
 			'title'    => 'Komplety w jednej grafice',
@@ -282,6 +286,11 @@ add_action( 'rest_api_init', function () {
 		'callback'            => 'fx_ai_rest_chat',
 		'permission_callback' => '__return_true',
 	) );
+	register_rest_route( 'fox/v1', '/asystent-cb', array(
+		'methods'             => 'POST',
+		'callback'            => 'fx_ai_rest_callback',
+		'permission_callback' => '__return_true',
+	) );
 	register_rest_route( 'fox/v1', '/asystent-ev', array(
 		'methods'             => 'POST',
 		'callback'            => 'fx_ai_rest_event',
@@ -341,9 +350,42 @@ function fx_ai_rest_chat( WP_REST_Request $req ) {
 		'tok_in'   => $out['tok_in'],
 		'tok_out'  => $out['tok_out'],
 	), array( 'page' => $ctx['page'], 'test' => ! empty( $s['test'] ) ) );
-	$res = new WP_REST_Response( array( 'text' => $out['text'], 'cards' => $out['cards'], 'more' => $out['more'], 'wa' => $out['wa'] ), 200 );
+	$res = new WP_REST_Response( array( 'text' => $out['text'], 'cards' => $out['cards'], 'more' => $out['more'], 'wa' => $out['wa'], 'callback' => $out['callback'] ), 200 );
 	$res->header( 'Cache-Control', 'no-store' );
 	return $res;
+}
+
+/** „Zostaw numer – oddzwonimy”: e-mail do obsługi z rozmową, wpis w rozmowie. */
+function fx_ai_rest_callback( WP_REST_Request $req ) {
+	global $wpdb;
+	$s     = fx_ai_settings();
+	$sid   = (string) $req->get_param( 'sid' );
+	$phone = preg_replace( '/[^\d+ ]/', '', (string) $req->get_param( 'phone' ) );
+	$name  = sanitize_text_field( mb_substr( (string) $req->get_param( 'name' ), 0, 60 ) );
+	if ( ! fx_ai_sid_ok( $sid ) || strlen( preg_replace( '/\D/', '', $phone ) ) < 9 ) {
+		return new WP_REST_Response( array( 'ok' => false, 'msg' => 'Podaj poprawny numer telefonu (9 cyfr).' ), 200 );
+	}
+	if ( '' !== (string) $req->get_param( 'website' ) || ! fx_ai_hit( 'cb|' . fx_ai_ip(), 3, HOUR_IN_SECONDS ) ) {
+		return new WP_REST_Response( array( 'ok' => false, 'msg' => 'Zadzwoń do nas: ' . $s['phone'] ), 200 );
+	}
+	$row = fx_ai_chat_get( $sid );
+	$txt = '';
+	if ( $row ) {
+		foreach ( (array) json_decode( (string) $row['log'], true ) as $m ) {
+			$txt .= ( 'user' === $m['r'] ? 'Klient: ' : ( 'assistant' === $m['r'] ? 'Asystent: ' : '' ) ) . $m['t'] . "\n\n";
+		}
+		$log   = json_decode( (string) $row['log'], true );
+		$log   = is_array( $log ) ? $log : array();
+		$log[] = array( 'r' => 'system', 't' => 'Klient zostawił numer do kontaktu: ' . $phone . ( $name ? ' (' . $name . ')' : '' ), 'at' => time() );
+		$wpdb->update( fx_ai_table( 'chat' ), array( 'handoff' => 1, 'log' => wp_json_encode( $log ) ), array( 'id' => (int) $row['id'] ) );
+	}
+	$to   = is_email( $s['email'] ) ? $s['email'] : get_option( 'admin_email' );
+	$body = "Prośba o telefon z czatu na fox.sklep.pl\n\nTelefon: {$phone}\nImię: " . ( $name ? $name : '—' ) . "\n\n--- Rozmowa ---\n" . ( $txt ? $txt : '(brak)' );
+	if ( $row ) {
+		$body .= "\nPodgląd w panelu: " . admin_url( 'admin.php?page=fx-ai&tab=rozmowy&chat=' . (int) $row['id'] );
+	}
+	wp_mail( $to, 'Czat: prośba o telefon ' . $phone, $body );
+	return new WP_REST_Response( array( 'ok' => true, 'msg' => 'Dziękujemy! Oddzwonimy najszybciej, jak to możliwe (w godzinach pracy sklepu).' ), 200 );
 }
 
 /** Zdarzenia z dymku: klik w kartę, dodanie do koszyka. */
@@ -378,6 +420,8 @@ add_action( 'wp_enqueue_scripts', function () {
 	wp_localize_script( 'fx-assistant', 'fxAI', array(
 		'url'     => esc_url_raw( rest_url( 'fox/v1/asystent' ) ),
 		'ev'      => esc_url_raw( rest_url( 'fox/v1/asystent-ev' ) ),
+		'cb'      => esc_url_raw( rest_url( 'fox/v1/asystent-cb' ) ),
+		'phone'   => $s['phone'],
 		'nonce'   => is_user_logged_in() ? wp_create_nonce( 'wp_rest' ) : '',
 		'css'     => get_template_directory_uri() . '/assets/css/assistant.css?ver=' . rawurlencode( $ver ),
 		'name'    => $s['name'],

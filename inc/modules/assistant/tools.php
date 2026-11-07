@@ -20,22 +20,35 @@ function fx_ai_tool_defs() {
 	};
 	return array(
 		$f( 'szukaj_produktow', 'Szuka produktów FOX w sklepie (ta sama wyszukiwarka co na stronie: synonimy, literówki). Zwraca maks. 10 pozycji z ceną, rozmiarami na stanie i terminem wysyłki każdego rozmiaru. Krótkie zapytania: rodzaj + model/grafika/świat, np. „spodnie mx”, „kask rowerowy enduro”, „bluza 180 nitro”.', array(
-			'zapytanie'      => array( 'type' => 'string', 'description' => 'Fraza po polsku, np. „spodnie motocrossowe”, „kask mtb”' ),
+			'zapytanie'      => array( 'type' => 'string', 'description' => 'Fraza po polsku dla JEDNEGO rodzaju produktu, np. „spodnie motocrossowe junior”, „kask mtb full face”. Kilka rodzajów – osobne wywołania (wiele naraz zostanie i tak rozdzielone).' ),
 			'cena_min'       => array( 'type' => 'number' ),
 			'cena_max'       => array( 'type' => 'number' ),
 			'rozmiar'        => array( 'type' => 'string', 'description' => 'NAZWA rozmiaru, który musi być na stanie, np. M, XL, 32 (spodnie w calach), YM, 10 (buty US). NIE wpisuj tu centymetrów (np. obwodu głowy 58) – do tego jest obwod_glowy_cm. Pomiń, gdy klient nie podał.' ),
 			'obwod_glowy_cm' => array( 'type' => 'number', 'description' => 'Dla kasków: obwód głowy klienta w cm (np. 58). Rozmiar zostanie dobrany osobno dla każdego modelu z jego tabeli rozmiarów.' ),
+			'wzrost_cm'      => array( 'type' => 'number', 'description' => 'Wzrost osoby w cm – do doboru rozmiaru bluz, spodni, kompletów (osobno dla każdego modelu z jego tabeli).' ),
+			'waga_kg'        => array( 'type' => 'number' ),
+			'wiek'           => array( 'type' => 'number', 'description' => 'Wiek dziecka w latach (rozmiary juniorskie).' ),
+			'pas_cm'         => array( 'type' => 'number', 'description' => 'Obwód pasa w cm (spodnie).' ),
+			'klatka_cm'      => array( 'type' => 'number', 'description' => 'Obwód klatki piersiowej w cm (bluzy, kurtki).' ),
 			'dla_kogo'       => array( 'type' => 'string', 'enum' => array( 'meskie', 'damskie', 'junior', 'dzieciece' ) ),
 			'tylko_dostepne' => array( 'type' => 'boolean', 'description' => 'Domyślnie true' ),
 		), array( 'zapytanie' ) ),
 		$f( 'szczegoly_produktu', 'Szczegóły produktu: opis, parametry, rozmiary na stanie z terminem wysyłki, tabela rozmiarów, części kompletu w tej samej grafice.', array(
 			'id' => array( 'type' => 'integer' ),
 		), array( 'id' ) ),
-		$f( 'dopasuj_rozmiar', 'Dobiera rozmiar KONKRETNEGO modelu z jego tabeli rozmiarów na podstawie wymiaru klienta (cm) i mówi, czy ten rozmiar jest na stanie. Rozmiary różnią się między modelami – używaj zawsze, gdy klient poda wymiar.', array(
-			'id'         => array( 'type' => 'integer' ),
-			'wymiar'     => array( 'type' => 'string', 'enum' => array( 'obwod_glowy', 'pas', 'klatka', 'wzrost', 'stopa', 'biodra' ) ),
-			'wartosc_cm' => array( 'type' => 'number' ),
-		), array( 'id', 'wymiar', 'wartosc_cm' ) ),
+		$f( 'dopasuj_rozmiar', 'Dobiera rozmiar KONKRETNEGO modelu z jego tabeli rozmiarów na podstawie wymiarów osoby (wzrost, waga, wiek, pas, klatka, obwód głowy) i mówi, czy ten rozmiar jest na stanie. Zwraca też pełny tekst tabeli. Rozmiary różnią się między modelami – używaj dla każdego produktu osobno.', array(
+			'id'             => array( 'type' => 'integer' ),
+			'wzrost_cm'      => array( 'type' => 'number' ),
+			'waga_kg'        => array( 'type' => 'number' ),
+			'wiek'           => array( 'type' => 'number' ),
+			'pas_cm'         => array( 'type' => 'number' ),
+			'klatka_cm'      => array( 'type' => 'number' ),
+			'obwod_glowy_cm' => array( 'type' => 'number' ),
+			'stopa_cm'       => array( 'type' => 'number' ),
+		), array( 'id' ) ),
+		$f( 'pokaz_formularz_telefonu', 'Pokazuje pod odpowiedzią okienko „Zostaw numer – oddzwonimy” (klient wpisuje telefon, sklep oddzwania). Używaj, gdy nie ma propozycji, klient woli rozmowę albo trzeba sprawdzić dostępność/dobór u sprzedawcy.', array(
+			'powod' => array( 'type' => 'string' ),
+		), array() ),
 		$f( 'sprawdz_u_producenta', 'Sprawdza informacje o produkcie na stronach FOX (foxracing.co.uk, foxracing.com) po numerze modelu z SKU albo EAN: opis, specyfikację, materiał, pojemność, wagę, technologie. Używaj, gdy klient pyta o konkretny parametr, którego nie ma w szczegoly_produktu.', array(
 			'id' => array( 'type' => 'integer' ),
 		), array( 'id' ) ),
@@ -62,7 +75,10 @@ function fx_ai_run_tool( $name, array $a ) {
 		case 'szczegoly_produktu':
 			return fx_ai_tool_details( (int) ( $a['id'] ?? 0 ) );
 		case 'dopasuj_rozmiar':
-			return fx_ai_tool_fit( (int) ( $a['id'] ?? 0 ), (string) ( $a['wymiar'] ?? '' ), (float) ( $a['wartosc_cm'] ?? 0 ) );
+			return fx_ai_tool_fit( (int) ( $a['id'] ?? 0 ), $a );
+		case 'pokaz_formularz_telefonu':
+			$GLOBALS['fx_ai_run']['callback'] = 1;
+			return array( 'ok' => true, 'info' => 'Pod Twoją odpowiedzią pojawi się okienko na numer telefonu. Napisz krótko, że oddzwonimy, i podaj też telefon sklepu.' );
 		case 'sprawdz_u_producenta':
 			return function_exists( 'fx_ai_tool_fox' ) ? fx_ai_tool_fox( (int) ( $a['id'] ?? 0 ) ) : array( 'blad' => 'Niedostępne.' );
 		case 'pokaz_produkty':
@@ -184,22 +200,82 @@ function fx_ai_price_row( WC_Product $p ) {
  * szukaj_produktow
  * ===================================================================== */
 
-function fx_ai_tool_search( array $a ) {
+/** Słowa rodzajów produktów – zapytanie o kilka rodzajów naraz dzielimy na osobne wyszukiwania. */
+function fx_ai_types() {
+	return apply_filters( 'fx_ai_types', array(
+		'kask'        => '/\b(kask\w*|helmet\w*)/u',
+		'gogle'       => '/\b(gogl\w*|goggle\w*)/u',
+		'rękawice'    => '/\b(r[eę]kawic\w*|r[eę]kawiczk\w*|glove\w*)/u',
+		'bluza'       => '/\b(bluz\w*|jersey\w*|koszul\w*)/u',
+		'spodnie'     => '/\b(spodn\w*|pants?)\b/u',
+		'buty'        => '/\b(but(y|ów|ach)?|boots?)\b/u',
+		'ochraniacze' => '/\b(ochrani\w*|buzer\w*|zbroj\w*|nakolan\w*|na[lł]okietn\w*|kolan\w*)/u',
+		'kurtka'      => '/\b(kurtk\w*|jacket\w*)/u',
+	) );
+}
+
+function fx_ai_is_kid( array $a, $q ) {
+	return in_array( $a['dla_kogo'] ?? '', array( 'junior', 'dzieciece' ), true ) || preg_match( '/junior|youth|dzieci|dziecka|dziecko|syna|córk|corki|kids?\b|młodzie|mlodzie/iu', $q );
+}
+
+/** Rozmiary uznawane za „ten sam” – u dzieci M = YM, S = YS itd. */
+function fx_ai_size_set( $size, $kid ) {
+	if ( '' === $size ) {
+		return array();
+	}
+	$set = array( $size );
+	if ( $kid && preg_match( '/^(XS|S|M|L|XL)$/', $size ) ) {
+		$set[] = 'Y' . $size;
+	}
+	if ( $kid && preg_match( '/^Y(XS|S|M|L|XL)$/', $size, $m ) ) {
+		$set[] = $m[1];
+	}
+	return $set;
+}
+
+/** Wymiary klienta z parametrów narzędzia: [ rodzaj => wartość ]. */
+function fx_ai_measures( array $a ) {
+	$map = array( 'obwod_glowy_cm' => 'obwod_glowy', 'wzrost_cm' => 'wzrost', 'waga_kg' => 'waga', 'pas_cm' => 'pas', 'klatka_cm' => 'klatka', 'wiek' => 'wiek', 'stopa_cm' => 'stopa' );
+	$out = array();
+	foreach ( $map as $k => $kind ) {
+		if ( isset( $a[ $k ] ) && (float) str_replace( ',', '.', (string) $a[ $k ] ) > 0 ) {
+			$out[ $kind ] = (float) str_replace( ',', '.', (string) $a[ $k ] );
+		}
+	}
+	return $out;
+}
+
+/** Jedno wyszukiwanie (jeden rodzaj produktu). @return array [ wyniki[], pasujace_id[], pominiete ] */
+function fx_ai_search_one( array $a, $limit = 10 ) {
 	$q    = trim( mb_substr( wp_strip_all_tags( (string) ( $a['zapytanie'] ?? '' ) ), 0, 120 ) );
 	$min  = isset( $a['cena_min'] ) ? (float) $a['cena_min'] : 0;
 	$max  = isset( $a['cena_max'] ) ? (float) $a['cena_max'] : 0;
 	$size = isset( $a['rozmiar'] ) ? fx_ai_size_key( $a['rozmiar'] ) : '';
 	$dla  = isset( $a['dla_kogo'] ) ? sanitize_key( $a['dla_kogo'] ) : '';
 	$only = ! isset( $a['tylko_dostepne'] ) || false !== $a['tylko_dostepne'];
-	$head = isset( $a['obwod_glowy_cm'] ) ? (float) str_replace( ',', '.', (string) $a['obwod_glowy_cm'] ) : 0;
+	$meas = fx_ai_measures( $a );
 	// Bezpiecznik: „rozmiar 58” przy kaskach to obwód głowy, nie nazwa rozmiaru.
-	if ( ! $head && preg_match( '/^\d{2}([.,]\d)?$/', $size ) && (float) $size >= 46 && (float) $size <= 66 && preg_match( '/kask|helmet|full ?face/iu', $q ) ) {
-		$head = (float) str_replace( ',', '.', $size );
-		$size = '';
+	if ( empty( $meas['obwod_glowy'] ) && preg_match( '/^\d{2}([.,]\d)?$/', $size ) && (float) $size >= 46 && (float) $size <= 66 && preg_match( '/kask|helmet|full ?face/iu', $q ) ) {
+		$meas['obwod_glowy'] = (float) str_replace( ',', '.', $size );
+		$size                = '';
 	}
+	// „rozmiar 150” to wzrost w cm, nie rozmiar.
+	if ( empty( $meas['wzrost'] ) && preg_match( '/^\d{3}$/', $size ) && (int) $size >= 90 && (int) $size <= 210 ) {
+		$meas['wzrost'] = (float) $size;
+		$size           = '';
+	}
+	$sset    = fx_ai_size_set( $size, fx_ai_is_kid( $a, $q ) );
 	$skipped = 0;
+	// Rodzaj produktu z zapytania (kask, gogle…) – wynik musi być tego rodzaju (nazwa albo kategoria).
+	$type_re = '';
+	foreach ( fx_ai_types() as $re ) {
+		if ( preg_match( $re, mb_strtolower( $q, 'UTF-8' ) ) ) {
+			$type_re = $re;
+			break;
+		}
+	}
 	if ( '' === $q ) {
-		return array( 'blad' => 'Podaj zapytanie.' );
+		return array( array(), array(), 0 );
 	}
 	$ids = array();
 	if ( function_exists( 'fx_srch_query' ) ) {
@@ -215,15 +291,20 @@ function fx_ai_tool_search( array $a ) {
 		if ( in_array( $dla, array( 'meskie', 'damskie' ), true ) ) {
 			$slugs[] = 'unisex';
 		}
+		if ( 'junior' === $dla ) {
+			$slugs[] = 'dzieciece';
+		} elseif ( 'dzieciece' === $dla ) {
+			$slugs[] = 'junior';
+		}
 		$dla_ids = array_flip( array_map( 'intval', get_objects_in_term( array_map( function ( $s ) {
 			$t = get_term_by( 'slug', $s, 'fx_dla' );
 			return $t ? (int) $t->term_id : 0;
 		}, $slugs ), 'fx_dla' ) ) );
 	}
 	$out   = array();
-	$match = array(); // wszystkie pasujące (do linku „Więcej” – kategoria)
+	$match = array();
 	foreach ( $ids as $id ) {
-		if ( count( $out ) >= 10 && count( $match ) >= 40 ) {
+		if ( count( $out ) >= $limit && count( $match ) >= 40 ) {
 			break;
 		}
 		$p = wc_get_product( $id );
@@ -233,6 +314,15 @@ function fx_ai_tool_search( array $a ) {
 		if ( null !== $dla_ids && ! isset( $dla_ids[ (int) $id ] ) ) {
 			continue;
 		}
+		if ( $type_re ) {
+			$hay = mb_strtolower( $p->get_name(), 'UTF-8' );
+			if ( ! preg_match( $type_re, $hay ) ) {
+				$cats = wc_get_product_terms( $p->get_id(), 'product_cat', array( 'fields' => 'names' ) );
+				if ( ! preg_match( $type_re, mb_strtolower( implode( ' ', (array) $cats ), 'UTF-8' ) ) ) {
+					continue;
+				}
+			}
+		}
 		$price = (float) ( $p->is_type( 'variable' ) ? $p->get_variation_price( 'min', true ) : wc_get_price_to_display( $p ) );
 		if ( $price <= 0 || ( $min && $price < $min ) || ( $max && $price > $max ) ) {
 			continue;
@@ -241,26 +331,22 @@ function fx_ai_tool_search( array $a ) {
 		if ( $only && ! $sizes ) {
 			continue;
 		}
-		if ( '' !== $size ) {
-			$sizes = array_values( array_filter( $sizes, function ( $s ) use ( $size ) {
+		if ( $sset ) {
+			$sizes = array_values( array_filter( $sizes, function ( $s ) use ( $sset ) {
 				foreach ( preg_split( '/\s*\/\s*/', $s['r'] ) as $part ) {
-					if ( fx_ai_size_key( $part ) === $size ) {
+					if ( in_array( fx_ai_size_key( $part ), $sset, true ) ) {
 						return true;
 					}
 				}
 				return false;
 			} ) );
 			if ( ! $sizes ) {
-				continue; // brak tego rozmiaru na stanie (także produkt bez rozmiarów)
+				continue;
 			}
 		}
-		$match[] = (int) $p->get_id();
-		if ( count( $out ) >= 10 ) {
-			continue;
-		}
 		$fit_note = '';
-		if ( $head > 0 ) {
-			$fit = fx_ai_fit( $p, 'obwod_glowy', $head );
+		if ( $meas ) {
+			$fit = fx_ai_fit_multi( $p, $meas );
 			if ( $fit['rozmiar'] ) {
 				$ok = array_values( array_filter( $sizes, function ( $s ) use ( $fit ) {
 					return fx_ai_size_key( preg_split( '/\s*\/\s*/', $s['r'] )[0] ) === fx_ai_size_key( $fit['rozmiar'] );
@@ -269,16 +355,20 @@ function fx_ai_tool_search( array $a ) {
 					$skipped++;
 					continue; // pasujący rozmiar tego modelu niedostępny
 				}
-				$fit_note = $fit['rozmiar'] . ( $fit['zakres'] ? ' (' . $fit['zakres'] . ')' : '' ) . ': ' . $ok[0]['wysylka'];
+				$fit_note = $fit['rozmiar'] . ' (' . $fit['opis'] . '): ' . $ok[0]['wysylka'];
 			} else {
-				$fit_note = $fit['tabela'] ? 'obwód poza tabelą modelu – ' . $fit['tabela'] : 'brak tabeli w formie tekstu – rozmiar trzeba sprawdzić w „Tabela rozmiarów” na karcie produktu';
+				$fit_note = $fit['tabela'] ? 'wymiary poza tabelą modelu – tabela: ' . $fit['tabela'] : 'brak tabeli w formie tekstu – rozmiar sprawdź narzędziem dopasuj_rozmiar albo w „Tabela rozmiarów”';
 			}
 		}
+		$match[] = (int) $p->get_id();
+		if ( count( $out ) >= $limit ) {
+			continue;
+		}
 		$row = array(
-			'id'       => $p->get_id(),
-			'nazwa'    => $p->get_name(),
+			'id'        => $p->get_id(),
+			'nazwa'     => $p->get_name(),
 			'kategoria' => fx_ai_cat_name( $p->get_id() ),
-			'swiat'    => fx_ai_world( $p->get_id() ),
+			'swiat'     => fx_ai_world( $p->get_id() ),
 		) + fx_ai_price_row( $p );
 		if ( '' !== $fit_note ) {
 			$row['pasujacy_rozmiar'] = $fit_note;
@@ -288,16 +378,122 @@ function fx_ai_tool_search( array $a ) {
 		}, array_slice( $sizes, 0, 12 ) );
 		$out[] = $row;
 	}
-	if ( ! $out ) {
-		$GLOBALS['fx_ai_run']['notfound'][] = $q . ( $size ? ' [' . $size . ']' : '' ) . ( $head ? ' [' . $head . ' cm]' : '' );
-		return array( 'wyniki' => array(), 'uwaga' => 'Nic nie znaleziono' . ( $size ? ' w rozmiarze ' . $size : '' ) . ( $skipped ? ' – ' . $skipped . ' modeli ma pasujący rozmiar chwilowo niedostępny' : '' ) . '. Spróbuj szerszej frazy (np. sam rodzaj produktu) albo bez rozmiaru; zaproponuj kontakt ze sklepem. Nie wymyślaj produktów.' );
+	return array( $out, $match, $skipped );
+}
+
+/**
+ * Wyszukiwanie z poszerzaniem: gdy nic nie ma – bez koloru, bez rozmiaru/wymiarów, sam rodzaj produktu.
+ * Nigdy nie kończy się „nie mamy” bez propozycji: na końcu – telefon i okienko „Zostaw numer”.
+ */
+function fx_ai_search_wide( array $a, $limit ) {
+	$q      = trim( (string) ( $a['zapytanie'] ?? '' ) );
+	$colors = '/\b(full ?black|black|czarn\w*|white|bia[lł]\w*|red|czerwon\w*|blue|niebiesk\w*|grey|gray|szar\w*|green|zielon\w*|pink|r[oó][zż]ow\w*|orange|pomara\w*|yellow|[zż][oó][lł]t\w*|camo|navy|fluo\w*|purple|fiolet\w*)\b/iu';
+	$type   = '';
+	foreach ( fx_ai_types() as $t => $re ) {
+		if ( preg_match( $re, mb_strtolower( $q, 'UTF-8' ), $m ) ) {
+			$type = $m[1];
+			break;
+		}
 	}
-	$GLOBALS['fx_ai_run']['last'] = array( 'q' => $q, 'ids' => $match, 'dla' => $dla );
+	$kid   = fx_ai_is_kid( $a, $q );
+	$steps = array( array( $a, '' ) );
+	$noc   = trim( preg_replace( '/\s+/', ' ', preg_replace( $colors, ' ', $q ) ) );
+	if ( $noc !== $q && '' !== $noc ) {
+		$steps[] = array( array_merge( $a, array( 'zapytanie' => $noc ) ), 'w tym kolorze nic nie ma – pokazuję inne kolory' );
+	}
+	$base = '' !== $noc ? $noc : $q;
+	$b2   = $a;
+	unset( $b2['rozmiar'], $b2['obwod_glowy_cm'], $b2['wzrost_cm'], $b2['waga_kg'], $b2['pas_cm'], $b2['klatka_cm'], $b2['wiek'], $b2['stopa_cm'] );
+	if ( $b2 !== $a ) {
+		$steps[] = array( array_merge( $b2, array( 'zapytanie' => $base ) ), 'w tym rozmiarze nic nie ma na stanie – pokazuję te modele w dostępnych rozmiarach' );
+	}
+	if ( $type ) {
+		$steps[] = array( array_merge( $b2, array( 'zapytanie' => $type . ( $kid ? ' junior' : '' ) ) ), 'pokazuję najbliższe dostępne: ' . $type . ( $kid ? ' junior' : '' ) );
+		if ( $kid ) {
+			$steps[] = array( array_merge( $b2, array( 'zapytanie' => $type ) ), 'pokazuję najbliższe dostępne: ' . $type );
+		}
+	}
+	// Dziecko bez wskazanej grupy: najpierw produkty juniorskie/dziecięce, dopiero potem wszystkie.
+	$jn = 0;
+	if ( $kid && empty( $a['dla_kogo'] ) && taxonomy_exists( 'fx_dla' ) ) {
+		$junior = array();
+		foreach ( $steps as $st ) {
+			$junior[] = array( array_merge( $st[0], array( 'dla_kogo' => 'junior' ) ), $st[1] );
+		}
+		$jn    = count( $junior );
+		$steps = array_merge( $junior, $steps );
+	}
+	foreach ( $steps as $i => $st ) {
+		list( $out, $match, $skipped ) = fx_ai_search_one( $st[0], $limit );
+		if ( $out ) {
+			$note = $st[1];
+			if ( $jn && $i >= $jn ) {
+				$note = trim( $note . ( $note ? '; ' : '' ) . 'w wersji juniorskiej nic nie ma – to produkty w rozmiarach dorosłych (powiedz to klientowi; przy goglach i części akcesoriów rozmiar bywa uniwersalny)' );
+			}
+			return array( $out, $match, $note, $skipped );
+		}
+	}
+	return array( array(), array(), '', 0 );
+}
+
+function fx_ai_tool_search( array $a ) {
+	$q = trim( mb_substr( wp_strip_all_tags( (string) ( $a['zapytanie'] ?? '' ) ), 0, 120 ) );
+	if ( '' === $q ) {
+		return array( 'blad' => 'Podaj zapytanie.' );
+	}
+	$a['zapytanie'] = $q;
+	$low            = mb_strtolower( $q, 'UTF-8' );
+	$found          = array();
+	foreach ( fx_ai_types() as $t => $re ) {
+		if ( preg_match( $re, $low ) ) {
+			$found[] = $t;
+		}
+	}
+	$no_result = 'NIE pisz klientowi „nie mamy”. Napisz, że sprawdzimy dostępność albo zamówimy u dystrybutora, podaj telefon sklepu (' . fx_ai_settings()['phone'] . ') – pod odpowiedzią pojawi się okienko „Zostaw numer – oddzwonimy”.';
+	// Kilka rodzajów naraz („kask, rękawice i gogle”) – osobne wyszukiwanie dla każdego.
+	if ( count( $found ) >= 2 ) {
+		$rest = $low;
+		foreach ( fx_ai_types() as $re ) {
+			$rest = preg_replace( $re, ' ', $rest );
+		}
+		$rest   = trim( preg_replace( '/\s+/', ' ', preg_replace( '/\b(i|oraz|a także|plus|do|lub|albo)\b|[,+&]/u', ' ', $rest ) ) );
+		$groups = array();
+		$all    = array();
+		foreach ( $found as $t ) {
+			list( $out, $match, $note ) = fx_ai_search_wide( array_merge( $a, array( 'zapytanie' => trim( $t . ' ' . $rest ) ) ), 4 );
+			$g = array( 'produkt' => $t, 'wyniki' => $out );
+			if ( $note ) {
+				$g['uwaga'] = $note;
+			}
+			if ( ! $out ) {
+				$g['uwaga']                        = 'brak propozycji – ' . $no_result;
+				$GLOBALS['fx_ai_run']['notfound'][] = $t . ' ' . $rest;
+				$GLOBALS['fx_ai_run']['callback']   = 1;
+			}
+			$groups[] = $g;
+			$all      = array_merge( $all, $match );
+		}
+		$GLOBALS['fx_ai_run']['last'] = array( 'q' => $q, 'ids' => array_slice( array_unique( $all ), 0, 40 ), 'dla' => (string) ( $a['dla_kogo'] ?? '' ) );
+		return array(
+			'grupy' => $groups,
+			'info'  => 'Każdy produkt wyszukany osobno. Omów je po kolei (najpierw jeden, np. kask – rozmiar i propozycje, potem następny), rozmiar dobieraj osobno dla każdego modelu (dopasuj_rozmiar). Pokaż karty z każdej grupy.',
+		);
+	}
+	list( $out, $match, $note, $skipped ) = fx_ai_search_wide( $a, 10 );
+	if ( ! $out ) {
+		$GLOBALS['fx_ai_run']['notfound'][] = $q . ( ! empty( $a['rozmiar'] ) ? ' [' . $a['rozmiar'] . ']' : '' );
+		$GLOBALS['fx_ai_run']['callback']   = 1;
+		return array( 'wyniki' => array(), 'uwaga' => 'Brak propozycji nawet po poszerzeniu wyszukiwania. ' . $no_result );
+	}
+	$GLOBALS['fx_ai_run']['last'] = array( 'q' => $q, 'ids' => $match, 'dla' => (string) ( $a['dla_kogo'] ?? '' ) );
 	$res = array( 'wyniki' => $out );
+	if ( $note ) {
+		$res['uwaga'] = ucfirst( $note ) . '. Powiedz to klientowi wprost i pokaż te propozycje (nie pisz „nie mamy”).';
+	}
 	if ( count( $match ) > count( $out ) ) {
 		$res['wiecej'] = 'Pasuje więcej produktów (' . count( $match ) . '+) – pod kartami klient ma przycisk „Więcej” do kategorii.';
 	}
-	if ( $head ) {
+	if ( fx_ai_measures( $a ) ) {
 		$res['info'] = 'Rozmiar dobrany osobno dla każdego modelu z jego tabeli rozmiarów (pole pasujacy_rozmiar).' . ( $skipped ? ' Pominięto ' . $skipped . ' modeli, w których pasujący rozmiar jest niedostępny.' : '' );
 	}
 	return $res;
@@ -377,6 +573,8 @@ function fx_ai_fit( WC_Product $p, $kind, $cm ) {
 		'wzrost'      => '/wzrost|height/iu',
 		'stopa'       => '/stop|wk[lł]ad|foot/iu',
 		'biodra'      => '/biod|hip/iu',
+		'waga'        => '/wag[ai]|weight|\bkg\b/iu',
+		'wiek'        => '/wiek|\bage\b|\blat\b|years/iu',
 	);
 	$out = array( 'rozmiar' => '', 'zakres' => '', 'tabela' => '' );
 	if ( ! isset( $re[ $kind ] ) || $cm <= 0 ) {
@@ -436,11 +634,13 @@ function fx_ai_fit( WC_Product $p, $kind, $cm ) {
 	if ( ! $pairs ) {
 		return $out;
 	}
-	$fmt = function ( $a, $b ) {
+	$unit = array( 'waga' => ' kg', 'wiek' => ' lat' );
+	$unit = $unit[ $kind ] ?? ' cm';
+	$fmt  = function ( $a, $b ) use ( $unit ) {
 		$f = function ( $x ) {
 			return rtrim( rtrim( number_format( $x, 1, ',', '' ), '0' ), ',' );
 		};
-		return $a === $b ? $f( $a ) . ' cm' : $f( $a ) . '–' . $f( $b ) . ' cm';
+		return $a === $b ? $f( $a ) . $unit : $f( $a ) . '–' . $f( $b ) . $unit;
 	};
 	$out['tabela'] = implode( ', ', array_map( function ( $x ) use ( $fmt ) {
 		return $x[0] . ' ' . $fmt( $x[1], $x[2] );
@@ -456,7 +656,38 @@ function fx_ai_fit( WC_Product $p, $kind, $cm ) {
 	return $out;
 }
 
-function fx_ai_tool_fit( $id, $kind, $cm ) {
+/**
+ * Dobór po kilku wymiarach naraz (wzrost, waga, wiek, pas, klatka, obwód głowy) z tabeli modelu.
+ * Gdy wymiary wskazują różne rozmiary – większy (bezpieczniej, zwłaszcza u rosnących dzieci).
+ * @return array rozmiar, opis („wzrost 150 cm → YL; waga 40 kg → YM”), tabela
+ */
+function fx_ai_fit_multi( WC_Product $p, array $meas ) {
+	$names = array( 'obwod_glowy' => 'obwód głowy', 'wzrost' => 'wzrost', 'waga' => 'waga', 'pas' => 'pas', 'klatka' => 'klatka', 'wiek' => 'wiek', 'stopa' => 'stopa', 'biodra' => 'biodra' );
+	$units = array( 'waga' => ' kg', 'wiek' => ' lat' );
+	$hits  = array();
+	$desc  = array();
+	$tabs  = array();
+	foreach ( $meas as $kind => $val ) {
+		$f = fx_ai_fit( $p, $kind, $val );
+		if ( $f['tabela'] ) {
+			$tabs[] = ( $names[ $kind ] ?? $kind ) . ': ' . $f['tabela'];
+		}
+		if ( $f['rozmiar'] ) {
+			$hits[] = $f['rozmiar'];
+			$desc[] = ( $names[ $kind ] ?? $kind ) . ' ' . rtrim( rtrim( number_format( $val, 1, ',', '' ), '0' ), ',' ) . ( $units[ $kind ] ?? ' cm' ) . ' → ' . $f['rozmiar'];
+		}
+	}
+	$best = '';
+	foreach ( $hits as $h ) {
+		$r = function_exists( 'fx_size_rank' ) ? fx_size_rank( $h ) : 0;
+		if ( '' === $best || $r > ( function_exists( 'fx_size_rank' ) ? fx_size_rank( $best ) : 0 ) ) {
+			$best = $h;
+		}
+	}
+	return array( 'rozmiar' => $best, 'opis' => implode( '; ', $desc ), 'tabela' => implode( ' | ', $tabs ) );
+}
+
+function fx_ai_tool_fit( $id, array $a ) {
 	$p = wc_get_product( $id );
 	if ( $p && $p->is_type( 'variation' ) ) {
 		$p = wc_get_product( $p->get_parent_id() );
@@ -464,26 +695,39 @@ function fx_ai_tool_fit( $id, $kind, $cm ) {
 	if ( ! $p || 'publish' !== $p->get_status() ) {
 		return array( 'blad' => 'Nie ma takiego produktu.' );
 	}
-	$fit = fx_ai_fit( $p, $kind, $cm );
-	$out = array( 'produkt' => $p->get_name(), 'wymiar_klienta' => $cm . ' cm' );
-	if ( ! $fit['tabela'] ) {
-		$out['wynik'] = 'Nie umiem odczytać tabeli rozmiarów tego modelu (brak tabeli w formie tekstu). Odeślij klienta do przycisku „Tabela rozmiarów” na karcie produktu albo do telefonu sklepu. Nie zgaduj rozmiaru.';
-		return $out;
+	$meas = fx_ai_measures( $a );
+	if ( ! empty( $a['wymiar'] ) && ! empty( $a['wartosc_cm'] ) ) { // zgodność wstecz
+		$meas[ sanitize_key( $a['wymiar'] ) ] = (float) $a['wartosc_cm'];
 	}
-	$out['tabela_modelu'] = $fit['tabela'];
-	if ( ! $fit['rozmiar'] ) {
-		$out['wynik'] = 'Wymiar klienta jest poza tabelą tego modelu – powiedz to i zaproponuj inny model albo kontakt ze sklepem.';
-		return $out;
+	if ( ! $meas ) {
+		return array( 'blad' => 'Podaj wymiary klienta: wzrost (cm), waga (kg), u dzieci wiek; przy kaskach obwód głowy; przy spodniach opcjonalnie obwód pasa.' );
 	}
-	$out['pasujacy_rozmiar'] = $fit['rozmiar'] . ' (' . $fit['zakres'] . ')';
-	$stock = null;
-	foreach ( fx_ai_sizes( $p ) as $s ) {
-		if ( fx_ai_size_key( preg_split( '/\s*\/\s*/', $s['r'] )[0] ) === fx_ai_size_key( $fit['rozmiar'] ) ) {
-			$stock = $s['wysylka'];
-			break;
+	$fit   = fx_ai_fit_multi( $p, $meas );
+	$sizes = fx_ai_sizes( $p );
+	$out   = array( 'produkt' => $p->get_name(), 'rozmiary_na_stanie' => $sizes ? implode( ', ', wp_list_pluck( $sizes, 'r' ) ) : 'brak' );
+	if ( $fit['tabela'] ) {
+		$out['tabela_modelu'] = $fit['tabela'];
+	}
+	// Pełny tekst tabeli rozmiarów – do samodzielnej oceny, gdy automat nie odczyta wszystkiego.
+	$gid = function_exists( 'fx_size_guide_for' ) ? fx_size_guide_for( $p ) : 0;
+	if ( $gid ) {
+		$out['tabela_tekst'] = fx_ai_text( get_post_field( 'post_content', $gid ), 1800 );
+	}
+	if ( $fit['rozmiar'] ) {
+		$out['pasujacy_rozmiar'] = $fit['rozmiar'] . ' (' . $fit['opis'] . ')';
+		$stock                   = null;
+		foreach ( $sizes as $s ) {
+			if ( fx_ai_size_key( preg_split( '/\s*\/\s*/', $s['r'] )[0] ) === fx_ai_size_key( $fit['rozmiar'] ) ) {
+				$stock = $s['wysylka'];
+				break;
+			}
 		}
+		$out['dostepnosc'] = null === $stock ? 'ten rozmiar jest chwilowo niedostępny – zaproponuj inny model w tym rozmiarze (szukaj_produktow z tymi wymiarami); nie pisz „nie mamy”' : 'na stanie: ' . $stock;
+	} elseif ( ! empty( $out['tabela_tekst'] ) ) {
+		$out['wynik'] = 'Automat nie dopasował rozmiaru – odczytaj go sam z tabela_tekst (wzrost/waga/wiek/pas). Jeśli tabela nie podaje tych wymiarów, poproś o inny wymiar z tabeli albo zaproponuj telefon do sklepu.';
+	} else {
+		$out['wynik'] = 'Ten model nie ma tabeli rozmiarów w formie tekstu. Dorośli: najczęściej M lub L; dzieci: zaproponuj telefon do sklepu albo „Zostaw numer” – pomożemy dobrać. Nie zgaduj na pewno.';
 	}
-	$out['dostepnosc'] = null === $stock ? 'ten rozmiar jest chwilowo niedostępny – zaproponuj inny model w tym rozmiarze (szukaj_produktow z wymiarem)' : 'na stanie: ' . $stock;
 	return $out;
 }
 

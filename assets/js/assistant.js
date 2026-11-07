@@ -227,6 +227,20 @@
 			more.setAttribute('data-id', '0');
 			w.appendChild(more);
 		}
+		if (m.callback) {
+			var f = el('form', 'fx-ai__cb');
+			if (m.cbDone) {
+				f.innerHTML = '<p class="fx-ai__cb-ok">' + esc(m.cbDone) + '</p>';
+			} else {
+				f.innerHTML = '<strong>Zostaw numer – oddzwonimy</strong>' +
+					'<div class="fx-ai__cb-row"><input type="tel" name="phone" required placeholder="Telefon" autocomplete="tel" inputmode="tel" aria-label="Telefon"><input type="text" name="name" placeholder="Imię (opcjonalnie)" autocomplete="given-name" aria-label="Imię"></div>' +
+					'<input type="text" name="website" tabindex="-1" autocomplete="off" class="fx-ai__hp" aria-hidden="true">' +
+					'<button type="submit">Poproś o telefon</button>' +
+					'<small>Numer wykorzystamy tylko do kontaktu w tej sprawie' + (C.phone ? ' · albo zadzwoń: <a href="tel:' + esc(C.phone.replace(/[^\d+]/g, '')) + '">' + esc(C.phone) + '</a>' : '') + '</small><p class="fx-ai__cb-err" hidden></p>';
+				f.addEventListener('submit', function (e) { e.preventDefault(); callback(f, m); });
+			}
+			w.appendChild(f);
+		}
 		if (m.wa) {
 			var wa = el('a', 'fx-ai__wa', 'Napisz na WhatsApp');
 			wa.href = m.wa;
@@ -261,6 +275,24 @@
 		});
 	}
 
+	function callback(f, m) {
+		var btn = f.querySelector('button'), err = f.querySelector('.fx-ai__cb-err');
+		btn.disabled = true;
+		fetch(C.cb, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ sid: st.sid, phone: f.phone.value, name: f.name.value, website: f.website.value }) })
+			.then(function (r) { return r.json(); }).then(function (res) {
+				if (res && res.ok) {
+					m.cbDone = res.msg;
+					save();
+					render();
+					track('assistant_callback');
+				} else {
+					err.textContent = (res && res.msg) || 'Spróbuj ponownie.';
+					err.hidden = false;
+					btn.disabled = false;
+				}
+			}).catch(function () { err.textContent = 'Brak połączenia – zadzwoń do nas.'; err.hidden = false; btn.disabled = false; });
+	}
+
 	function typing(on) {
 		var t = list.querySelector('.fx-ai__typing');
 		if (on && !t) {
@@ -287,7 +319,7 @@
 		var history = st.msgs.slice(-24).map(function (m) { return { role: m.role, content: m.content }; });
 		var body = JSON.stringify({ sid: st.sid, messages: history, product: C.product || 0, page: location.href.split('#')[0] });
 		post(body, !!C.nonce).then(function (res) {
-			st.msgs.push({ role: 'assistant', content: (res && res.text) || 'Przepraszam, spróbuj jeszcze raz.', cards: (res && res.cards) || [], more: (res && res.more) || null, wa: (res && res.wa) || '' });
+			st.msgs.push({ role: 'assistant', content: (res && res.text) || 'Przepraszam, spróbuj jeszcze raz.', cards: (res && res.cards) || [], more: (res && res.more) || null, wa: (res && res.wa) || '', callback: !!(res && res.callback) });
 		}).catch(function () {
 			st.msgs.push({ role: 'assistant', content: 'Nie mogę się teraz połączyć. Spróbuj za chwilę.' });
 		}).then(function () {
