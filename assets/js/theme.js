@@ -856,15 +856,18 @@
 			var num = p.join(d.dec), sym = d.sym || '';
 			return ({ left: sym + num, left_space: sym + ' ' + num, right_space: num + ' ' + sym })[d.pos] || (num + sym);
 		}
+		var $omni = $('<div class="fx-omni-var"></div>').insertAfter($price);
 		$form.on('found_variation', function (e, v) {
 			if (v && v.price_html) {
 				var h = $('<div>').html(v.price_html).find('.price').html();
 				if (h) { $price.html(h); }
 			}
+			$omni.html(v && v.fx_omni ? v.fx_omni : '');
 			if ($sav.length && v) {
 				var reg = parseFloat(v.display_regular_price), now = parseFloat(v.display_price);
-				if (reg > now) {
-					$sav.show().html('<div class="fx-savings__title">🔥 Kupujesz taniej o ' + money(reg - now) + ' (' + Math.round((reg - now) / reg * 100) + '%)</div><div class="fx-savings__sub">Cena detaliczna: <strong>' + money(reg) + '</strong></div>');
+				var base = v.fx_base ? parseFloat(v.fx_base) : reg; // Omnibus: procent od najniższej ceny z 30 dni
+				if (reg > now && base > now) {
+					$sav.show().html('<div class="fx-savings__title">🔥 Kupujesz taniej o ' + money(base - now) + ' (' + Math.round((base - now) / base * 100) + '%)</div><div class="fx-savings__sub">Cena detaliczna: <strong>' + money(reg) + '</strong></div>');
 				} else {
 					$sav.hide();
 				}
@@ -872,6 +875,7 @@
 		});
 		$form.on('reset_data', function () {
 			$price.html(orig);
+			$omni.html('');
 			if ($sav.length) { $sav.show().html(savOrig); }
 		});
 	});

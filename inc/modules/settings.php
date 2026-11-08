@@ -14,6 +14,10 @@ function fx_tool_defaults() {
 	return array(
 		'badge_new_days'   => 30,
 		'badge_sale_pct'   => true,
+		'omni_on'          => true,
+		'omni_loop'        => true,
+		'omni_pct'         => true,
+		'omni_text'        => 'Najniższa cena z 30 dni przed obniżką:',
 		'badge_low_stock'  => 2,
 		'filter_size_attr'  => '',
 		'filter_color_attr' => '',
@@ -55,6 +59,10 @@ add_action( 'customize_register', function ( $wp ) {
 	$fields = array(
 		'badge_new_days'   => array( 'number', 'Etykieta „Nowość” – przez ile dni od dodania produktu (0 = wyłączona)', 'absint' ),
 		'badge_sale_pct'   => array( 'checkbox', 'Etykieta promocji z procentem rabatu (np. −20%)', 'fx_sanitize_bool' ),
+		'omni_on'          => array( 'checkbox', 'Omnibus: pokazuj najniższą cenę z 30 dni przed obniżką (karta produktu)', 'fx_sanitize_bool' ),
+		'omni_loop'        => array( 'checkbox', 'Omnibus: także na kafelkach w kategoriach i wyszukiwarce', 'fx_sanitize_bool' ),
+		'omni_pct'         => array( 'checkbox', 'Omnibus: procent obniżki (etykieta −X%, „Kupujesz taniej o…”) liczony od najniższej ceny z 30 dni, a nie od ceny regularnej', 'fx_sanitize_bool' ),
+		'omni_text'        => array( 'text', 'Omnibus: tekst przed ceną', 'sanitize_text_field' ),
 		'badge_low_stock'  => array( 'number', 'Etykieta „Ostatnie sztuki”, gdy na stanie jest najwyżej tyle sztuk (0 = wyłączona)', 'absint' ),
 		'size_names'       => array( 'textarea', 'Nazwy rozmiarów w sklepie (jedna linia: „OS = Uniwersalny”). Zmienia tylko wyświetlanie – w produktach i zamówieniach zostaje oryginał.', 'sanitize_textarea_field' ),
 		'dla_unisex_words' => array( 'text', 'Filtr „Dla kogo”: ochraniacze i inne produkty Unisex – początki słów z nazwy lub kategorii, po przecinku (bez polskich znaków też działa). Damskie / Junior / Kids z nazwy mają pierwszeństwo; reszta bez oznaczenia = Męskie. Zmiana przelicza produkty w tle.', 'sanitize_text_field' ),

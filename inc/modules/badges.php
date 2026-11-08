@@ -82,15 +82,18 @@ function fx_sale_percent( $product ) {
 		$max = 0;
 		foreach ( $product->get_visible_children() as $vid ) {
 			$v = wc_get_product( $vid );
-			if ( $v && $v->is_on_sale() && (float) $v->get_regular_price() > 0 ) {
-				$max = max( $max, ( 1 - (float) $v->get_sale_price() / (float) $v->get_regular_price() ) * 100 );
+			if ( $v && $v->is_on_sale() ) {
+				$base = function_exists( 'fx_omni_base' ) ? fx_omni_base( $v ) : (float) $v->get_regular_price();
+				if ( $base > 0 ) {
+					$max = max( $max, ( 1 - (float) $v->get_sale_price() / $base ) * 100 );
+				}
 			}
 		}
 		return (int) round( $max );
 	}
-	$reg = (float) $product->get_regular_price();
+	$reg = function_exists( 'fx_omni_base' ) ? fx_omni_base( $product ) : (float) $product->get_regular_price();
 	$sal = (float) $product->get_sale_price();
-	return ( $reg > 0 && $sal > 0 ) ? (int) round( ( 1 - $sal / $reg ) * 100 ) : 0;
+	return ( $reg > 0 && $sal > 0 ) ? max( 0, (int) round( ( 1 - $sal / $reg ) * 100 ) ) : 0;
 }
 
 function fx_low_stock( $product, $limit ) {

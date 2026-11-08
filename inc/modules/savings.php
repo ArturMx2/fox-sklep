@@ -27,11 +27,12 @@ function fx_savings_box() {
 	if ( $product->is_type( 'simple' ) ) {
 		$regular = (float) $product->get_regular_price();
 		$sale    = (float) $product->get_sale_price();
-		if ( $regular <= 0 || $sale <= 0 || $sale >= $regular ) {
+		$base    = function_exists( 'fx_omni_base' ) ? fx_omni_base( $product ) : $regular; // Omnibus: od najniższej z 30 dni
+		if ( $regular <= 0 || $sale <= 0 || $sale >= $regular || $sale >= $base ) {
 			return;
 		}
-		$amount  = $regular - $sale;
-		$percent = round( ( $amount / $regular ) * 100 );
+		$amount  = $base - $sale;
+		$percent = round( ( $amount / $base ) * 100 );
 		echo '<div class="fx-savings">';
 		echo '<div class="fx-savings__title">🔥 Kupujesz taniej o ' . wc_price( $amount ) . ' (' . esc_html( $percent ) . '%)</div>'; // phpcs:ignore
 		echo '<div class="fx-savings__sub">Cena detaliczna: <strong>' . wc_price( $regular ) . '</strong></div>'; // phpcs:ignore
@@ -47,7 +48,7 @@ function fx_savings_box() {
 			if ( ! $v || ! $v->is_purchasable() || ! $v->is_on_sale() ) {
 				continue;
 			}
-			$regular = (float) $v->get_regular_price();
+			$regular = function_exists( 'fx_omni_base' ) ? fx_omni_base( $v ) : (float) $v->get_regular_price();
 			$sale    = (float) $v->get_sale_price();
 			if ( $regular > 0 && $sale > 0 && $sale < $regular ) {
 				$amount = $regular - $sale;
@@ -61,7 +62,7 @@ function fx_savings_box() {
 			// Dane formatu ceny – po wyborze wariantu skrypt podmienia kwotę na oszczędność tego wariantu.
 			echo '<div class="fx-savings fx-savings--variable" data-dec="' . esc_attr( wc_get_price_decimal_separator() ) . '" data-th="' . esc_attr( wc_get_price_thousand_separator() ) . '" data-n="' . (int) wc_get_price_decimals() . '" data-sym="' . esc_attr( html_entity_decode( get_woocommerce_currency_symbol() ) ) . '" data-pos="' . esc_attr( get_option( 'woocommerce_currency_pos', 'right' ) ) . '">';
 			echo '<div class="fx-savings__title">🔥 Oszczędzasz nawet ' . wc_price( $best_amount ) . ' (' . esc_html( $best_percent ) . '%)</div>'; // phpcs:ignore
-			echo '<div class="fx-savings__sub">względem ceny detalicznej</div>';
+			echo '<div class="fx-savings__sub">' . ( function_exists( 'fx_tool' ) && fx_tool( 'omni_pct' ) ? 'względem najniższej ceny z 30 dni' : 'względem ceny detalicznej' ) . '</div>';
 			echo '</div>';
 		}
 	}

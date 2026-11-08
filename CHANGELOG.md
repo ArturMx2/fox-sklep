@@ -1,5 +1,11 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.38.0
+- Nowy moduł Omnibus (inc/modules/omnibus.php): historia cen w tabeli {prefix}fx_price_log – zapis przy każdej zmianie ceny (panel, import, BaseLinker, REST), skan w tle przy starcie, końcu i zmianie kampanii z modułu Przeceny (ceny dynamiczne) oraz pełny skan raz w tygodniu.
+- Przy przecenionych produktach „Najniższa cena z 30 dni przed obniżką: X zł” – pod ceną na karcie produktu, po wybraniu rozmiaru (warianty) i na kafelkach w kategoriach / wyszukiwarce. Cena odniesienia = najniższa cena z 30 dni przed początkiem obecnej obniżki; brak historii (pierwsze 30 dni po wdrożeniu) – cena regularna.
+- Procent obniżki (etykieta −X%, „Kupujesz taniej o…”, „Oszczędzasz nawet…”) liczony od najniższej ceny z 30 dni (można przełączyć na cenę regularną).
+- Ustawienia: Dostosuj → Narzędzia sklepu (włącz/wyłącz, kafelki, podstawa procentu, tekst). Podgląd ceny odniesienia w edycji produktu i wariantu; WooCommerce → Omnibus – stan historii i ręczny skan.
+
 ## 3.37.0
 - Nowy moduł „Zapytaj o cenę” (inc/modules/price-ask.php): produkty i warianty z ceną 0 zł (albo bez ceny) nie są do kupienia – także gdy już leżały w koszyku.
 - Zamiast „0,00 zł” – „Cena na zapytanie” (karta produktu, kategorie, wyszukiwarka). Przy produktach wariantowych zakres ceny / „Od…” liczy się bez wariantów za 0 zł.
