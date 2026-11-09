@@ -269,6 +269,11 @@
 		});
 	}
 
+	/* ---------- Filtry: „Pokaż więcej” w długich listach ---------- */
+	$(document).on('click', '[data-fx-fmore]', function () {
+		var box = this.parentNode; box.classList.add('is-all'); this.remove();
+	});
+
 	/* ---------- Okna (tabela rozmiarów) ---------- */
 	$(document).on('click', '[data-fx-dialog]', function (e) {
 		var d = document.getElementById(this.getAttribute('data-fx-dialog'));
@@ -857,12 +862,25 @@
 			return ({ left: sym + num, left_space: sym + ' ' + num, right_space: num + ' ' + sym })[d.pos] || (num + sym);
 		}
 		var $omni = $('<div class="fx-omni-var"></div>').insertAfter($price);
+		// Etykieta cenowa na zdjęciu (−X% / Black Week) – rabat wybranego wariantu.
+		var $pb = $('.fx-badges--single [data-fx-pbadge]').first(), pbOrig = $pb.length ? [$pb.text(), $pb.attr('class')] : null;
+		function pbadge(b) {
+			if (!$pb.length) {
+				if (!b || !b[0]) { return; }
+				var $wrap = $('.fx-badges--single').first();
+				if (!$wrap.length) { return; }
+				$pb = $('<span data-fx-pbadge></span>').prependTo($wrap);
+			}
+			if (!b || !b[0]) { $pb.hide(); return; }
+			$pb.show().text(b[0]).attr('class', 'fx-badge fx-badge--' + b[1]);
+		}
 		$form.on('found_variation', function (e, v) {
 			if (v && v.price_html) {
 				var h = $('<div>').html(v.price_html).find('.price').html();
 				if (h) { $price.html(h); }
 			}
 			$omni.html(v && v.fx_omni ? v.fx_omni : '');
+			if (v && v.fx_badge) { pbadge(v.fx_badge); }
 			if ($sav.length && v) {
 				var reg = parseFloat(v.display_regular_price), now = parseFloat(v.display_price);
 				var base = v.fx_base ? parseFloat(v.fx_base) : reg; // Omnibus: procent od najniższej ceny z 30 dni
@@ -876,6 +894,7 @@
 		$form.on('reset_data', function () {
 			$price.html(orig);
 			$omni.html('');
+			if (pbOrig) { $pb.show().text(pbOrig[0]).attr('class', pbOrig[1]); } else if ($pb.length) { $pb.hide(); }
 			if ($sav.length) { $sav.show().html(savOrig); }
 		});
 	});

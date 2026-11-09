@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.38.0
+Version: 3.39.0
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -570,6 +570,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 .fx-badges--single{top:22px;left:10px}
 .fx-badge{display:inline-flex;align-items:center;padding:5px 10px;border-radius:var(--fx-pill);background:#fff;color:var(--fx-ink);font:700 12px/1.2 var(--fx-body);box-shadow:0 0 0 1px var(--fx-line)}
 .fx-badge--sale{color:var(--fx-sale)}
+.fx-badge--bw{background:var(--fx-ink);color:#fff;box-shadow:none;text-transform:uppercase;letter-spacing:.02em}
+.fx-badge--bw-shelf{background:#fff;color:var(--fx-ink);box-shadow:0 0 0 1.5px var(--fx-ink);text-transform:uppercase;letter-spacing:.02em}
 .fx-badge--strong{background:var(--fx-ink);color:#fff;box-shadow:none}
 .fx-badge--muted{background:var(--fx-soft);color:var(--fx-muted)}
 
@@ -608,9 +610,28 @@ button,input,select,textarea{font:inherit;color:inherit}
 .fx-alert__msg{font-size:14px;font-weight:500;margin-top:8px}
 .fx-alert__msg:empty{display:none}
 .fx-alert__msg.is-error,.fx-kit__msg.is-error{color:var(--fx-sale)}
-.fx-omni{margin:4px 0 12px;font-size:13px;color:var(--fx-muted)}
+.fx-cbar{position:relative;display:flex;align-items:center;justify-content:center;min-height:40px;padding:8px 44px;background:var(--fx-ink);color:#fff;font-size:14px;font-weight:700;text-align:center;line-height:1.3}
+.fx-cbar[hidden]{display:none}
+.fx-cbar--during{background:#d0021b}
+.fx-cbar__txt{color:#fff;text-decoration:none;font-variant-numeric:tabular-nums}
+a.fx-cbar__txt[href]:hover{text-decoration:underline}
+.fx-cbar__x{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:0;color:#fff;font-size:22px;line-height:1;padding:6px 10px;cursor:pointer}
+@media (max-width:640px){.fx-cbar{font-size:13px;padding:6px 40px;min-height:36px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fx-cbar__txt{overflow:hidden;text-overflow:ellipsis}}
+.fx-camp__hero{background:var(--fx-ink);color:#fff;text-align:center;padding:clamp(48px,9vw,110px) 0}
+.fx-camp__kicker{margin:0 0 12px;font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;opacity:.75}
+.fx-camp__title{margin:0;color:#fff;font-size:clamp(40px,7vw,88px);line-height:1;letter-spacing:-.02em}
+.fx-camp__sub{margin:18px auto 0;max-width:640px;font-size:18px}
+.fx-camp__count{display:inline-flex;flex-direction:column;gap:4px;margin-top:28px;padding:14px 26px;border:1.5px solid rgba(255,255,255,.35)}
+.fx-camp__count-l{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:.75}
+.fx-camp__count-v{font-size:clamp(26px,4vw,40px);font-weight:700;font-variant-numeric:tabular-nums}
+.fx-camp__worlds{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:28px}
+.fx-camp__worlds--end{margin:32px 0 0}
+.fx-camp__content{padding-top:40px}
+.fx-camp__products{padding:48px 16px 64px}
+.fx-camp__h2{font-size:clamp(26px,3vw,36px);margin:0 0 24px}
+.fx-omni{margin:4px 0 12px;font-size:13px;color:var(--fx-ink)}
 .fx-omni .amount{font-weight:600;color:inherit}
-.fx-omni--s{margin:2px 0 0;font-size:12px;line-height:1.35}
+.fx-omni--s{margin:2px 0 0;font-size:13px;line-height:1.35}
 .fx-omni-var:empty{display:none}
 .fx-ask{margin:8px 0 18px}
 .fx-ask__form{background:var(--fx-soft);padding:16px;margin-top:10px;display:flex;flex-direction:column;gap:8px}
@@ -1132,9 +1153,20 @@ html,body{max-width:100%;overflow-x:clip}
 .fx-fgroup summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:.04em;min-height:32px}
 .fx-fgroup summary::-webkit-details-marker{display:none}
 .fx-fgroup summary svg{transition:transform .15s}
+@media (prefers-reduced-motion:reduce){.fx-fgroup summary svg{transition:none}}
 .fx-fgroup[open] summary svg{transform:rotate(180deg)}
 .fx-fgroup__n{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;border-radius:10px;background:var(--fx-ink);color:#fff;font-size:11px;margin-left:6px;margin-right:auto;padding:0 6px}
 .fx-fgroup__opts{display:flex;flex-wrap:wrap;gap:6px;padding-top:10px}
+.fx-fgroup__opts--list{flex-direction:column;gap:4px}
+.fx-fgroup .fx-filter__opt--radio{justify-content:flex-start;width:100%}
+.fx-fgroup .fx-filter__opt.is-more{display:none}
+.fx-fgroup__opts.is-all .fx-filter__opt.is-more{display:inline-flex}
+.fx-fgroup__more{flex-basis:100%;background:none;border:0;padding:6px 0 0;text-align:left;font:inherit;font-size:14px;font-weight:600;text-decoration:underline;text-underline-offset:3px;cursor:pointer;color:var(--fx-ink)}
+.fx-fgroup__picked{display:none;flex-wrap:wrap;gap:6px;padding:0 0 12px}
+details.fx-fgroup:not([open])+.fx-fgroup__picked{display:flex}
+.fx-pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;background:var(--fx-ink);color:#fff;font-size:13px;font-weight:600;text-decoration:none}
+.fx-pill span{font-size:11px;opacity:.8}
+.fx-fgroup summary:focus-visible{outline:3px solid #2a6df4;outline-offset:2px}
 .fx-fgroup .fx-filter__opt{min-height:38px;min-width:46px;padding:0 10px;font-size:14px}
 .fx-fgroup--color .fx-fgroup__opts{flex-direction:column;gap:2px}
 .fx-fgroup .fx-filter__opt.is-color{justify-content:flex-start;border:0;min-height:34px;padding:0 6px;width:100%;gap:10px}

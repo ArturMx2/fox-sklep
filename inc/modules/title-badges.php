@@ -99,7 +99,7 @@ add_filter( 'fx_product_badges', function ( $badges, $product ) {
 	if ( ! $extra ) {
 		return $badges;
 	}
-	$first = ( $badges && 'sale' === $badges[0][1] ) ? array( array_shift( $badges ) ) : array();
+	$first = ( $badges && in_array( $badges[0][1], array( 'sale', 'bw', 'bw-shelf' ), true ) ) ? array( array_shift( $badges ) ) : array();
 	return array_slice( array_merge( $first, $extra, $badges ), 0, 4 );
 }, 10, 2 );
 

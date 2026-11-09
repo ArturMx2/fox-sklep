@@ -378,7 +378,15 @@ add_action( 'woocommerce_product_query', function ( $q ) {
 		}
 	}
 	if ( fx_filter_sale_on() ) {
-		$sets[] = array_map( 'intval', (array) apply_filters( 'fx_sale_ids', wc_get_product_ids_on_sale() ) );
+		$min = fx_filter_promo_min();
+		$map = function_exists( 'fx_pl_map' ) ? fx_pl_map() : null;
+		if ( $min && null !== $map ) {
+			$sets[] = array_keys( array_filter( $map, function ( $d ) use ( $min ) {
+				return $d >= $min;
+			} ) );
+		} else {
+			$sets[] = array_map( 'intval', (array) apply_filters( 'fx_sale_ids', wc_get_product_ids_on_sale() ) );
+		}
 	}
 	$sets = apply_filters( 'fx_filter_sets', $sets );
 	if ( ! $sets ) {
@@ -441,6 +449,7 @@ function fx_filters_data() {
 	}
 	$sale_on   = fx_filter_sale_on();
 	$sale_have = $sale_on || fx_filter_sale_in_cat( $term );
+	$levels    = $sale_have ? fx_filter_promo_levels( $term ) : array();
 	$switches  = apply_filters( 'fx_filter_switches', array(), $term ); // np. „Wysyłka dziś”, „W sklepie stacjonarnym”
 	if ( ! $groups && ! $sale_have && ! $switches ) {
 		return $data;
@@ -454,14 +463,15 @@ function fx_filters_data() {
 		}
 	}
 	if ( $sale_on ) {
-		$active[] = array( 'Promocje', fx_filter_sale_url() );
+		$min      = fx_filter_promo_min();
+		$active[] = array( $min ? 'Promocja od −' . $min . '%' : 'Promocje', fx_filter_sale_url( '' ) );
 	}
 	foreach ( $switches as $sw ) {
 		if ( $sw['on'] ) {
 			$active[] = array( $sw['short'], $sw['url'] );
 		}
 	}
-	$data = array( 'term' => $term, 'groups' => $groups, 'sale_have' => $sale_have, 'sale_on' => $sale_on, 'active' => $active, 'switches' => $switches );
+	$data = array( 'term' => $term, 'groups' => $groups, 'sale_have' => $sale_have, 'sale_on' => $sale_on, 'levels' => $levels, 'active' => $active, 'switches' => $switches );
 	return $data;
 }
 
@@ -469,7 +479,7 @@ function fx_filters_data() {
 function fx_filter_blocks() {
 	return array(
 		'size'          => 'Rozmiar',
-		'sale'          => 'Tylko promocje',
+		'sale'          => 'Wielkość promocji / Tylko promocje',
 		'wysylka24'     => 'Wysyłka dziś',
 		'wsklepie'      => 'Dostępny w sklepie stacjonarnym',
 		'przedsprzedaz' => 'Przedsprzedaż',
@@ -496,12 +506,18 @@ function fx_filter_order_raw() {
 
 /** Widoczne bloki w ustawionej kolejności. */
 function fx_filter_order() {
-	return array_keys( array_filter( fx_filter_order_raw() ) );
+	$keys = array_keys( array_filter( fx_filter_order_raw() ) );
+	// W trakcie kampanii z Przecen „Wielkość promocji” na górze – także gdy blok jest ukryty w ustawieniach.
+	if ( function_exists( 'fx_promo_active' ) && fx_promo_active() ) {
+		$keys = array_merge( array( 'sale' ), array_diff( $keys, array( 'sale' ) ) );
+	}
+	return $keys;
 }
 
 /** Ukryte bloki. */
 function fx_filter_hidden() {
-	return array_keys( array_filter( fx_filter_order_raw(), function ( $on ) { return ! $on; } ) );
+	$h = array_keys( array_filter( fx_filter_order_raw(), function ( $on ) { return ! $on; } ) );
+	return function_exists( 'fx_promo_active' ) && fx_promo_active() ? array_values( array_diff( $h, array( 'sale' ) ) ) : $h;
 }
 
 /* Dostosuj → FOX.SKLEP.PL → Filtry w kategoriach: kolejność (przeciąganie) i ukrywanie. */
@@ -549,6 +565,15 @@ add_action( 'customize_register', function ( $wp ) {
 		},
 	) );
 	$wp->add_control( new FX_Filter_Order_Control( $wp, 'fx_t_filter_order', array( 'section' => 'fx_filters', 'label' => 'Kolejność filtrów' ) ) );
+	$wp->add_setting( 'fx_t_filter_open', array( 'default' => '', 'sanitize_callback' => function ( $v ) {
+		return implode( ',', array_filter( array_map( function ( $k ) { return preg_replace( '/[^a-z0-9_]/', '', strtolower( trim( $k ) ) ); }, explode( ',', (string) $v ) ) ) );
+	} ) );
+	$wp->add_control( 'fx_t_filter_open', array(
+		'section'     => 'fx_filters',
+		'label'       => 'Filtry rozwinięte na start',
+		'description' => 'Domyślnie wszystkie grupy są zwinięte (rozwinięta jest grupa z zaznaczeniem i te, które klient sam otworzył w tej wizycie). Wpisz po przecinku grupy rozwinięte zawsze: size, sale, gender, color, params – albo „all”.',
+		'type'        => 'text',
+	) );
 }, 30 );
 
 add_action( 'customize_controls_enqueue_scripts', function () {
@@ -564,19 +589,38 @@ function fx_filters_sidebar() {
 	// Bloki filtrów; kolejność i widoczność z Dostosuj → Filtry w kategoriach.
 	$render_group = function ( $g ) {
 		list( $role, $label, $opts ) = $g;
-		$sel = fx_filter_selected( $role );
-		echo '<details class="fx-fgroup fx-fgroup--' . esc_attr( $role ) . '" open><summary>' . esc_html( $label ) . ( $sel ? ' <span class="fx-fgroup__n">' . count( $sel ) . '</span>' : '' ) . fx_icon( 'chevron', 16 ) . '</summary><div class="fx-fgroup__opts">'; // phpcs:ignore
+		$sel  = fx_filter_selected( $role );
+		$open = $sel || fx_filter_open_default( $role );
+		$more = 'size' === $role ? 0 : max( 0, count( $opts ) - 8 ); // długie listy: 8 pierwszych + „Pokaż więcej”
+		echo '<details class="fx-fgroup fx-fgroup--' . esc_attr( $role ) . '" data-fk="' . esc_attr( $role ) . '"' . ( $open ? ' open' : '' ) . '><summary>' . esc_html( $label ) . ( $sel ? ' <span class="fx-fgroup__n">' . count( $sel ) . '</span>' : '' ) . fx_icon( 'chevron', 16 ) . '</summary><div class="fx-fgroup__opts">'; // phpcs:ignore
+		$i      = 0;
+		$picked = array();
 		foreach ( $opts as $t ) {
 			$on    = in_array( $t['slug'], $sel, true );
+			$i++;
+			if ( $on ) {
+				$picked[] = array( $t['name'], fx_filter_toggle_url( $role, $t['slug'] ) );
+			}
 			$color = 'color' === $role ? fx_term_color( get_term( $t['id'] ) ) : '';
 			$style = '';
 			if ( $color ) {
 				$c     = explode( ',', $color );
 				$style = ' style="--fx-sw:' . esc_attr( count( $c ) > 1 ? 'linear-gradient(135deg,' . $c[0] . ' 50%,' . $c[1] . ' 50%)' : $c[0] ) . '"';
 			}
-			echo '<a rel="nofollow" class="fx-filter__opt' . ( $on ? ' is-on' : '' ) . ( 'color' === $role ? ' is-color' : '' ) . ( $color ? ' has-swatch' : '' ) . '" href="' . esc_url( fx_filter_toggle_url( $role, $t['slug'] ) ) . '" aria-pressed="' . ( $on ? 'true' : 'false' ) . '"' . $style . '>' . esc_html( $t['name'] ) . '</a>'; // phpcs:ignore
+			$hide  = $more && $i > 8 && ! $on;
+			echo '<a rel="nofollow" class="fx-filter__opt' . ( $on ? ' is-on' : '' ) . ( 'color' === $role ? ' is-color' : '' ) . ( $color ? ' has-swatch' : '' ) . ( $hide ? ' is-more' : '' ) . '" href="' . esc_url( fx_filter_toggle_url( $role, $t['slug'] ) ) . '" aria-pressed="' . ( $on ? 'true' : 'false' ) . '"' . $style . '>' . esc_html( $t['name'] ) . '</a>'; // phpcs:ignore
+		}
+		if ( $more ) {
+			echo '<button type="button" class="fx-fgroup__more" data-fx-fmore>Pokaż więcej (' . (int) $more . ')</button>';
 		}
 		echo '</div></details>';
+		if ( $picked ) { // wybrane – do usunięcia bez rozwijania grupy
+			echo '<div class="fx-fgroup__picked">';
+			foreach ( $picked as $pk ) {
+				echo '<a rel="nofollow" class="fx-pill" href="' . esc_url( $pk[1] ) . '" aria-label="Usuń filtr ' . esc_attr( $pk[0] ) . '">' . esc_html( $pk[0] ) . ' <span aria-hidden="true">✕</span></a>';
+			}
+			echo '</div>';
+		}
 	};
 	$blocks = array();
 	$add    = function ( $key, $html ) use ( &$blocks ) {
@@ -588,7 +632,17 @@ function fx_filters_sidebar() {
 		$render_group( $g );
 		$add( 0 === strpos( $g[0], 'x_' ) ? 'params' : $g[0], ob_get_clean() );
 	}
-	if ( $d['sale_have'] ) {
+	if ( $d['sale_have'] && count( $d['levels'] ) > 1 ) {
+		ob_start();
+		$min = fx_filter_promo_min();
+		echo '<details class="fx-fgroup fx-fgroup--promo" data-fk="promo"' . ( $d['sale_on'] || fx_filter_open_default( 'sale' ) ? ' open' : '' ) . '><summary>Wielkość promocji' . ( $d['sale_on'] ? ' <span class="fx-fgroup__n">1</span>' : '' ) . fx_icon( 'chevron', 16 ) . '</summary><div class="fx-fgroup__opts fx-fgroup__opts--list">'; // phpcs:ignore
+		foreach ( $d['levels'] as $lv ) {
+			$on = $d['sale_on'] && $lv === $min;
+			echo '<a rel="nofollow" class="fx-filter__opt fx-filter__opt--radio' . ( $on ? ' is-on' : '' ) . '" href="' . esc_url( fx_filter_sale_url( $on ? '' : ( $lv ? (string) $lv : '1' ) ) ) . '" aria-pressed="' . ( $on ? 'true' : 'false' ) . '">' . esc_html( $lv ? 'od −' . $lv . '%' : 'Wszystkie promocje' ) . '</a>';
+		}
+		echo '</div></details>';
+		$add( 'sale', ob_get_clean() );
+	} elseif ( $d['sale_have'] ) {
 		ob_start();
 		echo '<div class="fx-fgroup fx-fgroup--sale"><a rel="nofollow" class="fx-switch fx-switch--side' . ( $d['sale_on'] ? ' is-on' : '' ) . '" role="switch" aria-checked="' . ( $d['sale_on'] ? 'true' : 'false' ) . '" href="' . esc_url( fx_filter_sale_url() ) . '"><span class="fx-switch__ui" aria-hidden="true"></span>Tylko promocje</a></div>';
 		$add( 'sale', ob_get_clean() );
@@ -613,6 +667,8 @@ function fx_filters_sidebar() {
 		echo '<a rel="nofollow" class="fx-sidebar__clear" href="' . esc_url( fx_filter_clear_url( $d['term'] ) ) . '">Wyczyść wszystkie filtry</a>';
 	}
 	echo '</div></aside><div class="fx-sidebar__bg" data-fx-filters-close></div>';
+	// Grupy rozwinięte przez klienta w tej wizycie – od razu (zanim strona się narysuje), bez przeskoku.
+	echo "<script>(function(){try{var o=JSON.parse(sessionStorage.getItem('fxfo')||'[]');document.querySelectorAll('#fx-filters details[data-fk]').forEach(function(d){if(o.indexOf(d.getAttribute('data-fk'))>-1)d.open=true;var u=false;d.querySelector('summary').addEventListener('click',function(){u=true});d.addEventListener('toggle',function(){if(!u)return;u=false;var k=d.getAttribute('data-fk'),i=o.indexOf(k);if(d.open&&i<0)o.push(k);if(!d.open&&i>-1)o.splice(i,1);try{sessionStorage.setItem('fxfo',JSON.stringify(o))}catch(e){}})})}catch(e){}})();</script>";
 }
 
 /** Nad produktami: przycisk „Filtry” (telefon) i wybrane filtry do szybkiego usunięcia. */
@@ -675,14 +731,68 @@ function fx_filter_sale_on() {
 	return ! empty( $_GET['promocja'] ) || ! empty( $_GET['filter_promocja'] ); // phpcs:ignore WordPress.Security.NonceVerification
 }
 
-function fx_filter_sale_url() {
+/** Grupa rozwinięta na start (ustawienie „Filtry rozwinięte na start”; domyślnie wszystkie zwinięte). */
+function fx_filter_open_default( $role ) {
+	static $open = null;
+	if ( null === $open ) {
+		$open = array_filter( array_map( 'trim', explode( ',', (string) fx_tool( 'filter_open' ) ) ) );
+	}
+	$key = 0 === strpos( $role, 'x_' ) ? 'params' : $role;
+	return in_array( $key, $open, true ) || in_array( 'all', $open, true );
+}
+
+/** Próg „od −X%” z adresu (?promocja=30); 0 = wszystkie promocje. */
+function fx_filter_promo_min() {
+	$v = isset( $_GET['promocja'] ) ? absint( $_GET['promocja'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification
+	return $v >= 5 && $v <= 90 ? $v : 0;
+}
+
+/** Adres włącznika / progu: null = przełącz „Tylko promocje”, '' = wyłącz, '1' / '30' = ustaw. */
+function fx_filter_sale_url( $val = null ) {
 	$url = remove_query_arg( array( 'promocja', 'filter_promocja', 'paged' ), fx_filter_base_url() );
-	return fx_filter_sale_on() ? $url : add_query_arg( 'promocja', '1', $url );
+	if ( null === $val ) {
+		return fx_filter_sale_on() ? $url : add_query_arg( 'promocja', '1', $url );
+	}
+	return '' === $val ? $url : add_query_arg( 'promocja', $val, $url );
+}
+
+/**
+ * Progi „Wielkości promocji” dostępne w kategorii: [ 0 (wszystkie), 10, 20, 30, 40 ] – tylko te, które mają produkty.
+ * Pusta tablica, gdy mapa rabatów nie jest jeszcze policzona (wtedy zwykły włącznik „Tylko promocje”).
+ */
+function fx_filter_promo_levels( $term ) {
+	$map = function_exists( 'fx_pl_map' ) ? fx_pl_map() : null;
+	if ( null === $map || ! $map ) {
+		return array();
+	}
+	$key   = 'fx_flt_pl_' . $term->term_id . '_' . (int) get_option( 'fx_pl_built' );
+	$cache = isset( $term->ids ) ? false : get_transient( $key );
+	if ( false === $cache ) {
+		$max = 0;
+		foreach ( fx_filter_cat_products( $term ) as $id ) {
+			if ( isset( $map[ $id ] ) && $map[ $id ] > $max ) {
+				$max = $map[ $id ];
+			}
+		}
+		$cache = array();
+		if ( $max > 0 ) {
+			$cache[] = 0;
+			foreach ( array( 10, 20, 30, 40 ) as $lv ) {
+				if ( $max >= $lv ) {
+					$cache[] = $lv;
+				}
+			}
+		}
+		if ( ! isset( $term->ids ) ) {
+			set_transient( $key, $cache, HOUR_IN_SECONDS );
+		}
+	}
+	return $cache;
 }
 
 /** Czy w kategorii (z podkategoriami) jest choć jeden produkt w promocji. */
 function fx_filter_sale_in_cat( $term ) {
-	$key   = 'fx_flt_sale_' . $term->term_id;
+	$key   = 'fx_flt_sale_' . $term->term_id . '_' . (int) get_option( 'fx_pl_built' ) . ( function_exists( 'fx_promo_active' ) && fx_promo_active() ? 'k' : '' ); // nowy klucz po starcie/końcu kampanii
 	$cache = isset( $term->ids ) ? false : get_transient( $key );
 	if ( false !== $cache ) {
 		return (bool) $cache;

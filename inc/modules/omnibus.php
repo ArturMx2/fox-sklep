@@ -270,6 +270,21 @@ function fx_omni_html( $ref, $small = false ) {
  * Wyświetlanie
  * ===================================================================== */
 
+// Przekreślona cena = najniższa cena z 30 dni (a nie regularna). Gdy produkt był w tym czasie tańszy – bez przekreślenia.
+add_filter( 'woocommerce_get_price_html', function ( $html, $product ) {
+	if ( ! fx_tool( 'omni_on' ) || ! fx_tool( 'omni_strike' ) || ! $product instanceof WC_Product || $product->is_type( array( 'variable', 'grouped', 'external' ) ) || ! $product->is_on_sale() ) {
+		return $html;
+	}
+	$ref = fx_omni_ref( $product );
+	if ( null === $ref ) {
+		return $html;
+	}
+	$now = wc_get_price_to_display( $product );
+	$was = wc_get_price_to_display( $product, array( 'price' => $ref ) );
+	$out = $was > $now ? wc_format_sale_price( $was, $now ) : wc_price( $now );
+	return $out . $product->get_price_suffix();
+}, 40, 2 );
+
 // Karta produktu – pod ceną (produkt prosty).
 add_action( 'woocommerce_single_product_summary', function () {
 	global $product;

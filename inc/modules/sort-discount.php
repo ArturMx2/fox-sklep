@@ -17,11 +17,11 @@ add_filter( 'woocommerce_catalog_orderby', function ( $opts ) {
 	foreach ( $opts as $k => $v ) {
 		$out[ $k ] = $v;
 		if ( 'menu_order' === $k ) {
-			$out['discount'] = 'Największa przecena';
+			$out['discount'] = 'Największa promocja';
 		}
 	}
 	if ( ! isset( $out['discount'] ) ) {
-		$out['discount'] = 'Największa przecena';
+		$out['discount'] = 'Największa promocja';
 	}
 	return $out;
 } );
@@ -79,7 +79,17 @@ function fx_disc_update( $product_id ) {
 	if ( ! $p || $p->is_type( 'variation' ) ) {
 		return;
 	}
-	$d = fx_disc_of( $p );
+	$info = function_exists( 'fx_sale_info' ) ? fx_sale_info( $p ) : null;
+	$d    = function_exists( 'fx_sale_info' ) ? ( $info ? (int) $info[0] : 0 ) : fx_disc_of( $p );
+	$map  = get_option( 'fx_pl_map', array() );
+	if ( is_array( $map ) && get_option( 'fx_pl_built' ) ) {
+		if ( $d > 0 ) {
+			$map[ $p->get_id() ] = $d;
+		} else {
+			unset( $map[ $p->get_id() ] );
+		}
+		update_option( 'fx_pl_map', $map, false );
+	}
 	if ( $d > 0 ) {
 		update_post_meta( $p->get_id(), '_fx_disc', $d );
 	} else {
@@ -122,12 +132,90 @@ function fx_disc_rebuild() {
 	update_option( 'fx_disc_built', time(), false );
 }
 
-add_action( 'fx_disc_rebuild_daily', 'fx_disc_rebuild' );
-add_action( 'init', function () {
-	if ( ! wp_next_scheduled( 'fx_disc_rebuild_daily' ) ) {
-		wp_schedule_event( strtotime( 'tomorrow 01:10' ), 'daily', 'fx_disc_rebuild_daily' );
+/* =====================================================================
+ * Mapa rabatów (filtr „Wielkość promocji” i sortowanie): produkt => największy rabat w %
+ * wariantu na stanie – z kampanią z Przecen i od najniższej ceny z 30 dni (jak etykiety).
+ * Liczona w tle paczkami; po zakończeniu podmienia mapę i pole _fx_disc.
+ * ===================================================================== */
+
+/** Podpis: kampania + dzień (raz dziennie przeliczenie, bo ceny z 30 dni się zmieniają). */
+function fx_pl_sig() {
+	$promo = function_exists( 'fx_omni_promo_sig' ) ? fx_omni_promo_sig() : '';
+	return md5( $promo . '|' . wp_date( 'Y-m-d' ) );
+}
+
+function fx_pl_start() {
+	$ids = array_map( 'intval', (array) apply_filters( 'fx_sale_ids', wc_get_product_ids_on_sale() ) );
+	$par = array();
+	foreach ( $ids as $id ) {
+		$pp       = wp_get_post_parent_id( $id );
+		$par[ $pp ? $pp : $id ] = 1;
 	}
-	if ( ! get_option( 'fx_disc_built' ) ) {
-		fx_disc_rebuild();
+	update_option( 'fx_pl_job', array( 'ids' => array_keys( $par ), 'i' => 0, 'map' => array(), 'at' => time() ), false );
+	if ( ! wp_next_scheduled( 'fx_pl_tick' ) ) {
+		wp_schedule_single_event( time() + 5, 'fx_pl_tick' );
+	}
+}
+
+add_action( 'fx_pl_tick', function () {
+	global $wpdb;
+	$job = get_option( 'fx_pl_job' );
+	if ( ! is_array( $job ) || ! isset( $job['ids'] ) ) {
+		return;
+	}
+	$t0 = microtime( true );
+	$n  = count( $job['ids'] );
+	while ( $job['i'] < $n && microtime( true ) - $t0 < 20 ) {
+		$p = wc_get_product( $job['ids'][ $job['i'] ] );
+		$job['i']++;
+		if ( $p && 'publish' === $p->get_status() && function_exists( 'fx_sale_info' ) ) {
+			$info = fx_sale_info( $p );
+			if ( $info && $info[0] > 0 ) {
+				$job['map'][ $p->get_id() ] = (int) $info[0];
+			}
+		}
+	}
+	if ( $job['i'] < $n ) {
+		update_option( 'fx_pl_job', $job, false );
+		wp_schedule_single_event( time() + 15, 'fx_pl_tick' );
+		return;
+	}
+	// Gotowe: podmiana mapy i pola do sortowania.
+	update_option( 'fx_pl_map', $job['map'], false );
+	$wpdb->query( "DELETE FROM {$wpdb->postmeta} WHERE meta_key = '_fx_disc'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+	foreach ( $job['map'] as $pid => $d ) {
+		$wpdb->insert( $wpdb->postmeta, array( 'post_id' => (int) $pid, 'meta_key' => '_fx_disc', 'meta_value' => (int) $d ) ); // phpcs:ignore WordPress.DB.SlowDBQuery
+	}
+	if ( function_exists( 'wp_cache_flush_group' ) ) {
+		wp_cache_flush_group( 'post_meta' );
+	}
+	delete_option( 'fx_pl_job' );
+	update_option( 'fx_pl_built', time(), false );
+	update_option( 'fx_disc_built', time(), false );
+	if ( function_exists( 'fx_cache_touch' ) ) {
+		fx_cache_touch();
 	}
 } );
+
+add_action( 'init', function () {
+	if ( wp_next_scheduled( 'fx_disc_rebuild_daily' ) ) {
+		wp_clear_scheduled_hook( 'fx_disc_rebuild_daily' ); // zastąpione przeliczaniem w tle
+	}
+	if ( ! get_option( 'fx_disc_built' ) ) {
+		fx_disc_rebuild(); // szybki start z cen zapisanych, zanim policzy się mapa
+	}
+	$sig = fx_pl_sig();
+	if ( get_option( 'fx_pl_sig' ) !== $sig && ! get_option( 'fx_pl_job' ) ) {
+		update_option( 'fx_pl_sig', $sig, false );
+		fx_pl_start();
+	}
+}, 40 );
+
+/** Mapa rabatów albo null (jeszcze nie policzona). */
+function fx_pl_map() {
+	static $m = false;
+	if ( false === $m ) {
+		$m = get_option( 'fx_pl_built' ) ? (array) get_option( 'fx_pl_map', array() ) : null;
+	}
+	return $m;
+}

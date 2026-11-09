@@ -1,5 +1,14 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.39.0 – Black Week
+Wszystko sterowane datami kampanii z WooCommerce → Przeceny (od / do, włącznik) – po końcu kampanii wraca samo, nic nie trzeba cofać.
+- Omnibus: przekreślona cena = najniższa cena z 30 dni (gdy produkt był w tym czasie tańszy – bez przekreślenia); tekst Omnibusa w kolorze podstawowym, 13 px, także na kafelkach. Przełącznik w Narzędziach sklepu.
+- Etykiety cenowe: „BLACK WEEK −X%” i „−X% Z PÓŁKI” w trakcie kampanii (czarne / odwrócone), poza kampanią „−X%”; procent od najniższej ceny z 30 dni, zaokrąglany w dół; „DO −X%”, gdy rozmiary mają różne rabaty; poniżej progu (domyślnie 5%) bez etykiety cenowej; na karcie produktu etykieta zmienia się z wybranym rozmiarem; pole „Ukryj etykietę promocyjną” w edycji produktu; teksty i próg w Narzędziach sklepu.
+- Filtr „Wielkość promocji”: Wszystkie promocje / od −10% / −20% / −30% / −40% (?promocja=30), tylko progi z produktami w kategorii; w trakcie kampanii pierwszy w filtrach (także gdy był ukryty). Mapa rabatów liczona w tle (kampania + Omnibus), przeliczana przy starcie i końcu kampanii oraz codziennie. Sortowanie „Największa promocja” liczy się z tej samej mapy.
+- Zwijane filtry: grupy domyślnie zwinięte, rozwinięta grupa z zaznaczeniem; pod zwiniętą grupą wybrane opcje jako pigułki z ✕; długie listy – 8 pierwszych + „Pokaż więcej”; grupy otwarte przez klienta zapamiętane na czas wizyty; ustawienie „Filtry rozwinięte na start”.
+- Pasek z odliczaniem nad nagłówkiem: zapowiedź (N dni przed startem) → „do końca: 1 dzień 06:12:40” → tekst po kampanii do wybranego dnia; tryb liczy przeglądarka (odporne na cache), zamykany krzyżykiem.
+- Szablon strony „Kampania (Black Week)”: zapowiedź z odliczaniem → promocja (odliczanie, przyciski Promocje Moto / Rower, 24 największe promocje) → „zakończony” albo przekierowanie 302. Teksty w Dostosuj → Kampania (pasek i podstrona).
+
 ## 3.38.0
 - Nowy moduł Omnibus (inc/modules/omnibus.php): historia cen w tabeli {prefix}fx_price_log – zapis przy każdej zmianie ceny (panel, import, BaseLinker, REST), skan w tle przy starcie, końcu i zmianie kampanii z modułu Przeceny (ceny dynamiczne) oraz pełny skan raz w tygodniu.
 - Przy przecenionych produktach „Najniższa cena z 30 dni przed obniżką: X zł” – pod ceną na karcie produktu, po wybraniu rozmiaru (warianty) i na kafelkach w kategoriach / wyszukiwarce. Cena odniesienia = najniższa cena z 30 dni przed początkiem obecnej obniżki; brak historii (pierwsze 30 dni po wdrożeniu) – cena regularna.
