@@ -47,11 +47,14 @@ function fx_camp_dates() {
 /** Tryb: before | during | after | '' (brak dat albo kampania wyłączona). */
 function fx_camp_mode() {
 	list( $from, $to, $on ) = fx_camp_dates();
-	if ( ! $on || ! $from || ! $to ) {
+	if ( ! $on ) {
 		return '';
 	}
 	$now = time();
-	return $now < $from ? 'before' : ( $now < $to ? 'during' : 'after' );
+	if ( $from && $now < $from ) {
+		return 'before';
+	}
+	return ( ! $to || $now < $to ) ? 'during' : 'after'; // puste „od” = od razu, puste „do” = bez końca (jak w Przecenach)
 }
 
 function fx_camp_fill( $txt ) {
@@ -70,8 +73,15 @@ add_action( 'wp_body_open', function () {
 		return;
 	}
 	list( $from, $to, $on ) = fx_camp_dates();
-	if ( ! $on || ! $from || ! $to ) {
-		return;
+	if ( ! $on || ! $to ) {
+		return; // bez daty końca nie ma czego odliczać
+	}
+	if ( ! $from ) {
+		$from = (int) get_option( 'fx_camp_started', 0 ); // puste „od” = start od razu
+		if ( ! $from ) {
+			$from = time();
+			update_option( 'fx_camp_started', $from, false );
+		}
 	}
 	$after_to = fx_camp( 'camp_bar_after_to' ) ? strtotime( fx_camp( 'camp_bar_after_to' ) . ' 23:59:59 ' . wp_timezone_string() ) : 0;
 	$show_from = $from - max( 0, (int) fx_camp( 'camp_bar_days' ) ) * DAY_IN_SECONDS;

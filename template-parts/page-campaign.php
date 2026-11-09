@@ -28,7 +28,7 @@ foreach ( array( 'moto' => 'Moto', 'rower' => 'Rower' ) as $fx_w => $fx_l ) {
 			<p class="fx-camp__kicker"><?php echo esc_html( 'before' === $fx_m ? 'Zapowiedź' : ( 'during' === $fx_m ? 'Trwa teraz' : 'Kampania zakończona' ) ); ?></p>
 			<h1 class="fx-camp__title"><?php echo esc_html( fx_camp_fill( fx_camp( 'camp_h_' . $fx_m ) ) ); ?></h1>
 			<p class="fx-camp__sub"><?php echo esc_html( fx_camp_fill( fx_camp( 'camp_sub_' . $fx_m ) ) ); ?></p>
-			<?php if ( in_array( $fx_m, array( 'before', 'during' ), true ) ) : ?>
+			<?php if ( ( 'before' === $fx_m && $fx_from ) || ( 'during' === $fx_m && $fx_to ) ) : ?>
 				<div class="fx-camp__count" data-fx-ccount data-to="<?php echo (int) ( 'before' === $fx_m ? $fx_from : $fx_to ) * 1000; ?>" aria-live="off">
 					<span class="fx-camp__count-l"><?php echo esc_html( 'before' === $fx_m ? 'Start za' : 'Do końca' ); ?></span>
 					<span class="fx-camp__count-v" data-v>&nbsp;</span>

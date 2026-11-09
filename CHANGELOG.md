@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.39.1
+- Kampania: puste „Od” w Przecenach (start od razu) – strona kampanii pokazywała „zakończony”, a pasek się nie pojawiał. Teraz puste „Od” = trwa od razu, puste „Do” = bez końca (bez odliczania).
+
 ## 3.39.0 – Black Week
 Wszystko sterowane datami kampanii z WooCommerce → Przeceny (od / do, włącznik) – po końcu kampanii wraca samo, nic nie trzeba cofać.
 - Omnibus: przekreślona cena = najniższa cena z 30 dni (gdy produkt był w tym czasie tańszy – bez przekreślenia); tekst Omnibusa w kolorze podstawowym, 13 px, także na kafelkach. Przełącznik w Narzędziach sklepu.
