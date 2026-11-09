@@ -155,7 +155,7 @@ add_action( 'fx_omni_tick', function () {
 		}
 		$st['after'] = (int) $id;
 		$st['done']++;
-		if ( microtime( true ) - $t0 > 20 ) {
+		if ( microtime( true ) - $t0 > 8 ) { // krótkie porcje, żeby nie obciążać sklepu
 			$broke = true;
 			break;
 		}
@@ -164,7 +164,7 @@ add_action( 'fx_omni_tick', function () {
 		$st['running'] = 0;
 		$st['last']    = time();
 	} else {
-		wp_schedule_single_event( time() + 20, 'fx_omni_tick' );
+		wp_schedule_single_event( time() + 45, 'fx_omni_tick' );
 	}
 	update_option( 'fx_omni_scan', $st, false );
 } );
@@ -198,6 +198,12 @@ function fx_omni_ref( $p ) {
 	$id = $p->get_id();
 	if ( array_key_exists( $id, $memo ) ) {
 		return $memo[ $id ];
+	}
+	if ( $p->is_type( 'simple' ) && function_exists( 'fx_pl_row' ) ) { // kafelki: gotowa wartość z tła
+		$row = fx_pl_row( $id );
+		if ( false !== $row ) {
+			return $memo[ $id ] = ( $row && $row[3] > 0 ) ? (float) $row[3] : null;
+		}
 	}
 	$reg = (float) $p->get_regular_price();
 	$cur = fx_omni_live_price( $p );
@@ -318,6 +324,13 @@ add_action( 'woocommerce_after_shop_loop_item_title', function () {
 		return;
 	}
 	if ( $product->is_type( 'variable' ) ) {
+		$row = function_exists( 'fx_pl_row' ) ? fx_pl_row( $product->get_id() ) : false;
+		if ( false !== $row ) { // gotowa wartość z tła
+			if ( $row && $row[3] > 0 ) {
+				echo fx_omni_html( (float) $row[3], true ); // phpcs:ignore
+			}
+			return;
+		}
 		$b = fx_omni_ref_variable( $product );
 		if ( $b ) {
 			echo fx_omni_html( $b[0], true ); // phpcs:ignore

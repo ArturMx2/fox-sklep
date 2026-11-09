@@ -114,6 +114,11 @@ function fx_sale_info( WC_Product $product ) {
 	if ( isset( $memo[ $id ] ) ) {
 		return $memo[ $id ];
 	}
+	// Kafelki: gotowe wartości z tła (bez wczytywania rozmiarów i historii cen).
+	$row = function_exists( 'fx_pl_row' ) && ! $product->is_type( 'variation' ) ? fx_pl_row( $id ) : false;
+	if ( false !== $row ) {
+		return $memo[ $id ] = $row ? array( (int) $row[0], (int) $row[1], false, ! empty( $row[2] ) ) : null;
+	}
 	$items = array();
 	if ( $product->is_type( 'variable' ) ) {
 		foreach ( $product->get_visible_children() as $vid ) {
@@ -193,16 +198,16 @@ function fx_sale_percent( $product ) {
 
 function fx_low_stock( $product, $limit ) {
 	if ( $product->is_type( 'variable' ) ) {
-		$total   = 0;
-		$managed = false;
-		foreach ( $product->get_visible_children() as $vid ) {
-			$v = wc_get_product( $vid );
-			if ( $v && $v->managing_stock() ) {
-				$managed = true;
-				$total  += max( 0, (int) $v->get_stock_quantity() );
-			}
-		}
-		return $managed && $total > 0 && $total <= $limit;
+		// Jedno zapytanie do tabeli stanów WooCommerce zamiast wczytywania każdego rozmiaru.
+		global $wpdb;
+		$row = $wpdb->get_row( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			"SELECT COUNT(l.stock_quantity) AS managed, SUM(CASE WHEN l.stock_quantity > 0 THEN l.stock_quantity ELSE 0 END) AS total
+			 FROM {$wpdb->posts} p JOIN {$wpdb->prefix}wc_product_meta_lookup l ON l.product_id = p.ID
+			 WHERE p.post_parent = %d AND p.post_type = 'product_variation' AND p.post_status = 'publish'",
+			$product->get_id()
+		) );
+		$total = $row ? (int) $row->total : 0;
+		return $row && (int) $row->managed > 0 && $total > 0 && $total <= $limit;
 	}
 	return $product->managing_stock() && $product->get_stock_quantity() > 0 && $product->get_stock_quantity() <= $limit;
 }

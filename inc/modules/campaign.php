@@ -204,8 +204,20 @@ add_filter( 'fx_filter_switches', function ( $sw, $term ) {
 	}
 	$ids = fx_camp_ids();
 	$on  = fx_camp_filter_on();
-	if ( ! $on && ( ! $ids || ! array_intersect( $ids, fx_filter_cat_products( $term ) ) ) ) {
-		return $sw;
+	if ( ! $on ) {
+		$have = false;
+		if ( $ids ) {
+			$set = array_flip( $ids );
+			foreach ( fx_filter_cat_products( $term ) as $pid ) {
+				if ( isset( $set[ $pid ] ) ) {
+					$have = true;
+					break;
+				}
+			}
+		}
+		if ( ! $have ) {
+			return $sw;
+		}
 	}
 	$label = trim( (string) fx_promo_settings()['label'] );
 	$label = '' !== $label ? $label : 'Kampania';

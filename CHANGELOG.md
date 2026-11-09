@@ -1,5 +1,11 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.42.2 – wydajność kategorii
+- Kafelki czytają gotowe wartości policzone w tle (rabat max/min, kampania, najniższa cena z 30 dni) zamiast wczytywać każdy rozmiar i historię cen; na karcie produktu liczone na żywo jak dotąd. Wartości aktualizują się przy zapisie produktu, przy starcie / końcu kampanii i codziennie.
+- „Ostatnie sztuki”: stan produktu wariantowego jednym zapytaniem do tabeli stanów WooCommerce zamiast wczytywania wszystkich rozmiarów.
+- Przeliczenia w tle (historia cen, mapa rabatów) w krótszych porcjach (8 s) z dłuższymi przerwami – mniejsze obciążenie serwera po wgraniu motywu i przy zmianach kampanii.
+- Etykiety na 12 kafelkach: ok. 20 zapytań zamiast ~80.
+
 ## 3.42.1
 - Wydajność: zebranie listy przecenionych produktów do mapy rabatów (filtr „Wielkość promocji”, „Black Week”, sortowanie) i pierwsze przeliczenie rabatów idą tylko w tle (WP-Cron), a nie w trakcie ładowania strony – po wgraniu motywu, starcie kampanii i o północy strony kategorii nie zawieszają się.
 

@@ -79,16 +79,28 @@ function fx_disc_update( $product_id ) {
 	if ( ! $p || $p->is_type( 'variation' ) ) {
 		return;
 	}
-	$info = function_exists( 'fx_sale_info' ) ? fx_sale_info( $p ) : null;
-	$d    = function_exists( 'fx_sale_info' ) ? ( $info ? (int) $info[0] : 0 ) : fx_disc_of( $p );
-	$map  = get_option( 'fx_pl_map', array() );
-	if ( is_array( $map ) && get_option( 'fx_pl_built' ) ) {
-		if ( $d > 0 ) {
-			$map[ $p->get_id() ] = $d;
-		} else {
-			unset( $map[ $p->get_id() ] );
+	$row = null;
+	if ( function_exists( 'fx_pl_compute' ) ) {
+		$GLOBALS['fx_pl_fresh'] = true;
+		$row = fx_pl_compute( $p );
+		$GLOBALS['fx_pl_fresh'] = false;
+	}
+	$d = function_exists( 'fx_pl_compute' ) ? ( $row ? (int) $row[0] : 0 ) : fx_disc_of( $p );
+	if ( get_option( 'fx_pl_built' ) ) {
+		$map  = (array) get_option( 'fx_pl_map', array() );
+		$data = (array) get_option( 'fx_pl_data', array() );
+		$camp = array_flip( (array) get_option( 'fx_pl_camp', array() ) );
+		unset( $map[ $p->get_id() ], $data[ $p->get_id() ], $camp[ $p->get_id() ] );
+		if ( $row ) {
+			$map[ $p->get_id() ]  = $row[0];
+			$data[ $p->get_id() ] = $row;
+			if ( $row[2] ) {
+				$camp[ $p->get_id() ] = 1;
+			}
 		}
 		update_option( 'fx_pl_map', $map, false );
+		update_option( 'fx_pl_data', $data, false );
+		update_option( 'fx_pl_camp', array_keys( $camp ), false );
 	}
 	if ( $d > 0 ) {
 		update_post_meta( $p->get_id(), '_fx_disc', $d );
@@ -165,26 +177,30 @@ add_action( 'fx_pl_tick', function () {
 	}
 	$t0 = microtime( true );
 	$n  = count( $job['ids'] );
-	while ( $job['i'] < $n && microtime( true ) - $t0 < 20 ) {
+	$GLOBALS['fx_pl_fresh'] = true; // liczymy od zera, bez gotowych wartości
+	while ( $job['i'] < $n && microtime( true ) - $t0 < 8 ) { // krótkie porcje, żeby nie obciążać sklepu
 		$p = wc_get_product( $job['ids'][ $job['i'] ] );
 		$job['i']++;
-		if ( $p && 'publish' === $p->get_status() && function_exists( 'fx_sale_info' ) ) {
-			$info = fx_sale_info( $p );
-			if ( $info && $info[0] > 0 ) {
-				$job['map'][ $p->get_id() ] = (int) $info[0];
-				if ( ! empty( $info[3] ) ) {
+		if ( $p && 'publish' === $p->get_status() && function_exists( 'fx_pl_compute' ) ) {
+			$row = fx_pl_compute( $p );
+			if ( $row ) {
+				$job['map'][ $p->get_id() ]  = $row[0];
+				$job['data'][ $p->get_id() ] = $row;
+				if ( $row[2] ) {
 					$job['camp'][ $p->get_id() ] = 1; // objęty kampanią – filtr „Black Week”
 				}
 			}
 		}
 	}
+	$GLOBALS['fx_pl_fresh'] = false;
 	if ( $job['i'] < $n ) {
 		update_option( 'fx_pl_job', $job, false );
-		wp_schedule_single_event( time() + 15, 'fx_pl_tick' );
+		wp_schedule_single_event( time() + 30, 'fx_pl_tick' );
 		return;
 	}
 	// Gotowe: podmiana mapy i pola do sortowania.
 	update_option( 'fx_pl_map', $job['map'], false );
+	update_option( 'fx_pl_data', (array) ( $job['data'] ?? array() ), false );
 	update_option( 'fx_pl_camp', array_keys( (array) ( $job['camp'] ?? array() ) ), false );
 	$wpdb->query( "DELETE FROM {$wpdb->postmeta} WHERE meta_key = '_fx_disc'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 	foreach ( $job['map'] as $pid => $d ) {
@@ -219,6 +235,39 @@ add_action( 'init', function () {
 }, 40 );
 add_action( 'fx_pl_begin', 'fx_pl_start' );
 add_action( 'fx_disc_rebuild_once', 'fx_disc_rebuild' );
+
+/** Gotowe wartości dla kafelka: [ max %, min %, kampania 0/1, najniższa cena z 30 dni ] – liczone raz, w tle. */
+function fx_pl_compute( WC_Product $p ) {
+	$info = function_exists( 'fx_sale_info' ) ? fx_sale_info( $p ) : null;
+	if ( ! $info || $info[0] <= 0 ) {
+		return null;
+	}
+	$ref = 0;
+	if ( function_exists( 'fx_omni_ref' ) ) {
+		if ( $p->is_type( 'variable' ) ) {
+			$b   = fx_omni_ref_variable( $p );
+			$ref = $b ? (float) $b[0] : 0;
+		} else {
+			$ref = (float) fx_omni_ref( $p );
+		}
+	}
+	return array( (int) $info[0], (int) $info[1], $info[3] ? 1 : 0, $ref );
+}
+
+/** Gotowe wartości produktu: wiersz, null (bez promocji) albo false (licz na żywo: dane niegotowe / karta tego produktu). */
+function fx_pl_row( $id ) {
+	static $data = null;
+	if ( ! empty( $GLOBALS['fx_pl_fresh'] ) || ! get_option( 'fx_pl_built' ) || ( function_exists( 'is_product' ) && is_product() && (int) get_queried_object_id() === (int) $id ) ) {
+		return false;
+	}
+	if ( null === $data ) {
+		$data = (array) get_option( 'fx_pl_data', array() );
+		if ( ! $data && get_option( 'fx_pl_map' ) ) {
+			return false; // mapa z wersji bez gotowych wartości – do pierwszego przeliczenia licz na żywo
+		}
+	}
+	return $data[ $id ] ?? null;
+}
 
 /** Mapa rabatów albo null (jeszcze nie policzona). */
 function fx_pl_map() {
