@@ -863,7 +863,7 @@
 		}
 		var $omni = $('<div class="fx-omni-var"></div>').insertAfter($price);
 		// Etykieta cenowa na zdjęciu (−X% / Black Week) – rabat wybranego wariantu.
-		var $pb = $('.fx-badges--single [data-fx-pbadge]').first(), pbOrig = $pb.length ? [$pb.text(), $pb.attr('class')] : null;
+		var $pb = $('.fx-badges--single [data-fx-pbadge]').first(), pbOrig = $pb.length ? [$pb.html(), $pb.attr('class')] : null;
 		function pbadge(b) {
 			if (!$pb.length) {
 				if (!b || !b[0]) { return; }
@@ -872,7 +872,8 @@
 				$pb = $('<span data-fx-pbadge></span>').prependTo($wrap);
 			}
 			if (!b || !b[0]) { $pb.hide(); return; }
-			$pb.show().text(b[0]).attr('class', 'fx-badge fx-badge--' + b[1]);
+			$pb.show().attr('class', 'fx-badge fx-badge--' + b[1]);
+			if (b[2]) { $pb.html(b[2]); } else { $pb.text(b[0]); }
 		}
 		$form.on('found_variation', function (e, v) {
 			if (v && v.price_html) {
@@ -894,7 +895,7 @@
 		$form.on('reset_data', function () {
 			$price.html(orig);
 			$omni.html('');
-			if (pbOrig) { $pb.show().text(pbOrig[0]).attr('class', pbOrig[1]); } else if ($pb.length) { $pb.hide(); }
+			if (pbOrig) { $pb.show().html(pbOrig[0]).attr('class', pbOrig[1]); } else if ($pb.length) { $pb.hide(); }
 			if ($sav.length) { $sav.show().html(savOrig); }
 		});
 	});

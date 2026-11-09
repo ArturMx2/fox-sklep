@@ -179,6 +179,9 @@ add_filter( 'woocommerce_available_variation', function ( $data, $product, $vari
 	} else {
 		$data['fx_badge'] = array( fx_sale_badge_text( fx_tool( 'badge_sale_tpl' ), $i[0], $i[0] ), 'sale' );
 	}
+	if ( ! empty( $data['fx_badge'][0] ) ) {
+		$data['fx_badge'][2] = fx_badge_inner( $data['fx_badge'][0], $data['fx_badge'][1] );
+	}
 	return $data;
 }, 30, 3 );
 
@@ -204,6 +207,14 @@ function fx_low_stock( $product, $limit ) {
 	return $product->managing_stock() && $product->get_stock_quantity() > 0 && $product->get_stock_quantity() <= $limit;
 }
 
+/** Treść etykiety; kampania: procent („−20%”, „DO −30%”) w czerwonym polu jak na naklejce. */
+function fx_badge_inner( $text, $class ) {
+	if ( 'bw' === $class && preg_match( '/^(.*?)\s*((?:DO\s+)?[−-]\d+%)\s*$/u', $text, $m ) && '' !== trim( $m[1] ) ) {
+		return esc_html( trim( $m[1] ) ) . ' <b class="fx-bw__pct">' . esc_html( $m[2] ) . '</b>';
+	}
+	return esc_html( $text );
+}
+
 function fx_badges_html( $product, $extra_class = '' ) {
 	$badges = fx_product_badges( $product );
 	if ( ! $badges ) {
@@ -215,7 +226,7 @@ function fx_badges_html( $product, $extra_class = '' ) {
 		if ( 'custom' === $b[1] && ! empty( $b[2] ) && function_exists( 'fx_tb_text_color' ) ) {
 			$style = ' style="background:' . esc_attr( $b[2] ) . ';color:' . esc_attr( fx_tb_text_color( $b[2] ) ) . ';box-shadow:none"';
 		}
-		$html .= '<span class="fx-badge fx-badge--' . esc_attr( $b[1] ) . '"' . $style . ( in_array( $b[1], array( 'sale', 'bw', 'bw-shelf' ), true ) ? ' data-fx-pbadge' : '' ) . '>' . esc_html( $b[0] ) . '</span>';
+		$html .= '<span class="fx-badge fx-badge--' . esc_attr( $b[1] ) . '"' . $style . ( in_array( $b[1], array( 'sale', 'bw', 'bw-shelf' ), true ) ? ' data-fx-pbadge' : '' ) . '>' . fx_badge_inner( $b[0], $b[1] ) . '</span>';
 	}
 	return $html . '</span>';
 }
