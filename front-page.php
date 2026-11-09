@@ -30,6 +30,11 @@ $fx_w = function ( $w ) {
 	return ( 'moto' === $w || 'rower' === $w ) ? ' data-fx-world="' . $w . '"' : '';
 };
 ?>
+<?php
+if ( function_exists( 'fx_camp_home_banner' ) ) {
+	fx_camp_home_banner(); // baner kampanii (Black Week) – tylko w trakcie / przed startem, według dat z Przecen
+}
+?>
 <?php if ( $fx_worlds ) : /* ---------- Baner Moto | Rower ---------- */ ?>
 <section class="fx-worlds" aria-label="Wybierz: moto czy rower">
 	<?php foreach ( array( 'moto', 'rower' ) as $w ) : ?>

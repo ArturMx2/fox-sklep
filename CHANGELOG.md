@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.40.0
+- Baner kampanii na stronie głównej nad Moto | Rower: nagłówek i podtytuł jak na stronie kampanii, odliczanie do końca (albo do startu w zapowiedzi), przycisk do strony kampanii. Pokazuje się sam w trakcie kampanii (i jako zapowiedź – tyle dni przed startem, co pasek), po końcu znika. Opcjonalne zdjęcie w tle (osobne na telefon). Ustawienia: Dostosuj → Kampania (pasek i podstrona).
+- Pasek z odliczaniem na telefonie zawija się do dwóch linii zamiast ucinać odliczanie.
+
 ## 3.39.1
 - Kampania: puste „Od” w Przecenach (start od razu) – strona kampanii pokazywała „zakończony”, a pasek się nie pojawiał. Teraz puste „Od” = trwa od razu, puste „Do” = bez końca (bez odliczania).
 

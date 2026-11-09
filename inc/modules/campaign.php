@@ -27,6 +27,12 @@ function fx_camp_defaults() {
 		'camp_sub_during'  => '−30% na wyprzedaż i towar z półki, −20% na resztę FOX. Do {koniec}.',
 		'camp_sub_after'   => 'Dziękujemy! Zajrzyj do aktualnych promocji albo wybierz prezent.',
 		'camp_after_url'   => '',
+		'camp_home_on'     => true,
+		'camp_home_before' => true,
+		'camp_home_img'    => 0,
+		'camp_home_img_m'  => 0,
+		'camp_home_cta'    => 'Zobacz promocje',
+		'camp_home_cta_b'  => 'Zobacz zapowiedź',
 	);
 }
 
@@ -168,6 +174,49 @@ function fx_camp_top_ids( $n = 24 ) {
 }
 
 /* =====================================================================
+ * Baner kampanii na stronie głównej (nad Moto | Rower)
+ * ===================================================================== */
+function fx_camp_home_banner() {
+	$mode = fx_camp_mode();
+	if ( ! fx_camp( 'camp_home_on' ) || ! in_array( $mode, array( 'before', 'during' ), true ) ) {
+		return;
+	}
+	list( $from, $to ) = fx_camp_dates();
+	if ( 'before' === $mode && ( ! fx_camp( 'camp_home_before' ) || $from - time() > max( 0, (int) fx_camp( 'camp_bar_days' ) ) * DAY_IN_SECONDS ) ) {
+		return; // zapowiedź – tyle dni przed startem, co pasek
+	}
+	$img   = (int) fx_camp( 'camp_home_img' );
+	$img_m = (int) fx_camp( 'camp_home_img_m' );
+	$link  = trim( (string) fx_camp( 'camp_bar_link' ) );
+	$count = 'before' === $mode ? $from : $to;
+	$title = fx_camp_fill( fx_camp( 'camp_h_' . $mode ) );
+	echo '<section class="fx-chome fx-chome--' . esc_attr( $mode ) . ( $img ? ' has-img' : '' ) . '" aria-label="' . esc_attr( $title ) . '">';
+	if ( $img ) {
+		echo '<picture class="fx-chome__bg">';
+		if ( $img_m ) {
+			echo '<source media="(max-width:640px)" srcset="' . esc_url( wp_get_attachment_image_url( $img_m, 'large' ) ) . '">';
+		}
+		echo wp_get_attachment_image( $img, 'full', false, array( 'class' => 'fx-cover', 'loading' => 'eager', 'fetchpriority' => 'high', 'alt' => '' ) ); // phpcs:ignore
+		echo '</picture>';
+	}
+	echo '<div class="fx-chome__in fx-wrap">';
+	echo '<h2 class="fx-chome__title">' . esc_html( $title ) . '</h2>';
+	echo '<p class="fx-chome__sub">' . esc_html( fx_camp_fill( fx_camp( 'camp_sub_' . $mode ) ) ) . '</p>';
+	echo '<div class="fx-chome__row">';
+	if ( $count ) {
+		echo '<span class="fx-chome__count" data-fx-hcount data-to="' . (int) $count * 1000 . '"><small>' . esc_html( 'before' === $mode ? 'Start za' : 'Do końca' ) . '</small> <b data-v>&nbsp;</b></span>';
+	}
+	if ( $link ) {
+		echo '<a class="fx-btn fx-btn--white" href="' . esc_url( $link ) . '">' . esc_html( fx_camp( 'before' === $mode ? 'camp_home_cta_b' : 'camp_home_cta' ) ) . '</a>';
+	}
+	echo '</div></div></section>';
+	?>
+	<script>(function(){var c=document.querySelector('[data-fx-hcount]');if(!c)return;var T=+c.dataset.to,v=c.querySelector('[data-v]');function two(n){return(n<10?'0':'')+n}
+	function tick(){var s=Math.max(0,Math.floor((T-Date.now())/1000)),d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60);s=s%60;v.textContent=(d>0?(d===1?'1 dzień ':d+' dni '):'')+two(h)+':'+two(m)+':'+two(s)}tick();setInterval(tick,1000)})();</script>
+	<?php
+}
+
+/* =====================================================================
  * Ustawienia: Dostosuj → FOX.SKLEP.PL → Kampania (pasek i podstrona)
  * ===================================================================== */
 add_action( 'customize_register', function ( $wp ) {
@@ -191,11 +240,19 @@ add_action( 'customize_register', function ( $wp ) {
 		'camp_h_after'      => array( 'text', 'Strona – nagłówek po kampanii' ),
 		'camp_sub_after'    => array( 'text', 'Strona – podtytuł po kampanii' ),
 		'camp_after_url'    => array( 'text', 'Po kampanii przekieruj (302) na adres – puste = strona „zakończony”' ),
+		'camp_home_on'      => array( 'checkbox', 'Baner kampanii na stronie głównej (nad Moto | Rower) – teksty jak na stronie kampanii, przycisk prowadzi pod link paska' ),
+		'camp_home_before'  => array( 'checkbox', 'Baner także jako zapowiedź przed startem (tyle dni, co pasek)' ),
+		'camp_home_cta'     => array( 'text', 'Baner – przycisk w trakcie' ),
+		'camp_home_cta_b'   => array( 'text', 'Baner – przycisk przed startem' ),
 	);
 	$d = fx_camp_defaults();
 	foreach ( $f as $k => $c ) {
 		$san = 'checkbox' === $c[0] ? 'fx_sanitize_bool' : ( 'number' === $c[0] ? 'absint' : 'sanitize_text_field' );
 		$wp->add_setting( 'fx_' . $k, array( 'default' => $d[ $k ], 'sanitize_callback' => $san ) );
 		$wp->add_control( 'fx_' . $k, array( 'section' => 'fx_campaign', 'label' => $c[1], 'type' => $c[0] ) );
+	}
+	foreach ( array( 'camp_home_img' => 'Baner – zdjęcie w tle (opcjonalnie, szerokie np. 2400×800)', 'camp_home_img_m' => 'Baner – zdjęcie na telefon (opcjonalnie, np. 1080×1080)' ) as $k => $label ) {
+		$wp->add_setting( 'fx_' . $k, array( 'default' => 0, 'sanitize_callback' => 'absint' ) );
+		$wp->add_control( new WP_Customize_Media_Control( $wp, 'fx_' . $k, array( 'section' => 'fx_campaign', 'label' => $label, 'mime_type' => 'image' ) ) );
 	}
 }, 40 );
