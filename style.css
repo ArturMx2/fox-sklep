@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.42.4
+Version: 3.43.0
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -636,6 +636,11 @@ button,input,select,textarea{font:inherit;color:inherit}
 a.fx-cbar__txt[href]:hover{text-decoration:underline}
 .fx-cbar__x{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:0;color:#fff;font-size:22px;line-height:1;padding:6px 10px;cursor:pointer}
 @media (max-width:640px){.fx-cbar{font-size:13px;padding:6px 36px;min-height:36px}}
+.fx-insta__handle{font-size:.55em;font-weight:500;color:var(--fx-muted);letter-spacing:0;text-transform:none;vertical-align:middle}
+.fx-insta__feed #sb_instagram{padding:0!important;max-width:none!important}
+.fx-insta__feed #sb_instagram .sbi_header,.fx-insta__feed #sb_instagram .sb_instagram_header{display:none!important}
+.fx-insta__feed #sb_instagram #sbi_images{padding:0!important}
+.fx-insta__feed #sb_instagram .sbi_photo img{border-radius:0}
 .fx-chome{position:relative;overflow:hidden;background:var(--fx-ink);color:#fff;text-align:center;border-top:1px solid rgba(255,255,255,.14)}
 .fx-chome__bg{position:absolute;inset:0}
 .fx-chome__bg img{width:100%;height:100%;object-fit:cover}

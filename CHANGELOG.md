@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.43.0
+- Strona główna: sekcja Instagram nad poradnikami – feed z wtyczki Smash Balloon Instagram Feed ([instagram-feed]), tytuł, nazwa konta i przycisk „Obserwuj” w stylu motywu (nagłówek wtyczki ukryty, żeby nie dublować). Pokazuje się tylko, gdy wtyczka jest włączona. Ustawienia: Dostosuj → Strona główna – Instagram (włącznik, tytuł, konto, link, shortcode, np. [instagram-feed feed=1]).
+
 ## 3.42.4 – etykiety na telefonie
 - Naklejka Black Week na kafelkach w telefonie dwuwierszowa jak oryginał (lis, „BLACK / WEEK”, czerwony procent; „DO” nad procentem) – mieści się obok serduszka od 360 px szerokości, bez ucinania.
 - Telefon: najwyżej 2 etykiety na kafelku (cenowa + jedna informacyjna), mniejsze etykiety i serduszko.

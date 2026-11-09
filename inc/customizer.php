@@ -92,6 +92,11 @@ function fx_defaults() {
 		'rider_btn_label' => 'Kup zestaw #212',
 		'rider_btn_url'   => '',
 		// Poradniki.
+		'insta_on'        => true,
+		'insta_title'     => 'Instagram',
+		'insta_handle'    => '',
+		'insta_url'       => '',
+		'insta_code'      => '[instagram-feed]',
 		'guides_on'       => true,
 		'guides_title'    => 'Poradniki',
 		'guides_count'    => 6,
@@ -413,6 +418,14 @@ function fx_customize( $wp ) {
 	$add( 'rider_list', 'fx_home_rider', 'Lista sprzętu („Element | Model”, jedna linia na pozycję)', 'textarea' );
 	$add( 'rider_btn_label', 'fx_home_rider', 'Przycisk – tekst' );
 	$add( 'rider_btn_url', 'fx_home_rider', 'Przycisk – link (puste = bez przycisku)', 'url' );
+
+	/* Instagram (wtyczka Smash Balloon Instagram Feed) */
+	$section( 'fx_home_insta', 'Strona główna – Instagram', 'Feed z wtyczki Smash Balloon Instagram Feed, nad poradnikami. Wygląd zdjęć (liczba, kolumny, odstępy) ustawiasz w samej wtyczce: Instagram Feed → Feeds. Sekcja pokazuje się tylko, gdy wtyczka jest włączona.' );
+	$add( 'insta_on', 'fx_home_insta', 'Pokaż sekcję', 'checkbox' );
+	$add( 'insta_title', 'fx_home_insta', 'Tytuł sekcji' );
+	$add( 'insta_handle', 'fx_home_insta', 'Nazwa konta (np. @foxsklep) – obok tytułu' );
+	$add( 'insta_url', 'fx_home_insta', 'Link do profilu (przycisk „Obserwuj”)', 'url' );
+	$add( 'insta_code', 'fx_home_insta', 'Shortcode feedu (np. [instagram-feed feed=1])' );
 
 	/* Poradniki */
 	$section( 'fx_home_guides', 'Strona główna – poradniki' );

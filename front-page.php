@@ -300,6 +300,28 @@ endif;
 </section>
 <?php endif; ?>
 
+<?php /* ---------- Instagram (Smash Balloon Instagram Feed) ---------- */ ?>
+<?php
+$fx_ig_code = trim( (string) fx_mod( 'insta_code' ) );
+$fx_ig_tag  = preg_match( '/^\[\s*([\w-]+)/', $fx_ig_code, $fx_ig_m ) ? $fx_ig_m[1] : '';
+if ( fx_mod( 'insta_on' ) && $fx_ig_tag && shortcode_exists( $fx_ig_tag ) ) :
+	$fx_ig_html = do_shortcode( $fx_ig_code );
+	if ( '' !== trim( wp_strip_all_tags( $fx_ig_html, true ) ) || false !== stripos( $fx_ig_html, '<img' ) || false !== stripos( $fx_ig_html, 'sbi' ) ) :
+		?>
+<section class="fx-section fx-wrap fx-insta">
+	<div class="fx-row-head">
+		<h2 class="fx-h-section"><?php echo esc_html( fx_mod( 'insta_title' ) ); ?><?php if ( fx_mod( 'insta_handle' ) ) : ?> <span class="fx-insta__handle"><?php echo esc_html( fx_mod( 'insta_handle' ) ); ?></span><?php endif; ?></h2>
+		<?php if ( fx_mod( 'insta_url' ) ) : ?>
+			<a class="fx-btn fx-btn--outline fx-btn--sm" href="<?php echo esc_url( fx_mod( 'insta_url' ) ); ?>" target="_blank" rel="noopener">Obserwuj</a>
+		<?php endif; ?>
+	</div>
+	<div class="fx-insta__feed"><?php echo $fx_ig_html; // phpcs:ignore WordPress.Security.EscapeOutput -- HTML wtyczki Instagram Feed ?></div>
+</section>
+		<?php
+	endif;
+endif;
+?>
+
 <?php /* ---------- Poradniki ---------- */ ?>
 <?php
 if ( fx_mod( 'guides_on' ) ) :
