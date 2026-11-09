@@ -1,5 +1,10 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.42.4 – etykiety na telefonie
+- Naklejka Black Week na kafelkach w telefonie dwuwierszowa jak oryginał (lis, „BLACK / WEEK”, czerwony procent; „DO” nad procentem) – mieści się obok serduszka od 360 px szerokości, bez ucinania.
+- Telefon: najwyżej 2 etykiety na kafelku (cenowa + jedna informacyjna), mniejsze etykiety i serduszko.
+- Kolejność etykiet: cenowa → „Wysyłka dziś” → pozostałe (Nowość, Ostatnie sztuki…).
+
 ## 3.42.3
 - Poprawka 3.42.2: część kafelków bez etykiety kampanii i Omnibusa, gdy wgranie motywu wypadło w trakcie przeliczania w tle (produkty policzone starszą wersją nie miały gotowych wartości). Teraz produkt bez gotowych wartości liczy się na żywo, w trakcie przeliczania (np. po starcie kampanii) też; przeliczanie zaczęte starszą wersją rusza od nowa.
 

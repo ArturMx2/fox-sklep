@@ -169,6 +169,25 @@ function fx_sale_badge( WC_Product $product ) {
 	return array( fx_sale_badge_text( fx_tool( 'badge_sale_tpl' ), $max, $min ), 'sale' );
 }
 
+/* Kolejność: etykieta cenowa → „Wysyłka dziś” → reszta (na telefonie kafelek pokazuje tylko 2 pierwsze). */
+add_filter( 'fx_product_badges', function ( $badges ) {
+	$rank = function ( $b ) {
+		return in_array( $b[1], array( 'sale', 'bw', 'bw-shelf' ), true ) ? 0 : ( 'ship' === $b[1] ? 1 : 2 );
+	};
+	$i = 0;
+	foreach ( $badges as &$b ) {
+		$b['_o'] = $rank( $b ) * 100 + $i++;
+	}
+	unset( $b );
+	usort( $badges, function ( $a, $c ) {
+		return $a['_o'] - $c['_o'];
+	} );
+	return array_map( function ( $b ) {
+		unset( $b['_o'] );
+		return $b;
+	}, $badges );
+}, 99 );
+
 /* Wariant: etykieta po wybraniu rozmiaru (karta produktu podmienia tekst). */
 add_filter( 'woocommerce_available_variation', function ( $data, $product, $variation ) {
 	if ( get_post_meta( $product->get_id(), '_fx_hide_sale_badge', true ) || ! fx_tool( 'badge_sale_pct' ) ) {
@@ -215,7 +234,7 @@ function fx_low_stock( $product, $limit ) {
 /** Treść etykiety; kampania: procent („−20%”, „DO −30%”) w czerwonym polu jak na naklejce. */
 function fx_badge_inner( $text, $class ) {
 	if ( 'bw' === $class && preg_match( '/^(.*?)\s*((?:DO\s+)?[−-]\d+%)\s*$/u', $text, $m ) && '' !== trim( $m[1] ) ) {
-		return esc_html( trim( $m[1] ) ) . ' <b class="fx-bw__pct">' . esc_html( $m[2] ) . '</b>';
+		return '<span class="fx-bw__t">' . esc_html( trim( $m[1] ) ) . '</span> <b class="fx-bw__pct">' . esc_html( $m[2] ) . '</b>';
 	}
 	return esc_html( $text );
 }
