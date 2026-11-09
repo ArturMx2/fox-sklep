@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.41.2
+- Bez narracji „z półki / od ręki” w komunikacji kampanii: jedna etykieta „BLACK WEEK −X%” (bez osobnej „Z PÓŁKI”), pasek na karcie produktu „Black Week: do −30%” (bez listy rozmiarów od ręki), w koszyku sam rabat bez „(od ręki)”. Rabat półki działa dalej – tylko o nim nie mówimy.
+- Domyślne teksty kampanii bez „−30% na wyprzedaż i towar z półki”: pasek „Black Week trwa · do końca: …”, podtytuł „Rabaty na FOX moto i MTB – tylko do …”.
+
 ## 3.41.1
 - W trakcie kampanii etykieta kampanii („BLACK WEEK −X%”) i filtr „Black Week” obejmują wszystkie przecenione produkty – także spoza zakresu kampanii (wykluczone, inne marki). Przełącznik w Narzędziach sklepu.
 

@@ -140,7 +140,7 @@ function fx_sale_badge_text( $tpl, $max, $min ) {
 }
 
 /**
- * Etykieta cenowa (jedna, najwyższy priorytet): kampania z półki → kampania → zwykła promocja.
+ * Etykieta cenowa (jedna): kampania → zwykła promocja.
  * Poniżej progu (domyślnie 5% od najniższej ceny z 30 dni) – bez etykiety cenowej.
  */
 function fx_sale_badge( WC_Product $product ) {
@@ -159,10 +159,7 @@ function fx_sale_badge( WC_Product $product ) {
 		return null;
 	}
 	if ( $campaign && fx_tool( 'badge_bw_on' ) ) {
-		if ( $shelf ) {
-			return array( fx_sale_badge_text( fx_tool( 'badge_bw_shelf' ), $max, $min ), 'bw-shelf' );
-		}
-		return array( fx_sale_badge_text( fx_tool( 'badge_bw' ), $max, $min ), 'bw' );
+		return array( fx_sale_badge_text( fx_tool( 'badge_bw' ), $max, $min ), 'bw' ); // jedna etykieta kampanii – bez osobnej „z półki”
 	}
 	return array( fx_sale_badge_text( fx_tool( 'badge_sale_tpl' ), $max, $min ), 'sale' );
 }
@@ -178,7 +175,7 @@ add_filter( 'woocommerce_available_variation', function ( $data, $product, $vari
 		return $data;
 	}
 	if ( $i[1] && fx_tool( 'badge_bw_on' ) ) {
-		$data['fx_badge'] = 'shelf' === $i[1] ? array( fx_sale_badge_text( fx_tool( 'badge_bw_shelf' ), $i[0], $i[0] ), 'bw-shelf' ) : array( fx_sale_badge_text( fx_tool( 'badge_bw' ), $i[0], $i[0] ), 'bw' );
+		$data['fx_badge'] = array( fx_sale_badge_text( fx_tool( 'badge_bw' ), $i[0], $i[0] ), 'bw' );
 	} else {
 		$data['fx_badge'] = array( fx_sale_badge_text( fx_tool( 'badge_sale_tpl' ), $i[0], $i[0] ), 'sale' );
 	}

@@ -337,13 +337,8 @@ add_action( 'woocommerce_single_product_summary', function () {
 		return '−' . wc_format_localized_decimal( $x ) . '%';
 	};
 	$head = trim( $s['label'] ) ? esc_html( $s['label'] ) . ': ' : '';
-	if ( $shelf && $base && $base < $best ) {
-		$text = '<strong>' . $head . esc_html( $f( $base ) ) . '</strong>, a na rozmiary dostępne od ręki (' . esc_html( implode( ', ', array_unique( $shelf ) ) ) . ') <strong>' . esc_html( $f( $best ) ) . '</strong>';
-	} elseif ( $shelf ) {
-		$text = '<strong>' . $head . esc_html( $f( $best ) ) . '</strong> na rozmiary dostępne od ręki: <strong>' . esc_html( implode( ', ', array_unique( $shelf ) ) ) . '</strong>';
-	} else {
-		$text = '<strong>' . $head . esc_html( $f( $best ) ) . '</strong>';
-	}
+	// Bez narracji o półce / rozmiarach od ręki – sam rabat kampanii („do”, gdy rozmiary mają różne).
+	$text = '<strong>' . $head . ( $base && $base < $best ? 'do ' : '' ) . esc_html( $f( $best ) ) . '</strong>';
 	$to = fx_promo_ts( $s['to'] );
 	if ( $to ) {
 		$text .= ' · do ' . esc_html( wp_date( 'j.m, H:i', $to ) );
@@ -413,9 +408,6 @@ add_filter( 'woocommerce_get_item_data', function ( $data, $item ) {
 	list( $pct, $src, $units, $qty ) = $item['fx_promo'];
 	$s   = fx_promo_settings();
 	$txt = '−' . wc_format_localized_decimal( $pct ) . '%';
-	if ( 'shelf' === $src ) {
-		$txt .= ' (od ręki' . ( $units < $qty ? ', ' . (int) $units . ' z ' . (int) $qty . ' szt.' : '' ) . ')';
-	}
 	$data[] = array( 'key' => trim( $s['label'] ) ? $s['label'] : 'Promocja', 'value' => $txt );
 	return $data;
 }, 10, 2 );
@@ -612,7 +604,7 @@ function fx_promo_page() {
 					<?php foreach ( array( '' => 'jak w „Przecenach Powerbike”', 'none' => 'do grosza (139,30 zł)', 'int' => 'w dół do pełnych złotych (139 zł)', '99' => 'na …,99 (138,99 zł)' ) as $k => $l ) : ?>
 						<option value="<?php echo esc_attr( $k ); ?>" <?php selected( (string) $s['rounding'], $k ); ?>><?php echo esc_html( $l ); ?></option>
 					<?php endforeach; ?></select></td></tr>
-				<tr><th>Karta produktu</th><td><label><input type="checkbox" name="note" value="1" <?php checked( $s['note'] ); ?>> pasek z rabatem (np. „Black Week: −20%, a na rozmiary dostępne od ręki (M, L) −30%”)</label></td></tr>
+				<tr><th>Karta produktu</th><td><label><input type="checkbox" name="note" value="1" <?php checked( $s['note'] ); ?>> pasek z rabatem (np. „Black Week: do −30%”)</label></td></tr>
 			</table>
 			<p><?php submit_button( 'Zapisz', 'primary', 'submit', false ); ?> <button class="button" name="do" value="pb">Odśwież listę wyprzedaży Powerbike</button></p>
 		</form>
