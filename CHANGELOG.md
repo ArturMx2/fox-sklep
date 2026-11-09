@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.42.1
+- Wydajność: zebranie listy przecenionych produktów do mapy rabatów (filtr „Wielkość promocji”, „Black Week”, sortowanie) i pierwsze przeliczenie rabatów idą tylko w tle (WP-Cron), a nie w trakcie ładowania strony – po wgraniu motywu, starcie kampanii i o północy strony kategorii nie zawieszają się.
+
 ## 3.42.0
 - Etykieta kampanii w stylu naklejki Black Week: czarne pole, głowa lisa (wektor, ostra na każdym ekranie), pochyłe grube „BLACK WEEK”, procent w czerwonym polu, czerwony skos w rogu. Na karcie produktu większa; zmienia się z wybranym rozmiarem. Tekst nadal z Narzędzi sklepu – procent ({rabat}) zawsze w czerwonym polu.
 

@@ -205,15 +205,20 @@ add_action( 'init', function () {
 	if ( wp_next_scheduled( 'fx_disc_rebuild_daily' ) ) {
 		wp_clear_scheduled_hook( 'fx_disc_rebuild_daily' ); // zastąpione przeliczaniem w tle
 	}
-	if ( ! get_option( 'fx_disc_built' ) ) {
-		fx_disc_rebuild(); // szybki start z cen zapisanych, zanim policzy się mapa
+	if ( ! get_option( 'fx_disc_built' ) && ! wp_next_scheduled( 'fx_disc_rebuild_once' ) ) {
+		wp_schedule_single_event( time() + 5, 'fx_disc_rebuild_once' ); // szybki start z cen zapisanych – w tle
 	}
 	$sig = fx_pl_sig();
 	if ( get_option( 'fx_pl_sig' ) !== $sig && ! get_option( 'fx_pl_job' ) ) {
 		update_option( 'fx_pl_sig', $sig, false );
-		fx_pl_start();
+		// Zebranie listy produktów jest ciężkie (cały katalog) – tylko w tle, nigdy w trakcie ładowania strony.
+		if ( ! wp_next_scheduled( 'fx_pl_begin' ) ) {
+			wp_schedule_single_event( time() + 10, 'fx_pl_begin' );
+		}
 	}
 }, 40 );
+add_action( 'fx_pl_begin', 'fx_pl_start' );
+add_action( 'fx_disc_rebuild_once', 'fx_disc_rebuild' );
 
 /** Mapa rabatów albo null (jeszcze nie policzona). */
 function fx_pl_map() {
