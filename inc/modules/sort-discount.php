@@ -153,7 +153,7 @@ function fx_disc_rebuild() {
 /** Podpis: kampania + dzień (raz dziennie przeliczenie, bo ceny z 30 dni się zmieniają). */
 function fx_pl_sig() {
 	$promo = function_exists( 'fx_omni_promo_sig' ) ? fx_omni_promo_sig() : '';
-	return md5( $promo . '|' . wp_date( 'Y-m-d' ) );
+	return md5( $promo . '|' . wp_date( 'Y-m-d' ) . '|v2' ); // v2: mapa z gotowymi wartościami dla kafelków
 }
 
 function fx_pl_start() {
@@ -163,7 +163,7 @@ function fx_pl_start() {
 		$pp       = wp_get_post_parent_id( $id );
 		$par[ $pp ? $pp : $id ] = 1;
 	}
-	update_option( 'fx_pl_job', array( 'ids' => array_keys( $par ), 'i' => 0, 'map' => array(), 'at' => time() ), false );
+	update_option( 'fx_pl_job', array( 'v' => 2, 'ids' => array_keys( $par ), 'i' => 0, 'map' => array(), 'data' => array(), 'camp' => array(), 'at' => time() ), false );
 	if ( ! wp_next_scheduled( 'fx_pl_tick' ) ) {
 		wp_schedule_single_event( time() + 5, 'fx_pl_tick' );
 	}
@@ -224,6 +224,11 @@ add_action( 'init', function () {
 	if ( ! get_option( 'fx_disc_built' ) && ! wp_next_scheduled( 'fx_disc_rebuild_once' ) ) {
 		wp_schedule_single_event( time() + 5, 'fx_disc_rebuild_once' ); // szybki start z cen zapisanych – w tle
 	}
+	$job = get_option( 'fx_pl_job' );
+	if ( is_array( $job ) && ( ! isset( $job['v'] ) || 2 !== (int) $job['v'] ) ) {
+		delete_option( 'fx_pl_job' ); // przeliczanie zaczęte starszą wersją – od nowa
+		delete_option( 'fx_pl_sig' );
+	}
 	$sig = fx_pl_sig();
 	if ( get_option( 'fx_pl_sig' ) !== $sig && ! get_option( 'fx_pl_job' ) ) {
 		update_option( 'fx_pl_sig', $sig, false );
@@ -260,13 +265,20 @@ function fx_pl_row( $id ) {
 	if ( ! empty( $GLOBALS['fx_pl_fresh'] ) || ! get_option( 'fx_pl_built' ) || ( function_exists( 'is_product' ) && is_product() && (int) get_queried_object_id() === (int) $id ) ) {
 		return false;
 	}
+	static $map = null, $busy = null;
 	if ( null === $data ) {
 		$data = (array) get_option( 'fx_pl_data', array() );
-		if ( ! $data && get_option( 'fx_pl_map' ) ) {
-			return false; // mapa z wersji bez gotowych wartości – do pierwszego przeliczenia licz na żywo
-		}
+		$map  = (array) get_option( 'fx_pl_map', array() );
+		$busy = (bool) get_option( 'fx_pl_job' );
 	}
-	return $data[ $id ] ?? null;
+	if ( isset( $data[ $id ] ) ) {
+		return $data[ $id ];
+	}
+	if ( $busy ) {
+		return false; // trwa przeliczanie (np. po starcie kampanii) – produkty spoza gotowych danych na żywo
+	}
+	// Produkt w mapie rabatów bez gotowych wartości (przeliczenie niepełne) – licz na żywo.
+	return isset( $map[ $id ] ) ? false : null;
 }
 
 /** Mapa rabatów albo null (jeszcze nie policzona). */

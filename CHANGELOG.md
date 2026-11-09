@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.42.3
+- Poprawka 3.42.2: część kafelków bez etykiety kampanii i Omnibusa, gdy wgranie motywu wypadło w trakcie przeliczania w tle (produkty policzone starszą wersją nie miały gotowych wartości). Teraz produkt bez gotowych wartości liczy się na żywo, w trakcie przeliczania (np. po starcie kampanii) też; przeliczanie zaczęte starszą wersją rusza od nowa.
+
 ## 3.42.2 – wydajność kategorii
 - Kafelki czytają gotowe wartości policzone w tle (rabat max/min, kampania, najniższa cena z 30 dni) zamiast wczytywać każdy rozmiar i historię cen; na karcie produktu liczone na żywo jak dotąd. Wartości aktualizują się przy zapisie produktu, przy starcie / końcu kampanii i codziennie.
 - „Ostatnie sztuki”: stan produktu wariantowego jednym zapytaniem do tabeli stanów WooCommerce zamiast wczytywania wszystkich rozmiarów.
