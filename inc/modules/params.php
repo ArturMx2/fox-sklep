@@ -648,7 +648,7 @@ function fxp_filter_list() {
 		return $out;
 	}
 	$out      = array( 'groups' => array(), 'switches' => array() );
-	$reserved = array( 'dla', 'rozmiar', 'kolor', 'promocja', 'wysylka24', 'wsklepie', 'przedsprzedaz', 'orderby', 's', 'paged', 'page', 'post_type', 'p', 'product_cat' );
+	$reserved = array( 'dla', 'rozmiar', 'kolor', 'promocja', 'kampania', 'wysylka24', 'wsklepie', 'przedsprzedaz', 'orderby', 's', 'paged', 'page', 'post_type', 'p', 'product_cat' );
 	foreach ( fxp_settings()['map'] as $k => $cfg ) {
 		if ( empty( $cfg['use'] ) || empty( $cfg['filter'] ) ) {
 			continue;

@@ -172,6 +172,9 @@ add_action( 'fx_pl_tick', function () {
 			$info = fx_sale_info( $p );
 			if ( $info && $info[0] > 0 ) {
 				$job['map'][ $p->get_id() ] = (int) $info[0];
+				if ( ! empty( $info[3] ) ) {
+					$job['camp'][ $p->get_id() ] = 1; // objęty kampanią – filtr „Black Week”
+				}
 			}
 		}
 	}
@@ -182,6 +185,7 @@ add_action( 'fx_pl_tick', function () {
 	}
 	// Gotowe: podmiana mapy i pola do sortowania.
 	update_option( 'fx_pl_map', $job['map'], false );
+	update_option( 'fx_pl_camp', array_keys( (array) ( $job['camp'] ?? array() ) ), false );
 	$wpdb->query( "DELETE FROM {$wpdb->postmeta} WHERE meta_key = '_fx_disc'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 	foreach ( $job['map'] as $pid => $d ) {
 		$wpdb->insert( $wpdb->postmeta, array( 'post_id' => (int) $pid, 'meta_key' => '_fx_disc', 'meta_value' => (int) $d ) ); // phpcs:ignore WordPress.DB.SlowDBQuery

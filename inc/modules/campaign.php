@@ -174,6 +174,54 @@ function fx_camp_top_ids( $n = 24 ) {
 }
 
 /* =====================================================================
+ * Filtr „Black Week” (?kampania=1) – produkty objęte kampanią z rabatem; tylko w trakcie kampanii
+ * ===================================================================== */
+function fx_camp_filter_on() {
+	return ! empty( $_GET['kampania'] ) && function_exists( 'fx_promo_active' ) && fx_promo_active(); // phpcs:ignore WordPress.Security.NonceVerification
+}
+
+/** Produkty objęte kampanią (z mapy rabatów, liczonej w tle). */
+function fx_camp_ids() {
+	return get_option( 'fx_pl_built' ) ? array_map( 'intval', (array) get_option( 'fx_pl_camp', array() ) ) : array();
+}
+
+add_filter( 'fx_filter_url_params', function ( $p ) {
+	$p[] = 'kampania';
+	return $p;
+} );
+
+add_filter( 'fx_filter_sets', function ( $sets ) {
+	if ( fx_camp_filter_on() ) {
+		$ids    = fx_camp_ids();
+		$sets[] = $ids ? $ids : array( 0 );
+	}
+	return $sets;
+} );
+
+add_filter( 'fx_filter_switches', function ( $sw, $term ) {
+	if ( ! function_exists( 'fx_promo_active' ) || ! fx_promo_active() ) {
+		return $sw;
+	}
+	$ids = fx_camp_ids();
+	$on  = fx_camp_filter_on();
+	if ( ! $on && ( ! $ids || ! array_intersect( $ids, fx_filter_cat_products( $term ) ) ) ) {
+		return $sw;
+	}
+	$label = trim( (string) fx_promo_settings()['label'] );
+	$label = '' !== $label ? $label : 'Kampania';
+	$base  = remove_query_arg( array( 'kampania', 'paged' ), fx_filter_base_url() );
+	array_unshift( $sw, array(
+		'key'   => 'kampania',
+		'label' => $label,
+		'short' => $label,
+		'note'  => 'tylko produkty z rabatem ' . $label,
+		'on'    => $on,
+		'url'   => $on ? $base : add_query_arg( 'kampania', '1', $base ),
+	) );
+	return $sw;
+}, 5, 2 );
+
+/* =====================================================================
  * Baner kampanii na stronie głównej (nad Moto | Rower)
  * ===================================================================== */
 function fx_camp_home_banner() {

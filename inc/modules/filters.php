@@ -509,7 +509,7 @@ function fx_filter_order() {
 	$keys = array_keys( array_filter( fx_filter_order_raw() ) );
 	// W trakcie kampanii z Przecen „Wielkość promocji” na górze – także gdy blok jest ukryty w ustawieniach.
 	if ( function_exists( 'fx_promo_active' ) && fx_promo_active() ) {
-		$keys = array_merge( array( 'sale' ), array_diff( $keys, array( 'sale' ) ) );
+		$keys = array_merge( array( 'kampania', 'sale' ), array_diff( $keys, array( 'kampania', 'sale' ) ) );
 	}
 	return $keys;
 }

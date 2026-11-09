@@ -1,5 +1,9 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.41.0
+- Etykieta kampanii także na produktach objętych kampanią, które mają własną, równą albo głębszą promocję (np. wyprzedaż Powerbike −30% z wtyczki) – w trakcie kampanii „BLACK WEEK −30%” zamiast „−30%”.
+- Nowy filtr „Black Week” (nazwa z Przecen; ?kampania=1): tylko produkty objęte kampanią z rabatem. Pokazuje się tylko w trakcie kampanii, na samej górze filtrów (przed „Wielkością promocji”); strony z filtrem noindex.
+
 ## 3.40.0
 - Baner kampanii na stronie głównej nad Moto | Rower: nagłówek i podtytuł jak na stronie kampanii, odliczanie do końca (albo do startu w zapowiedzi), przycisk do strony kampanii. Pokazuje się sam w trakcie kampanii (i jako zapowiedź – tyle dni przed startem, co pasek), po końcu znika. Opcjonalne zdjęcie w tle (osobne na telefon). Ustawienia: Dostosuj → Kampania (pasek i podstrona).
 - Pasek z odliczaniem na telefonie zawija się do dwóch linii zamiast ucinać odliczanie.

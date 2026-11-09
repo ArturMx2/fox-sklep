@@ -98,7 +98,7 @@ function fx_sale_item( WC_Product $p ) {
 	$seg = '';
 	if ( function_exists( 'fx_promo_rule' ) && fx_promo_active() ) {
 		$r = fx_promo_rule( $p );
-		if ( $r[0] > 0 && null !== fx_promo_price( $p, $r[0] ) ) { // kampania faktycznie ustala cenę
+		if ( $r[0] > 0 ) { // produkt objęty kampanią (także gdy ma własną, równą albo głębszą promocję)
 			$seg = (string) $r[1];
 		}
 	}
