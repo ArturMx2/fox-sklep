@@ -100,6 +100,8 @@ function fx_sale_item( WC_Product $p ) {
 		$r = fx_promo_rule( $p );
 		if ( $r[0] > 0 ) { // produkt objęty kampanią (także gdy ma własną, równą albo głębszą promocję)
 			$seg = (string) $r[1];
+		} elseif ( fx_tool( 'badge_bw_all' ) ) {
+			$seg = 'all'; // każdy przeceniony produkt w trakcie kampanii – etykieta i filtr kampanii
 		}
 	}
 	return array( max( 0, $pct ), $seg );

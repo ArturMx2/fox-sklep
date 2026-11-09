@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.41.1
+- W trakcie kampanii etykieta kampanii („BLACK WEEK −X%”) i filtr „Black Week” obejmują wszystkie przecenione produkty – także spoza zakresu kampanii (wykluczone, inne marki). Przełącznik w Narzędziach sklepu.
+
 ## 3.41.0
 - Etykieta kampanii także na produktach objętych kampanią, które mają własną, równą albo głębszą promocję (np. wyprzedaż Powerbike −30% z wtyczki) – w trakcie kampanii „BLACK WEEK −30%” zamiast „−30%”.
 - Nowy filtr „Black Week” (nazwa z Przecen; ?kampania=1): tylko produkty objęte kampanią z rabatem. Pokazuje się tylko w trakcie kampanii, na samej górze filtrów (przed „Wielkością promocji”); strony z filtrem noindex.
