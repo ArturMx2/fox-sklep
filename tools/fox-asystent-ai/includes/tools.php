@@ -2,7 +2,7 @@
 /**
  * Asystent AI – narzędzia modelu (function calling) i karty produktów.
  *
- * @package foxsklep
+ * @package fox-asystent-ai
  */
 
 defined( 'ABSPATH' ) || exit;

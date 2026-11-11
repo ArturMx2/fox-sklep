@@ -2,7 +2,7 @@
 /**
  * Asystent AI – panel: Statystyki, Rozmowy, Trening, Statusy zamówień, Ustawienia.
  *
- * @package foxsklep
+ * @package fox-asystent-ai
  */
 
 defined( 'ABSPATH' ) || exit;

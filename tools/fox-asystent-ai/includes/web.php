@@ -4,7 +4,7 @@
  * Strony FOX mają adresy /product/[nazwa]/[model].html i /product/[nazwa]/[model]-[kolor]-[rozmiar].html.
  * Wynik (oczyszczony tekst strony) jest w pamięci 7 dni; brak wyniku – 1 dzień.
  *
- * @package foxsklep
+ * @package fox-asystent-ai
  */
 
 defined( 'ABSPATH' ) || exit;

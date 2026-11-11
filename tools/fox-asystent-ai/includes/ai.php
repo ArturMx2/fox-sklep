@@ -2,7 +2,7 @@
 /**
  * Asystent AI – instrukcja systemowa, dobór treningu, pętla OpenAI z narzędziami.
  *
- * @package foxsklep
+ * @package fox-asystent-ai
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -250,6 +250,9 @@ function fx_ai_hint( array $msgs ) {
 	$rest = trim( preg_replace( '/\b(y?[xsml]{1,3}l?|junior|dzieci\w*|damsk\w*|męsk\w*|mesk\w*|mx|motocross\w*|cross\w*|enduro|mtb|rower\w*|nie|dzięki|dzieki|dziękuję|dziekuje|obojętnie|obojetnie|dowolny|dowolnie)\b/u', ' ', $rest ) );
 	if ( mb_strlen( $rest ) < 3 ) {
 		return '';
+	}
+	if ( ! function_exists( 'fx_srch_query' ) ) {
+		return ''; // bez wyszukiwarki motywu – bez podpowiedzi
 	}
 	$r     = fx_srch_query( $q );
 	$names = array();

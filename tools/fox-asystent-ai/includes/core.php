@@ -2,7 +2,7 @@
 /**
  * Asystent AI – ustawienia, tabele, REST, dymek, pomiar zamówień.
  *
- * @package foxsklep
+ * @package fox-asystent-ai
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -414,8 +414,8 @@ add_action( 'wp_enqueue_scripts', function () {
 		return;
 	}
 	$s   = fx_ai_settings();
-	$ver = defined( 'FX_VERSION' ) ? FX_VERSION : '1';
-	wp_enqueue_script( 'fx-assistant', get_template_directory_uri() . '/assets/js/assistant.js', array(), $ver, array( 'in_footer' => true, 'strategy' => 'defer' ) );
+	$ver = FXA_VER;
+	wp_enqueue_script( 'fx-assistant', FXA_URL . 'assets/js/assistant.js', array(), $ver, array( 'in_footer' => true, 'strategy' => 'defer' ) );
 	$quick = array_values( array_filter( array_map( 'trim', preg_split( '/\r?\n/', (string) $s['quick'] ) ) ) );
 	$ctx = fx_ai_page_ctx();
 	wp_localize_script( 'fx-assistant', 'fxAI', array(
@@ -424,7 +424,7 @@ add_action( 'wp_enqueue_scripts', function () {
 		'cb'      => esc_url_raw( rest_url( 'fox/v1/asystent-cb' ) ),
 		'phone'   => $s['phone'],
 		'nonce'   => is_user_logged_in() ? wp_create_nonce( 'wp_rest' ) : '',
-		'css'     => get_template_directory_uri() . '/assets/css/assistant.css?ver=' . rawurlencode( $ver ),
+		'css'     => FXA_URL . 'assets/css/assistant.css?ver=' . rawurlencode( $ver ),
 		'name'    => $s['name'],
 		'hello'   => $s['greeting'],
 		'quick'   => array_slice( $quick, 0, 6 ),

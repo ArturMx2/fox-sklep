@@ -1,5 +1,8 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.45.0
+- Asystent AI wydzielony z motywu do osobnej wtyczki „FOX – Asystent AI” (źródło w repozytorium: tools/fox-asystent-ai). Motyw nie zawiera już asystenta (inc/modules/assistant, assets/js/assistant.js, assets/css/assistant.css). Wtyczka używa tych samych ustawień i tabel – rozmowy, statystyki i instrukcje zostają. Kolejność: najpierw motyw 3.45.0, potem wtyczka (przy starszym motywie wtyczka czeka i pokazuje komunikat, bez błędu).
+
 ## 3.44.0 – asystent AI: trafniejsze wyszukiwanie
 - Rodzaje produktów rozdzielone: zbroje / buzery (też „koszulka z ochraniaczami”, ochraniacz klatki / pleców, żółw, Raceframe, Airframe), nakolanniki i ortezy, nałokietniki, kołnierze; ogólne „ochraniacze” obejmują wszystkie. Na „zbroję” / „buzer” nie trafiają już ortezy ani nakolanniki; „koszulka z ochraniaczami” to zbroja, nie bluza.
 - Wyszukiwanie dokłada produkty z kategorii pasującej do rodzaju (np. „Zbroje i buzery”), gdy wyszukiwarka po nazwie nie złapie odmiany słowa albo nazwy modelu; nowe pole „kategoria” w narzędziu (model używa go, gdy instrukcja wskazuje kategorię).

@@ -3,7 +3,7 @@
  * Asystent AI – status zamówienia, zwrotu i przesyłki (BaseLinker, zapas: WooCommerce).
  * Weryfikacja: numer zamówienia + telefon (ostatnie 9 cyfr). Bez danych osobowych dla modelu.
  *
- * @package foxsklep
+ * @package fox-asystent-ai
  */
 
 defined( 'ABSPATH' ) || exit;
