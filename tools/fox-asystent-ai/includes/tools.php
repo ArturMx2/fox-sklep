@@ -32,6 +32,7 @@ function fx_ai_tool_defs() {
 			'klatka_cm'      => array( 'type' => 'number', 'description' => 'Obwód klatki piersiowej w cm (bluzy, kurtki).' ),
 			'biodra_cm'      => array( 'type' => 'number', 'description' => 'Obwód bioder w cm (spodnie, szczególnie damskie).' ),
 			'dla_kogo'       => array( 'type' => 'string', 'enum' => array( 'meskie', 'damskie', 'junior', 'dzieciece' ) ),
+			'swiat'          => array( 'type' => 'string', 'enum' => array( 'moto', 'rower', 'casual' ), 'description' => 'Świat produktu: moto (MX/enduro), rower (MTB), casual (odzież na co dzień: bluzy z kapturem, t-shirty, czapki). „Bluza z kapturem” / „hoodie” to casual, a „bluza motocrossowa / rowerowa” (jersey) to moto / rower.' ),
 			'kategoria'      => array( 'type' => 'string', 'description' => 'Opcjonalnie: nazwa (albo jej fragment) kategorii sklepu, w której szukać, np. „Zbroje i buzery”, „Nakolanniki”, „Kaski MTB”. Używaj, gdy instrukcja właściciela wskazuje kategorię albo gdy wyniki są z innego rodzaju produktu.' ),
 			'kolor'          => array( 'type' => 'string', 'description' => 'Kolor, którego szuka klient, po polsku, np. „czarny”, „biały”, „czerwony”, „niebieski”, „różowy”, „camo”. Kilka kolorów – oddziel przecinkiem („czarny, szary”). Pomiń, gdy klientowi kolor jest obojętny. NIE dopisuj koloru do pola zapytanie.' ),
 			'tylko_dostepne' => array( 'type' => 'boolean', 'description' => 'Domyślnie true' ),
@@ -213,6 +214,7 @@ function fx_ai_types() {
 		'nakolanniki'  => '/\b(nakolan\w*|ochrani\w* kolan\w*|orte\w*|knee\w*|ochrani\w* (piszczel|go[lł]e)\w*)/u',
 		'nałokietniki' => '/\b(na[lł]okietn\w*|ochrani\w* [lł]ok\w*|elbow\w*)/u',
 		'kołnierz'     => '/\b(ko[lł]nierz\w*|neck ?brace\w*|stabilizator\w* szyi)/u',
+		'bluza z kapturem' => '/\b(bluz\w* z kaptur\w*|kaptur\w*|hood\w*|bluz\w* casual|bluz\w* (dresow|rozpinan|codzienn)\w*|sweat\w*|pullover\w*|crew ?neck)/u',
 		'kask'         => '/\b(kask\w*|helmet\w*)/u',
 		'gogle'        => '/\b(gogl\w*|goggle\w*)/u',
 		'rękawice'     => '/\b(r[eę]kawic\w*|r[eę]kawiczk\w*|glove\w*)/u',
@@ -224,6 +226,42 @@ function fx_ai_types() {
 	) );
 }
 
+/** Świat z zapytania: casual (na co dzień) / rower / moto albo ''. */
+function fx_ai_world_from( $q ) {
+	$q = mb_strtolower( (string) $q, 'UTF-8' );
+	if ( preg_match( '/\b(casual\w*|lifestyle|na co dzie[nń]|codzienn\w*|streetwear|do szko[lł]y|na miasto)/u', $q ) ) {
+		return 'casual';
+	}
+	if ( preg_match( '/\b(rower\w*|mtb|enduro rower\w*|downhill|dh|trail\w*|gravel)\b/u', $q ) ) {
+		return 'rower';
+	}
+	if ( preg_match( '/\b(mx|motocross\w*|cross\w*|motocykl\w*|moto|quad\w*|enduro)\b/u', $q ) ) {
+		return 'moto';
+	}
+	return '';
+}
+
+/** Świat produktu: moto / rower / casual (casual = poza Moto i Rowerem albo kategoria „casual”). */
+function fx_ai_world_key( $id ) {
+	$w = function_exists( 'fx_hg_world' ) ? (string) fx_hg_world( $id ) : '';
+	if ( 'moto' === $w || 'rower' === $w ) {
+		return $w;
+	}
+	$cats = mb_strtolower( implode( ' ', (array) wc_get_product_terms( $id, 'product_cat', array( 'fields' => 'slugs' ) ) ), 'UTF-8' );
+	if ( preg_match( '/casual|lifestyle|odziez-codz/', $cats ) ) {
+		return 'casual';
+	}
+	return function_exists( 'fx_hg_world' ) ? 'casual' : '';
+}
+
+/** Rodzaj produktu → slugi kategorii sklepu (filtr fx_ai_type_cat_slugs). */
+function fx_ai_type_cat_slugs() {
+	return (array) apply_filters( 'fx_ai_type_cat_slugs', array(
+		'bluza z kapturem' => array( 'bluzy-odziez-codz' ),
+		'zbroja'           => array( 'zbroje-i-buzery-ochraniacze' ),
+	) );
+}
+
 /** ID produktów z kategorii, których nazwa pasuje do rodzaju (np. „Zbroje i buzery” dla „zbroja”) albo do podanej nazwy kategorii. */
 function fx_ai_cat_products( $type_re = '', $cat_name = '', $limit = 200 ) {
 	static $memo = array();
@@ -231,13 +269,16 @@ function fx_ai_cat_products( $type_re = '', $cat_name = '', $limit = 200 ) {
 	if ( isset( $memo[ $key ] ) ) {
 		return $memo[ $key ];
 	}
-	$terms = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => true, 'fields' => 'id=>name' ) );
+	$terms = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => true ) );
 	$ids   = array();
 	$want  = mb_strtolower( trim( (string) $cat_name ), 'UTF-8' );
-	foreach ( (array) $terms as $tid => $name ) {
-		$n = mb_strtolower( $name, 'UTF-8' );
-		if ( ( $type_re && preg_match( $type_re, $n ) ) || ( '' !== $want && false !== mb_strpos( $n, $want ) ) ) {
-			$ids[] = (int) $tid;
+	// Kategorie przypięte do rodzaju na sztywno (slug), np. bluzy z kapturem = „Bluzy” w odzieży codziennej.
+	$type  = $type_re ? (string) array_search( $type_re, fx_ai_types(), true ) : '';
+	$pin   = (array) ( fx_ai_type_cat_slugs()[ $type ] ?? array() );
+	foreach ( (array) $terms as $t ) {
+		$n = mb_strtolower( $t->name, 'UTF-8' );
+		if ( in_array( $t->slug, $pin, true ) || ( $type_re && ! $pin && preg_match( $type_re, $n ) ) || ( '' !== $want && ( false !== mb_strpos( $n, $want ) || $t->slug === $want ) ) ) {
+			$ids[] = (int) $t->term_id;
 		}
 	}
 	if ( ! $ids ) {
@@ -384,6 +425,17 @@ function fx_ai_search_one( array $a, $limit = 10 ) {
 	// gdy wyszukiwarka po nazwie nie złapie odmiany słowa albo nazwy modelu.
 	if ( $type_re ) {
 		$ids = array_values( array_unique( array_merge( array_map( 'intval', $ids ), fx_ai_cat_products( $type_re ) ) ) );
+	}
+	// Świat (Moto / Rower / Casual): z pola swiat albo z zapytania („bluza casual”, „kask mtb”).
+	$world = isset( $a['swiat'] ) && in_array( $a['swiat'], array( 'moto', 'rower', 'casual' ), true ) ? $a['swiat'] : fx_ai_world_from( $q );
+	if ( $world ) {
+		$keep = array_values( array_filter( $ids, function ( $id ) use ( $world ) {
+			$w = fx_ai_world_key( $id );
+			return '' === $w || $w === $world;
+		} ) );
+		if ( $keep ) {
+			$ids = $keep; // gdy w danym świecie nic nie ma – zostają wszystkie wyniki
+		}
 	}
 	// Podana kategoria (np. z instrukcji właściciela) – tylko produkty z niej.
 	if ( ! empty( $a['kategoria'] ) ) {
@@ -1026,7 +1078,7 @@ function fx_ai_fill_cards( array $ids ) {
 
 /** Karty w wierszach według rodzaju: [ [ label, cards[], more ] ]. */
 function fx_ai_card_groups( array $cards ) {
-	$labels = array( 'zbroja' => 'Zbroje i buzery', 'nakolanniki' => 'Nakolanniki i ortezy', 'nałokietniki' => 'Nałokietniki', 'kołnierz' => 'Kołnierze', 'kask' => 'Kaski', 'gogle' => 'Gogle', 'rękawice' => 'Rękawice', 'bluza' => 'Bluzy', 'spodnie' => 'Spodnie', 'buty' => 'Buty', 'ochraniacze' => 'Ochraniacze', 'kurtka' => 'Kurtki', '' => 'Propozycje' );
+	$labels = array( 'bluza z kapturem' => 'Bluzy z kapturem', 'zbroja' => 'Zbroje i buzery', 'nakolanniki' => 'Nakolanniki i ortezy', 'nałokietniki' => 'Nałokietniki', 'kołnierz' => 'Kołnierze', 'kask' => 'Kaski', 'gogle' => 'Gogle', 'rękawice' => 'Rękawice', 'bluza' => 'Bluzy', 'spodnie' => 'Spodnie', 'buty' => 'Buty', 'ochraniacze' => 'Ochraniacze', 'kurtka' => 'Kurtki', '' => 'Propozycje' );
 	$groups = array();
 	foreach ( $cards as $c ) {
 		$t = fx_ai_product_type( $c['id'] );

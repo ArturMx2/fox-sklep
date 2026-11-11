@@ -132,7 +132,8 @@ function fx_ai_system( array $ctx, array $kb ) {
 16. Każdy produkt dobieram OSOBNO: jedno wyszukiwanie = jeden rodzaj produktu (bluza, spodnie, kask, rękawice, gogle, buty). Przy kilku produktach omawiam je po kolei, każdy z własnym rozmiarem z tabeli modelu.
 17. Rozmiar: NIE pytam o wagę. Pytam o wzrost (dzieci: wiek i wzrost); gdy trzeba doprecyzować – przy bluzach, kurtkach i koszulkach o obwód klatki piersiowej, przy spodniach o obwód bioder (lub pasa); przy kasku o obwód głowy. Potem dopasuj_rozmiar dla konkretnego modelu. Wagę uwzględniam tylko, gdy klient sam ją podał. U dzieci rozmiary są juniorskie (YS–YXL, spodnie junior w calach) – „M” dla dziecka to zwykle YM.
 18. Słowo, którego nie rozumiem (np. „buzzer”, „nitro”, „ranger”, „flexair”) to najpewniej nazwa modelu, grafiki albo kolekcji FOX – NAJPIERW szukam go narzędziem szukaj_produktow (z rodzajem produktu z rozmowy, a gdy nic – samą frazą). Nigdy nie pytam klienta, co oznacza nazwa, zanim jej nie wyszukam.
-19. NIGDY nie wypisuję produktów w tekście (listy modeli z rozmiarami) i NIGDY nie pytam „pokazać karty?”. Gdy wiem, czego klient szuka – od razu pokaz_produkty, a w tekście jedno zdanie (model i rozmiar) plus ewentualnie jedno pytanie doprecyzowujące (np. dla kogo, rozmiar, kolor). Gdy potrzeba jest zbyt ogólna, najpierw pytam (bez wyszukiwania i bez wymieniania modeli).";
+19. NIGDY nie wypisuję produktów w tekście (listy modeli z rozmiarami) i NIGDY nie pytam „pokazać karty?”. Gdy wiem, czego klient szuka – od razu pokaz_produkty, a w tekście jedno zdanie (model i rozmiar) plus ewentualnie jedno pytanie doprecyzowujące (np. dla kogo, rozmiar, kolor). Gdy potrzeba jest zbyt ogólna, najpierw pytam (bez wyszukiwania i bez wymieniania modeli).
+20. Świat produktu: „bluza z kapturem”, „hoodie”, „casual”, „na co dzień” to odzież CASUAL (szukaj_produktow z swiat=casual), a „bluza” przy moto / rowerze to koszulka do jazdy (jersey: swiat=moto albo rower). Koszulka rowerowa to NIE bluza z kapturem. Gdy nie wiadomo, o który świat chodzi – zapytaj krótko (moto, rower czy na co dzień).";
 	$facts   = array();
 	$facts[] = 'Wysyłka tego samego dnia: produkty z oznaczeniem „wysyłka dziś” przy zamówieniu do ' . $cut . ' w dzień roboczy; pozostałe – zwykle następnego dnia roboczego (dokładny termin podaje narzędzie).';
 	if ( function_exists( 'fx_tool' ) ) {
@@ -348,6 +349,22 @@ function fx_ai_answer( array $msgs, array $ctx, $dry = false ) {
 		}
 	}
 	$out['cards']    = fx_ai_cards( fx_ai_fill_cards( $shown ) );
+	if ( $out['cards'] && preg_match_all( '/^\s*[-•*]\s+.+$/mu', $out['text'], $mm ) && count( $mm[0] ) >= 2 ) {
+		// Lista produktów w tekście (model ją wypisał mimo zasady) – karty już ją pokazują: wycinamy wyliczenie
+		// i wprowadzające je zdanie zakończone dwukropkiem; zostaje reszta (np. pytanie doprecyzowujące).
+		$prod = 0;
+		foreach ( $mm[0] as $line ) {
+			if ( preg_match( '/\b(FOX|rozmiar\w*|wysy[lł]k\w*|z[lł]|SKU|Y[SMLX]{1,2}L?|[SMLX]{1,3})\b/u', $line ) ) {
+				$prod++;
+			}
+		}
+		if ( $prod >= 2 ) {
+			$t = preg_replace( '/^\s*[-•*]\s+.+$\n?/mu', '', $out['text'] );
+			$t = preg_replace( '/[ \t]*[^.!?\n]*:[ \t]*(\n|$)/u', "\n", $t );
+			$t = trim( preg_replace( '/\n{3,}/', "\n\n", $t ) );
+			$out['text'] = '' !== $t ? $t : 'Oto propozycje:';
+		}
+	}
 	if ( $out['cards'] ) { // karty już są – bez pytania „pokazać?”
 		$out['text'] = trim( preg_replace( '/[^.!?\n]*(pokaza[ćcł]\w*|pokażę|pokaze)[^.!?\n]*(kart|propozycj|produkt|je|ich)[^.!?\n]*\?/iu', '', $out['text'] ) );
 		$out['text'] = trim( preg_replace_callback( '/\s*Je[sś]li tak,\s*(\p{L})/u', function ( $m ) {
