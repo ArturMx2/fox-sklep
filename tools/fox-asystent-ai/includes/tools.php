@@ -31,6 +31,7 @@ function fx_ai_tool_defs() {
 			'pas_cm'         => array( 'type' => 'number', 'description' => 'Obwód pasa w cm (spodnie).' ),
 			'klatka_cm'      => array( 'type' => 'number', 'description' => 'Obwód klatki piersiowej w cm (bluzy, kurtki).' ),
 			'biodra_cm'      => array( 'type' => 'number', 'description' => 'Obwód bioder w cm (spodnie, szczególnie damskie).' ),
+			'dlon_cm'        => array( 'type' => 'number', 'description' => 'Rękawice: długość dłoni w cm – od zgięcia nadgarstka do czubka środkowego palca (nie obwód).' ),
 			'dla_kogo'       => array( 'type' => 'string', 'enum' => array( 'meskie', 'damskie', 'junior', 'dzieciece' ) ),
 			'swiat'          => array( 'type' => 'string', 'enum' => array( 'moto', 'rower', 'casual' ), 'description' => 'Świat produktu: moto (MX/enduro), rower (MTB), casual (odzież na co dzień: bluzy z kapturem, t-shirty, czapki). „Bluza z kapturem” / „hoodie” to casual, a „bluza motocrossowa / rowerowa” (jersey) to moto / rower.' ),
 			'kategoria'      => array( 'type' => 'string', 'description' => 'Opcjonalnie: nazwa (albo jej fragment) kategorii sklepu, w której szukać, np. „Zbroje i buzery”, „Nakolanniki”, „Kaski MTB”. Używaj, gdy instrukcja właściciela wskazuje kategorię albo gdy wyniki są z innego rodzaju produktu.' ),
@@ -48,6 +49,7 @@ function fx_ai_tool_defs() {
 			'pas_cm'         => array( 'type' => 'number' ),
 			'klatka_cm'      => array( 'type' => 'number' ),
 			'biodra_cm'      => array( 'type' => 'number' ),
+			'dlon_cm'        => array( 'type' => 'number' ),
 			'obwod_glowy_cm' => array( 'type' => 'number' ),
 			'stopa_cm'       => array( 'type' => 'number' ),
 		), array( 'id' ) ),
@@ -316,7 +318,7 @@ function fx_ai_size_set( $size, $kid ) {
 
 /** Wymiary klienta z parametrów narzędzia: [ rodzaj => wartość ]. */
 function fx_ai_measures( array $a ) {
-	$map = array( 'obwod_glowy_cm' => 'obwod_glowy', 'wzrost_cm' => 'wzrost', 'waga_kg' => 'waga', 'pas_cm' => 'pas', 'klatka_cm' => 'klatka', 'biodra_cm' => 'biodra', 'wiek' => 'wiek', 'stopa_cm' => 'stopa' );
+	$map = array( 'obwod_glowy_cm' => 'obwod_glowy', 'wzrost_cm' => 'wzrost', 'waga_kg' => 'waga', 'pas_cm' => 'pas', 'klatka_cm' => 'klatka', 'biodra_cm' => 'biodra', 'wiek' => 'wiek', 'stopa_cm' => 'stopa', 'dlon_cm' => 'dlon' );
 	$out = array();
 	foreach ( $map as $k => $kind ) {
 		if ( isset( $a[ $k ] ) && (float) str_replace( ',', '.', (string) $a[ $k ] ) > 0 ) {
@@ -381,8 +383,20 @@ function fx_ai_color_hay( WC_Product $p ) {
 	return mb_strtolower( $hay, 'UTF-8' );
 }
 
+/** Popularne przekręcenia nazw modeli FOX → poprawne nazwy (filtr fx_ai_name_fixes). */
+function fx_ai_fix_names( $q ) {
+	$map = (array) apply_filters( 'fx_ai_name_fixes', array(
+		'/\bflex\s?(e)?r\b|\bflex\s+air\b|\bflexeir\b/iu' => 'flexair',
+		'/\bdirt\s+paw\b|\bdirtpow\b|\bdirt\s?pał\b/iu'    => 'dirtpaw',
+		'/\bpa[vw]\s?tector\b|\bpaw\s+tector\b/iu'          => 'pawtector',
+		'/\bair\s+frame\b/iu'                                 => 'airframe',
+		'/\brace\s+frame\b/iu'                                => 'raceframe',
+	) );
+	return trim( preg_replace( array_keys( $map ), array_values( $map ), (string) $q ) );
+}
+
 function fx_ai_search_one( array $a, $limit = 10 ) {
-	$q    = trim( mb_substr( wp_strip_all_tags( (string) ( $a['zapytanie'] ?? '' ) ), 0, 120 ) );
+	$q    = fx_ai_fix_names( trim( mb_substr( wp_strip_all_tags( (string) ( $a['zapytanie'] ?? '' ) ), 0, 120 ) ) );
 	$min  = isset( $a['cena_min'] ) ? (float) $a['cena_min'] : 0;
 	$max  = isset( $a['cena_max'] ) ? (float) $a['cena_max'] : 0;
 	$size = isset( $a['rozmiar'] ) ? fx_ai_size_key( $a['rozmiar'] ) : '';
@@ -579,7 +593,7 @@ function fx_ai_search_wide( array $a, $limit ) {
 	}
 	$base = '' !== $noc ? $noc : $q;
 	$b2   = $a;
-	unset( $b2['kolor'], $b2['rozmiar'], $b2['obwod_glowy_cm'], $b2['wzrost_cm'], $b2['waga_kg'], $b2['pas_cm'], $b2['klatka_cm'], $b2['biodra_cm'], $b2['wiek'], $b2['stopa_cm'] );
+	unset( $b2['kolor'], $b2['rozmiar'], $b2['obwod_glowy_cm'], $b2['wzrost_cm'], $b2['waga_kg'], $b2['pas_cm'], $b2['klatka_cm'], $b2['biodra_cm'], $b2['dlon_cm'], $b2['wiek'], $b2['stopa_cm'] );
 	if ( $b2 !== $a ) {
 		$steps[] = array( array_merge( $b2, array( 'zapytanie' => $base ) ), 'w tym rozmiarze nic nie ma na stanie – pokazuję te modele w dostępnych rozmiarach' );
 	}
@@ -755,6 +769,7 @@ function fx_ai_fit( WC_Product $p, $kind, $cm ) {
 		'biodra'      => '/biod|hip/iu',
 		'waga'        => '/wag[ai]|weight|\bkg\b/iu',
 		'wiek'        => '/wiek|\bage\b|\blat\b|years/iu',
+		'dlon'        => '/d[lł]ugo[sś][cć] d[lł]oni|d[lł]o[nń]|hand/iu',
 	);
 	$out = array( 'rozmiar' => '', 'zakres' => '', 'tabela' => '' );
 	if ( ! isset( $re[ $kind ] ) || $cm <= 0 ) {
@@ -811,6 +826,12 @@ function fx_ai_fit( WC_Product $p, $kind, $cm ) {
 			}
 		}
 	}
+	// Rękawice bez własnej tabeli: tabela wyjściowa sklepu dla dorosłych (długość dłoni) – nie dla damskich i juniorskich.
+	$fallback = false;
+	if ( ! $pairs && 'dlon' === $kind && 'rękawice' === fx_ai_product_type( $p->get_id() ) && ! preg_match( '/junior|youth|kids?|dzie(ci|ck)|women|lady|damsk/iu', $p->get_name() ) ) {
+		$pairs    = fx_ai_glove_table();
+		$fallback = true;
+	}
 	if ( ! $pairs ) {
 		return $out;
 	}
@@ -825,9 +846,16 @@ function fx_ai_fit( WC_Product $p, $kind, $cm ) {
 	$out['tabela'] = implode( ', ', array_map( function ( $x ) use ( $fmt ) {
 		return $x[0] . ' ' . $fmt( $x[1], $x[2] );
 	}, $pairs ) );
+	if ( $fallback ) {
+		$out['tabela'] = 'tabela wyjściowa sklepu dla dorosłych (model nie ma własnej): ' . $out['tabela'];
+	}
+	$last = end( $pairs );
 	foreach ( $pairs as $x ) {
-		// Zakres „57–58” obejmuje też 58,5 (do następnego pełnego cm).
-		if ( $cm >= $x[1] - 0.01 && $cm < $x[2] + 1 ) {
+		// Zakres „57–58” obejmuje też 58,5 (do następnego pełnego cm); długość dłoni – dokładne przedziały (18,7–19,4).
+		$hit = 'dlon' === $kind
+			? ( $cm >= $x[1] - 0.01 && ( $cm < $x[2] || ( $x === $last && $cm <= $x[2] + 0.01 ) ) )
+			: ( $cm >= $x[1] - 0.01 && $cm < $x[2] + 1 );
+		if ( $hit ) {
 			$out['rozmiar'] = $x[0];
 			$out['zakres']  = $fmt( $x[1], $x[2] );
 			break;
@@ -836,13 +864,26 @@ function fx_ai_fit( WC_Product $p, $kind, $cm ) {
 	return $out;
 }
 
+/** Tabela wyjściowa rękawic dla dorosłych: długość dłoni (cm) – od nadgarstka do czubka środkowego palca. */
+function fx_ai_glove_table() {
+	return (array) apply_filters( 'fx_ai_glove_table', array(
+		array( 'S', 18.0, 18.7 ),
+		array( 'M', 18.7, 19.4 ),
+		array( 'L', 19.4, 20.0 ),
+		array( 'XL', 20.0, 20.6 ),
+		array( 'XXL', 20.6, 21.3 ),
+		array( '3XL', 21.3, 22.0 ),
+		array( '4XL', 22.0, 22.5 ),
+	) );
+}
+
 /**
  * Dobór po kilku wymiarach naraz (wzrost, waga, wiek, pas, klatka, obwód głowy) z tabeli modelu.
  * Gdy wymiary wskazują różne rozmiary – większy (bezpieczniej, zwłaszcza u rosnących dzieci).
  * @return array rozmiar, opis („wzrost 150 cm → YL; waga 40 kg → YM”), tabela
  */
 function fx_ai_fit_multi( WC_Product $p, array $meas ) {
-	$names = array( 'obwod_glowy' => 'obwód głowy', 'wzrost' => 'wzrost', 'waga' => 'waga', 'pas' => 'pas', 'klatka' => 'klatka', 'wiek' => 'wiek', 'stopa' => 'stopa', 'biodra' => 'biodra' );
+	$names = array( 'obwod_glowy' => 'obwód głowy', 'wzrost' => 'wzrost', 'waga' => 'waga', 'pas' => 'pas', 'klatka' => 'klatka', 'wiek' => 'wiek', 'stopa' => 'stopa', 'biodra' => 'biodra', 'dlon' => 'długość dłoni' );
 	$units = array( 'waga' => ' kg', 'wiek' => ' lat' );
 	$hits  = array();
 	$desc  = array();
