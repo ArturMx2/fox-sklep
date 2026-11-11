@@ -2,7 +2,7 @@
 /**
  * Plugin Name: FOX – Asystent AI
  * Description: Czat z asystentem AI dla klientów sklepu: dobór sprzętu i rozmiaru z tabel konkretnego modelu, karty produktów, status zamówienia (BaseLinker), przekazanie do obsługi, „Zostaw numer”. Fakty (produkty, ceny, rozmiary, stany) zawsze ze sklepu, model (OpenAI) tylko prowadzi rozmowę. Panel: WooCommerce → Asystent AI.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: FOX.SKLEP.PL
  * Requires at least: 6.0
  * Requires PHP: 7.4
@@ -23,7 +23,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FXA_VER', '1.0.0' );
+define( 'FXA_VER', '1.0.1' );
 define( 'FXA_FILE', __FILE__ );
 define( 'FXA_DIR', __DIR__ . '/includes/' );
 define( 'FXA_URL', plugin_dir_url( __FILE__ ) );

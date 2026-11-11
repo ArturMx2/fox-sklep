@@ -194,7 +194,7 @@ function fx_ai_openai( array $messages, $with_tools = true ) {
 	);
 	if ( preg_match( '/^(o\d|gpt-5)/', $body['model'] ) ) { // modele rozumujące: inne parametry
 		unset( $body['temperature'], $body['max_tokens'] );
-		$body['max_completion_tokens'] = 4000;
+		$body['max_completion_tokens'] = 8000; // rozumowanie + odpowiedź – za mało = pusta odpowiedź
 		$body['reasoning_effort']      = in_array( $s['effort'] ?? '', array( 'minimal', 'low', 'medium', 'high' ), true ) ? $s['effort'] : 'low'; // low = szybciej, wystarcza do doboru
 	}
 	if ( $with_tools ) {
@@ -271,6 +271,11 @@ function fx_ai_hint( array $msgs ) {
 	return 'PODPOWIEDŹ SKLEPU (nie od klienta): wyszukiwarka sklepu dla frazy „' . $q . '” znajduje produkty, np.: ' . implode( '; ', $names ) . '. To nazwa modelu, grafiki albo kolekcji FOX – NIE dopytuj klienta, co znaczy. Wywołaj szukaj_produktow z tą frazą (dodaj rodzaj produktu i dla kogo z wcześniejszej rozmowy, jeśli pasują; gdy wtedy nic nie ma – szukaj samej frazy) i pokaż karty.';
 }
 
+/** Dla zalogowanego administratora: treść błędu w czacie (klient widzi tylko ogólny komunikat). */
+function fx_ai_admin_detail( $msg ) {
+	return ( '' !== (string) $msg && current_user_can( 'manage_woocommerce' ) ) ? "\n\n[widoczne tylko dla administratora] " . wp_strip_all_tags( (string) $msg ) : '';
+}
+
 /**
  * Odpowiedź asystenta na historię rozmowy.
  *
@@ -296,7 +301,7 @@ function fx_ai_answer( array $msgs, array $ctx, $dry = false ) {
 			if ( function_exists( 'fx_ai_log_error' ) ) {
 				fx_ai_log_error( $data->get_error_message() );
 			}
-			$out['text'] = $fail;
+			$out['text'] = $fail . fx_ai_admin_detail( $data->get_error_message() );
 			break;
 		}
 		$out['tok_in']  += (int) ( $data['usage']['prompt_tokens'] ?? 0 );
@@ -304,6 +309,11 @@ function fx_ai_answer( array $msgs, array $ctx, $dry = false ) {
 		$msg = $data['choices'][0]['message'];
 		if ( empty( $msg['tool_calls'] ) ) {
 			$out['text'] = trim( (string) ( $msg['content'] ?? '' ) );
+			if ( '' === $out['text'] ) { // np. model „myślący” zużył limit tokenów na rozumowanie
+				$why = 'Pusta odpowiedź modelu ' . ( $data['model'] ?? '' ) . ' (finish_reason: ' . ( $data['choices'][0]['finish_reason'] ?? '?' ) . ')';
+				fx_ai_log_error( $why );
+				$out['err'] = $why;
+			}
 			break;
 		}
 		$messages[] = array( 'role' => 'assistant', 'content' => $msg['content'] ?? null, 'tool_calls' => $msg['tool_calls'] );
@@ -316,7 +326,11 @@ function fx_ai_answer( array $msgs, array $ctx, $dry = false ) {
 		}
 	}
 	if ( '' === $out['text'] ) {
-		$out['text'] = $GLOBALS['fx_ai_run']['cards'] ? 'Oto propozycje:' : $fail;
+		if ( empty( $out['err'] ) && $round >= 6 ) {
+			$out['err'] = 'Model nie skończył po 6 rundach narzędzi';
+			fx_ai_log_error( $out['err'] );
+		}
+		$out['text'] = $GLOBALS['fx_ai_run']['cards'] ? 'Oto propozycje:' : $fail . fx_ai_admin_detail( $out['err'] ?? '' );
 	}
 	// Bez markdownu: pogrubienia i nagłówki → zwykły tekst.
 	$out['text']     = trim( preg_replace( array( '/\*\*(.+?)\*\*/s', '/^#+\s*/m', '/\[([^\]]+)\]\((https?:[^)]+)\)/' ), array( '$1', '', '$1' ), $out['text'] ) );
