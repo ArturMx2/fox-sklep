@@ -32,6 +32,7 @@ function fx_ai_tool_defs() {
 			'klatka_cm'      => array( 'type' => 'number', 'description' => 'Obwód klatki piersiowej w cm (bluzy, kurtki).' ),
 			'biodra_cm'      => array( 'type' => 'number', 'description' => 'Obwód bioder w cm (spodnie, szczególnie damskie).' ),
 			'dla_kogo'       => array( 'type' => 'string', 'enum' => array( 'meskie', 'damskie', 'junior', 'dzieciece' ) ),
+			'kategoria'      => array( 'type' => 'string', 'description' => 'Opcjonalnie: nazwa (albo jej fragment) kategorii sklepu, w której szukać, np. „Zbroje i buzery”, „Nakolanniki”, „Kaski MTB”. Używaj, gdy instrukcja właściciela wskazuje kategorię albo gdy wyniki są z innego rodzaju produktu.' ),
 			'kolor'          => array( 'type' => 'string', 'description' => 'Kolor, którego szuka klient, po polsku, np. „czarny”, „biały”, „czerwony”, „niebieski”, „różowy”, „camo”. Kilka kolorów – oddziel przecinkiem („czarny, szary”). Pomiń, gdy klientowi kolor jest obojętny. NIE dopisuj koloru do pola zapytanie.' ),
 			'tylko_dostepne' => array( 'type' => 'boolean', 'description' => 'Domyślnie true' ),
 		), array( 'zapytanie' ) ),
@@ -205,15 +206,51 @@ function fx_ai_price_row( WC_Product $p ) {
 
 /** Słowa rodzajów produktów – zapytanie o kilka rodzajów naraz dzielimy na osobne wyszukiwania. */
 function fx_ai_types() {
+	// Kolejność ma znaczenie: najpierw rodzaje szczegółowe (zbroja przed bluzą – „koszulka z ochraniaczami”),
+	// na końcu ogólne „ochraniacze”. Zbroja / buzer to NIE nakolanniki.
 	return apply_filters( 'fx_ai_types', array(
-		'kask'        => '/\b(kask\w*|helmet\w*)/u',
-		'gogle'       => '/\b(gogl\w*|goggle\w*)/u',
-		'rękawice'    => '/\b(r[eę]kawic\w*|r[eę]kawiczk\w*|glove\w*)/u',
-		'bluza'       => '/\b(bluz\w*|jersey\w*|koszul\w*)/u',
-		'spodnie'     => '/\b(spodn\w*|pants?)\b/u',
-		'buty'        => '/\b(but(y|ów|ach)?|boots?)\b/u',
-		'ochraniacze' => '/\b(ochrani\w*|buzer\w*|zbroj\w*|nakolan\w*|na[lł]okietn\w*|kolan\w*)/u',
-		'kurtka'      => '/\b(kurtk\w*|jacket\w*)/u',
+		'zbroja'       => '/\b(zbro[ij]\w*|buz+er\w*|bazer\w*|koszul\w* z ochrani\w*|ochrani\w* (klatk|plec|pleców|kr[eę]gos)\w*|os[lł]on\w* (klatk|plec)\w*|[zż][oó][lł]w\w*|roost\w*|chest ?protector\w*|raceframe|airframe|titan race|proframe)/u',
+		'nakolanniki'  => '/\b(nakolan\w*|ochrani\w* kolan\w*|orte\w*|knee\w*|ochrani\w* (piszczel|go[lł]e)\w*)/u',
+		'nałokietniki' => '/\b(na[lł]okietn\w*|ochrani\w* [lł]ok\w*|elbow\w*)/u',
+		'kołnierz'     => '/\b(ko[lł]nierz\w*|neck ?brace\w*|stabilizator\w* szyi)/u',
+		'kask'         => '/\b(kask\w*|helmet\w*)/u',
+		'gogle'        => '/\b(gogl\w*|goggle\w*)/u',
+		'rękawice'     => '/\b(r[eę]kawic\w*|r[eę]kawiczk\w*|glove\w*)/u',
+		'bluza'        => '/\b(bluz\w*|jersey\w*|koszul\w*)/u',
+		'spodnie'      => '/\b(spodn\w*|pants?)\b/u',
+		'buty'         => '/\b(but(y|ów|ach)?|boots?)\b/u',
+		'kurtka'       => '/\b(kurtk\w*|jacket\w*)/u',
+		'ochraniacze'  => '/\b(ochrani\w*|protector\w*|kolan\w*|zbro[ij]\w*|buz+er\w*|orte\w*|nakolan\w*|na[lł]okietn\w*|ko[lł]nierz\w*)/u',
+	) );
+}
+
+/** ID produktów z kategorii, których nazwa pasuje do rodzaju (np. „Zbroje i buzery” dla „zbroja”) albo do podanej nazwy kategorii. */
+function fx_ai_cat_products( $type_re = '', $cat_name = '', $limit = 200 ) {
+	static $memo = array();
+	$key = md5( $type_re . '|' . $cat_name );
+	if ( isset( $memo[ $key ] ) ) {
+		return $memo[ $key ];
+	}
+	$terms = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => true, 'fields' => 'id=>name' ) );
+	$ids   = array();
+	$want  = mb_strtolower( trim( (string) $cat_name ), 'UTF-8' );
+	foreach ( (array) $terms as $tid => $name ) {
+		$n = mb_strtolower( $name, 'UTF-8' );
+		if ( ( $type_re && preg_match( $type_re, $n ) ) || ( '' !== $want && false !== mb_strpos( $n, $want ) ) ) {
+			$ids[] = (int) $tid;
+		}
+	}
+	if ( ! $ids ) {
+		return $memo[ $key ] = array();
+	}
+	return $memo[ $key ] = get_posts( array(
+		'post_type'      => 'product',
+		'post_status'    => 'publish',
+		'fields'         => 'ids',
+		'posts_per_page' => $limit,
+		'orderby'        => 'date',
+		'order'          => 'DESC',
+		'tax_query'      => array( array( 'taxonomy' => 'product_cat', 'field' => 'term_id', 'terms' => $ids, 'include_children' => true ) ), // phpcs:ignore WordPress.DB.SlowDBQuery
 	) );
 }
 
@@ -343,6 +380,22 @@ function fx_ai_search_one( array $a, $limit = 10 ) {
 	if ( ! $ids ) { // zapas: zwykłe wyszukiwanie WordPressa
 		$ids = get_posts( array( 'post_type' => 'product', 'post_status' => 'publish', 's' => $q, 'posts_per_page' => 60, 'fields' => 'ids' ) );
 	}
+	// Rodzaj produktu → też produkty z pasującej kategorii (np. „zbroja” → kategoria „Zbroje i buzery”),
+	// gdy wyszukiwarka po nazwie nie złapie odmiany słowa albo nazwy modelu.
+	if ( $type_re ) {
+		$ids = array_values( array_unique( array_merge( array_map( 'intval', $ids ), fx_ai_cat_products( $type_re ) ) ) );
+	}
+	// Podana kategoria (np. z instrukcji właściciela) – tylko produkty z niej.
+	if ( ! empty( $a['kategoria'] ) ) {
+		$in  = fx_ai_cat_products( '', (string) $a['kategoria'], 400 );
+		if ( $in ) {
+			$set = array_flip( $in );
+			$hit = array_values( array_filter( $ids, function ( $id ) use ( $set ) {
+				return isset( $set[ (int) $id ] );
+			} ) );
+			$ids = $hit ? array_values( array_unique( array_merge( $hit, $in ) ) ) : $in;
+		}
+	}
 	$dla_ids = null;
 	if ( $dla && taxonomy_exists( 'fx_dla' ) ) {
 		$slugs = array( $dla );
@@ -378,7 +431,8 @@ function fx_ai_search_one( array $a, $limit = 10 ) {
 		if ( $type_re ) {
 			$hay = mb_strtolower( $p->get_name(), 'UTF-8' );
 			$pt  = fx_ai_product_type( $p->get_id() );
-			if ( '' !== $pt && ( fx_ai_types()[ $pt ] ?? '' ) !== $type_re ) {
+			$generic = ( fx_ai_types()['ochraniacze'] ?? '' ) === $type_re && in_array( $pt, array( 'zbroja', 'nakolanniki', 'nałokietniki', 'kołnierz' ), true );
+			if ( '' !== $pt && ! $generic && ( fx_ai_types()[ $pt ] ?? '' ) !== $type_re ) {
 				continue; // nazwa wskazuje inny rodzaj (np. kask w kategorii spodni)
 			}
 			if ( ! preg_match( $type_re, $hay ) ) {
@@ -514,9 +568,11 @@ function fx_ai_tool_search( array $a ) {
 	$a['zapytanie'] = $q;
 	$low            = mb_strtolower( $q, 'UTF-8' );
 	$found          = array();
+	$scan           = $low;
 	foreach ( fx_ai_types() as $t => $re ) {
-		if ( preg_match( $re, $low ) ) {
+		if ( preg_match( $re, $scan ) ) {
 			$found[] = $t;
+			$scan    = preg_replace( $re, ' ', $scan ); // „koszulka z ochraniaczami” = zbroja, nie zbroja + bluza + ochraniacze
 		}
 	}
 	$no_result = 'NIE pisz klientowi „nie mamy”. Napisz, że sprawdzimy dostępność albo zamówimy u dystrybutora, podaj telefon sklepu (' . fx_ai_settings()['phone'] . ') – pod odpowiedzią pojawi się okienko „Zostaw numer – oddzwonimy”.';
@@ -970,7 +1026,7 @@ function fx_ai_fill_cards( array $ids ) {
 
 /** Karty w wierszach według rodzaju: [ [ label, cards[], more ] ]. */
 function fx_ai_card_groups( array $cards ) {
-	$labels = array( 'kask' => 'Kaski', 'gogle' => 'Gogle', 'rękawice' => 'Rękawice', 'bluza' => 'Bluzy', 'spodnie' => 'Spodnie', 'buty' => 'Buty', 'ochraniacze' => 'Ochraniacze', 'kurtka' => 'Kurtki', '' => 'Propozycje' );
+	$labels = array( 'zbroja' => 'Zbroje i buzery', 'nakolanniki' => 'Nakolanniki i ortezy', 'nałokietniki' => 'Nałokietniki', 'kołnierz' => 'Kołnierze', 'kask' => 'Kaski', 'gogle' => 'Gogle', 'rękawice' => 'Rękawice', 'bluza' => 'Bluzy', 'spodnie' => 'Spodnie', 'buty' => 'Buty', 'ochraniacze' => 'Ochraniacze', 'kurtka' => 'Kurtki', '' => 'Propozycje' );
 	$groups = array();
 	foreach ( $cards as $c ) {
 		$t = fx_ai_product_type( $c['id'] );

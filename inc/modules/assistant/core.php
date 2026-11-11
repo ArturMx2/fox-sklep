@@ -20,6 +20,7 @@ function fx_ai_defaults() {
 		'test'       => 1,      // tylko administratorzy widzą dymek
 		'key'        => '',
 		'model'      => 'gpt-4.1-mini',
+		'effort'     => 'low',
 		'name'       => 'Asystent FOX',
 		'greeting'   => 'Cześć! Pomogę dobrać sprzęt FOX na moto albo rower, sprawdzę rozmiary i status zamówienia. W czym pomóc?',
 		'quick'      => "Pomóż dobrać komplet MX\nKask rowerowy – jaki rozmiar?\nGdzie jest moje zamówienie?\nDostawa i zwroty",

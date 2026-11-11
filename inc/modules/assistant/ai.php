@@ -49,9 +49,22 @@ function fx_ai_pick_kb( array $msgs ) {
 	foreach ( (array) $rows as $r ) {
 		$score = 0;
 		$keys  = array_merge( fx_ai_stems( $r['keywords'] ), fx_ai_stems( $r['title'] ), 'case' === $r['type'] ? fx_ai_stems( $r['question'] ) : array() );
+		$hit   = array();
 		foreach ( array_unique( $keys ) as $st ) {
-			$score += $w[ $st ] ?? 0;
+			if ( isset( $w[ $st ] ) ) {
+				$hit[ $st ] = $w[ $st ];
+				continue;
+			}
+			// Odmiana słowa: „zbroi” ~ „zbroja”, „buzera” ~ „buzer” – wspólne pierwsze 4 litery (słowa od 4 liter).
+			if ( strlen( $st ) >= 4 ) {
+				foreach ( $w as $ust => $uw ) {
+					if ( strlen( $ust ) >= 4 && 0 === strncmp( $ust, $st, 4 ) ) {
+						$hit[ $ust ] = max( $hit[ $ust ] ?? 0, $uw );
+					}
+				}
+			}
 		}
+		$score += array_sum( $hit );
 		if ( 'ins' === $r['type'] && $r['always'] ) {
 			$score += 1000;
 		}
@@ -154,7 +167,7 @@ function fx_ai_system( array $ctx, array $kb ) {
 		foreach ( $kb['ins'] as $r ) {
 			$t[] = '### ' . $r['title'] . "\n" . trim( $r['body'] );
 		}
-		$lines[] = "INSTRUKCJE OD WŁAŚCICIELA:\n" . implode( "\n\n", $t );
+		$lines[] = "INSTRUKCJE OD WŁAŚCICIELA DO TEGO TEMATU – MAJĄ PIERWSZEŃSTWO przed ogólnymi zasadami i przed tym, co zwróci wyszukiwarka. Jeśli instrukcja wskazuje kategorię, szukaj w niej (szukaj_produktow z polem kategoria). Nie pokazuj produktów innego rodzaju niż ten, o który pyta klient (np. na „zbroję” / „buzer” nie pokazuj nakolanników ani ortez):\n" . implode( "\n\n", $t );
 	}
 	if ( $kb['cases'] ) {
 		$t = array();
@@ -181,14 +194,15 @@ function fx_ai_openai( array $messages, $with_tools = true ) {
 	);
 	if ( preg_match( '/^(o\d|gpt-5)/', $body['model'] ) ) { // modele rozumujące: inne parametry
 		unset( $body['temperature'], $body['max_tokens'] );
-		$body['max_completion_tokens'] = 2500;
+		$body['max_completion_tokens'] = 4000;
+		$body['reasoning_effort']      = in_array( $s['effort'] ?? '', array( 'minimal', 'low', 'medium', 'high' ), true ) ? $s['effort'] : 'low'; // low = szybciej, wystarcza do doboru
 	}
 	if ( $with_tools ) {
 		$body['tools']       = fx_ai_tool_defs();
 		$body['tool_choice'] = 'auto';
 	}
 	$r = wp_remote_post( 'https://api.openai.com/v1/chat/completions', array(
-		'timeout' => 45,
+		'timeout' => preg_match( '/^(o\d|gpt-5)/', $body['model'] ) ? 90 : 45,
 		'headers' => array( 'Authorization' => 'Bearer ' . fx_ai_key(), 'Content-Type' => 'application/json' ),
 		'body'    => wp_json_encode( $body ),
 	) );

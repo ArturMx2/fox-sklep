@@ -43,7 +43,8 @@ add_action( 'admin_post_fx_ai', function () {
 				'on'        => empty( $in['on'] ) ? 0 : 1,
 				'test'      => empty( $in['test'] ) ? 0 : 1,
 				'key'       => '' !== trim( (string) ( $in['key'] ?? '' ) ) ? sanitize_text_field( $in['key'] ) : (string) ( $old['key'] ?? '' ),
-				'model'     => sanitize_text_field( $in['model'] ?? 'gpt-4.1-mini' ),
+				'model'     => preg_replace( '/[^a-z0-9.\-]/i', '', (string) ( $in['model'] ?? 'gpt-4.1' ) ),
+				'effort'    => in_array( $in['effort'] ?? '', array( 'minimal', 'low', 'medium', 'high' ), true ) ? $in['effort'] : 'low',
 				'name'      => sanitize_text_field( $in['name'] ?? '' ),
 				'greeting'  => sanitize_textarea_field( $in['greeting'] ?? '' ),
 				'quick'     => sanitize_textarea_field( $in['quick'] ?? '' ),
@@ -590,7 +591,11 @@ function fx_ai_tab_ustawienia() {
 	echo '<table class="form-table">';
 	echo '<tr><th>Włączony</th><td><label><input type="checkbox" name="on" value="1"' . checked( $s['on'], 1, false ) . '> dymek czatu na stronach sklepu (poza kasą)</label><br><label><input type="checkbox" name="test" value="1"' . checked( $s['test'], 1, false ) . '> tryb testowy – dymek widzą tylko administratorzy</label></td></tr>';
 	echo '<tr><th>Klucz OpenAI</th><td>' . ( $def ? '<p>Klucz ustawiony w wp-config.php (FOX_AI_KEY).</p>' : '<input type="password" class="regular-text" name="key" value="" autocomplete="off" placeholder="' . ( $s['key'] ? '•••••• (zapisany – wpisz nowy, by zmienić)' : 'sk-…' ) . '"> ' . ( $s['key'] ? '<strong style="color:#00a32a">✓ klucz zapisany (…' . esc_html( substr( $s['key'], -4 ) ) . ')</strong>' : '<strong style="color:#d63638">brak klucza</strong>' ) . ( $s['key'] ? ' <label><input type="checkbox" name="key_clear" value="1"> usuń</label>' : '' ) . '<p class="description">Osobny projekt w OpenAI z miesięcznym budżetem (na start 20–30 $, alert przy 80%). Klucz nie trafia do przeglądarki.</p>' ) . '</td></tr>';
-	echo '<tr><th>Model</th><td><input class="regular-text" name="model" value="' . esc_attr( $s['model'] ) . '"><p class="description">Domyślnie gpt-4.1-mini.</p></td></tr>';
+	echo '<tr><th>Model</th><td><input class="regular-text" name="model" list="fx-ai-models" value="' . esc_attr( $s['model'] ) . '"><datalist id="fx-ai-models"><option value="gpt-4.1-mini"><option value="gpt-4.1"><option value="gpt-5-mini"><option value="gpt-5"></datalist>'
+		. '<p class="description"><strong>gpt-4.1-mini</strong> – najtańszy, najsłabiej trzyma się instrukcji · <strong>gpt-4.1</strong> – zalecany: dużo lepiej słucha instrukcji, ok. 5× drożej, nadal szybki · <strong>gpt-5-mini</strong> / <strong>gpt-5</strong> – modele „myślące”: najdokładniejsze, ale odpowiedź trwa dłużej (kilka–kilkanaście sekund). Można wpisać inną nazwę modelu z konta OpenAI. Po zmianie użyj „Zapisz i testuj połączenie”.</p>'
+		. ' <p>Staranność modeli „myślących”: <select name="effort">' . implode( '', array_map( function ( $e ) use ( $s ) {
+			return '<option value="' . $e . '"' . selected( $s['effort'] ?? 'low', $e, false ) . '>' . array( 'minimal' => 'minimalna (najszybciej)', 'low' => 'niska (zalecana)', 'medium' => 'średnia', 'high' => 'wysoka (wolno)' )[ $e ] . '</option>';
+		}, array( 'minimal', 'low', 'medium', 'high' ) ) ) . '</select></p></td></tr>';
 	echo '<tr><th>Nazwa</th><td><input class="regular-text" name="name" value="' . esc_attr( $s['name'] ) . '"></td></tr>';
 	echo '<tr><th>Powitanie</th><td><textarea class="large-text" rows="2" name="greeting">' . esc_textarea( $s['greeting'] ) . '</textarea></td></tr>';
 	echo '<tr><th>Zaczepka przy dymku</th><td><label><input type="checkbox" name="teaser" value="1"' . checked( $s['teaser'], 1, false ) . '> pokazuj dopasowaną do strony zachętę do rozmowy</label> po <input type="number" name="teaser_s" value="' . (int) $s['teaser_s'] . '" min="3" style="width:60px"> s (albo po przewinięciu 40% strony) · raz na wizytę dla danego typu strony, nie po rozpoczęciu rozmowy. Zachęta WhatsApp wtedy się nie pokazuje.<table class="widefat" style="margin-top:8px;max-width:900px"><tbody>';

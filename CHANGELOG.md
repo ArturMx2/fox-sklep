@@ -1,5 +1,12 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.44.0 – asystent AI: trafniejsze wyszukiwanie
+- Rodzaje produktów rozdzielone: zbroje / buzery (też „koszulka z ochraniaczami”, ochraniacz klatki / pleców, żółw, Raceframe, Airframe), nakolanniki i ortezy, nałokietniki, kołnierze; ogólne „ochraniacze” obejmują wszystkie. Na „zbroję” / „buzer” nie trafiają już ortezy ani nakolanniki; „koszulka z ochraniaczami” to zbroja, nie bluza.
+- Wyszukiwanie dokłada produkty z kategorii pasującej do rodzaju (np. „Zbroje i buzery”), gdy wyszukiwarka po nazwie nie złapie odmiany słowa albo nazwy modelu; nowe pole „kategoria” w narzędziu (model używa go, gdy instrukcja wskazuje kategorię).
+- Instrukcje z zakładki Trening dobierane także po odmianie słowa (np. „zbroi”, „buzera” → instrukcja ze słowami „zbroja”, „buzer”) i mają pierwszeństwo przed ogólnymi zasadami i wynikami wyszukiwarki.
+- Ustawienia: wybór modelu z podpowiedziami (gpt-4.1-mini, gpt-4.1 – zalecany, gpt-5-mini, gpt-5) i staranność modeli „myślących”; dłuższy limit czasu dla gpt-5 / o-series.
+- Karty: nowe wiersze „Zbroje i buzery”, „Nakolanniki i ortezy”, „Nałokietniki”, „Kołnierze”.
+
 ## 3.43.0
 - Strona główna: sekcja Instagram nad poradnikami – feed z wtyczki Smash Balloon Instagram Feed ([instagram-feed]), tytuł, nazwa konta i przycisk „Obserwuj” w stylu motywu (nagłówek wtyczki ukryty, żeby nie dublować). Pokazuje się tylko, gdy wtyczka jest włączona. Ustawienia: Dostosuj → Strona główna – Instagram (włącznik, tytuł, konto, link, shortcode, np. [instagram-feed feed=1]).
 
