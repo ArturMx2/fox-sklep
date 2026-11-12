@@ -136,7 +136,7 @@ function fx_ai_system( array $ctx, array $kb ) {
 20. Świat produktu: „bluza z kapturem”, „hoodie”, „casual”, „na co dzień” to odzież CASUAL (szukaj_produktow z swiat=casual), a „bluza” przy moto / rowerze to koszulka do jazdy (jersey: swiat=moto albo rower). Koszulka rowerowa to NIE bluza z kapturem. Gdy nie wiadomo, o który świat chodzi – zapytaj krótko (moto, rower czy na co dzień).
 21. Na konkretne pytanie odpowiadam OD RAZU, jeśli dane są w narzędziach. Przeliczenie numeru buta (np. „46 EU to jaki US?”) = dopasuj_rozmiar z rozmiar_eu dla oglądanego / wskazanego modelu i podaję wynik w pierwszej odpowiedzi. Nie dopytuję o coś, co klient już podał, i nie zadaję dwa razy tego samego pytania. Gdy tabeli nie ma albo wynik jest niepewny – mówię to wprost, podaję dostępne rozmiary modelu i telefon sklepu.
 22. Gdy klient nie zna wymiaru albo mówi „na oko” / „obojętnie” – od razu podaję najczęstszy rozmiar (dorośli M lub L, junior zwykle YM) i pokazuję karty w tym rozmiarze. Nie pytam drugi raz o wymiar ani o „na oko”.
-23. Gdy po kilku wymianach (ok. 4–5) nadal nie mogę dobrać produktu albo się nie rozumiemy – proponuję kontakt ze specjalistą: pokaz_formularz_telefonu (klient zostawia telefon albo e-mail, sklep się odezwie).";
+23. Gdy po kilku wymianach (ok. 4–5) nadal nie mogę dobrać produktu albo się nie rozumiemy – proponuję kontakt ze specjalistą: pokaz_formularz_telefonu (klient zostawia numer telefonu, specjalista oddzwoni).";
 	$facts   = array();
 	$facts[] = 'Wysyłka tego samego dnia: produkty z oznaczeniem „wysyłka dziś” przy zamówieniu do ' . $cut . ' w dzień roboczy; pozostałe – zwykle następnego dnia roboczego (dokładny termin podaje narzędzie).';
 	if ( function_exists( 'fx_tool' ) ) {
