@@ -133,7 +133,8 @@ function fx_ai_system( array $ctx, array $kb ) {
 17. Rozmiar: NIE pytam o wagę. Pytam o wzrost (dzieci: wiek i wzrost); gdy trzeba doprecyzować – przy bluzach, kurtkach i koszulkach o obwód klatki piersiowej, przy spodniach o obwód bioder (lub pasa); przy kasku o obwód głowy; przy rękawicach o DŁUGOŚĆ DŁONI (od zgięcia nadgarstka do czubka środkowego palca, nie obwód). Potem dopasuj_rozmiar dla konkretnego modelu. Wagę uwzględniam tylko, gdy klient sam ją podał. U dzieci rozmiary są juniorskie (YS–YXL, spodnie junior w calach) – „M” dla dziecka to zwykle YM.
 18. Słowo, którego nie rozumiem (np. „buzzer”, „nitro”, „ranger”, „flexair”) to najpewniej nazwa modelu, grafiki albo kolekcji FOX – NAJPIERW szukam go narzędziem szukaj_produktow (z rodzajem produktu z rozmowy, a gdy nic – samą frazą). Nigdy nie pytam klienta, co oznacza nazwa, zanim jej nie wyszukam.
 19. NIGDY nie wypisuję produktów w tekście (listy modeli z rozmiarami) i NIGDY nie pytam „pokazać karty?”. Gdy wiem, czego klient szuka – od razu pokaz_produkty, a w tekście jedno zdanie (model i rozmiar) plus ewentualnie jedno pytanie doprecyzowujące (np. dla kogo, rozmiar, kolor). Gdy potrzeba jest zbyt ogólna, najpierw pytam (bez wyszukiwania i bez wymieniania modeli).
-20. Świat produktu: „bluza z kapturem”, „hoodie”, „casual”, „na co dzień” to odzież CASUAL (szukaj_produktow z swiat=casual), a „bluza” przy moto / rowerze to koszulka do jazdy (jersey: swiat=moto albo rower). Koszulka rowerowa to NIE bluza z kapturem. Gdy nie wiadomo, o który świat chodzi – zapytaj krótko (moto, rower czy na co dzień).";
+20. Świat produktu: „bluza z kapturem”, „hoodie”, „casual”, „na co dzień” to odzież CASUAL (szukaj_produktow z swiat=casual), a „bluza” przy moto / rowerze to koszulka do jazdy (jersey: swiat=moto albo rower). Koszulka rowerowa to NIE bluza z kapturem. Gdy nie wiadomo, o który świat chodzi – zapytaj krótko (moto, rower czy na co dzień).
+21. Na konkretne pytanie odpowiadam OD RAZU, jeśli dane są w narzędziach. Przeliczenie numeru buta (np. „46 EU to jaki US?”) = dopasuj_rozmiar z rozmiar_eu dla oglądanego / wskazanego modelu i podaję wynik w pierwszej odpowiedzi. Nie dopytuję o coś, co klient już podał, i nie zadaję dwa razy tego samego pytania. Gdy tabeli nie ma albo wynik jest niepewny – mówię to wprost, podaję dostępne rozmiary modelu i telefon sklepu.";
 	$facts   = array();
 	$facts[] = 'Wysyłka tego samego dnia: produkty z oznaczeniem „wysyłka dziś” przy zamówieniu do ' . $cut . ' w dzień roboczy; pozostałe – zwykle następnego dnia roboczego (dokładny termin podaje narzędzie).';
 	if ( function_exists( 'fx_tool' ) ) {
@@ -338,7 +339,8 @@ function fx_ai_answer( array $msgs, array $ctx, $dry = false ) {
 	$out['tools']    = array_values( array_unique( $out['tools'] ) );
 	$shown = array_map( 'intval', $GLOBALS['fx_ai_run']['cards'] );
 	// Model wyszukał produkty, ale nie pokazał kart (np. wypisał je w tekście albo pyta „pokazać?”) – pokazujemy od razu.
-	if ( ! $shown && ! empty( $GLOBALS['fx_ai_run']['last']['ids'] ) && in_array( 'szukaj_produktow', $out['tools'], true ) ) {
+	// …tylko gdy wyszukiwanie dotyczyło konkretnego rodzaju produktu (np. „bluza”, „kask”), nie przypadkowej frazy jak „46 US”.
+	if ( ! $shown && ! empty( $GLOBALS['fx_ai_run']['last']['ids'] ) && ! empty( $GLOBALS['fx_ai_run']['last']['typed'] ) && in_array( 'szukaj_produktow', $out['tools'], true ) ) {
 		$seen = array();
 		foreach ( array_map( 'intval', $GLOBALS['fx_ai_run']['last']['ids'] ) as $id ) {
 			$t = fx_ai_product_type( $id );

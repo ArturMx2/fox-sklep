@@ -32,6 +32,7 @@ function fx_ai_tool_defs() {
 			'klatka_cm'      => array( 'type' => 'number', 'description' => 'Obwód klatki piersiowej w cm (bluzy, kurtki).' ),
 			'biodra_cm'      => array( 'type' => 'number', 'description' => 'Obwód bioder w cm (spodnie, szczególnie damskie).' ),
 			'dlon_cm'        => array( 'type' => 'number', 'description' => 'Rękawice: długość dłoni w cm – od zgięcia nadgarstka do czubka środkowego palca (nie obwód).' ),
+			'rozmiar_eu'     => array( 'type' => 'number', 'description' => 'Buty: numer w skali EU podany przez klienta (np. 46) – dobierze rozmiar modelu (US) z jego tabeli. NIE wpisuj go w pole rozmiar.' ),
 			'dla_kogo'       => array( 'type' => 'string', 'enum' => array( 'meskie', 'damskie', 'junior', 'dzieciece' ) ),
 			'swiat'          => array( 'type' => 'string', 'enum' => array( 'moto', 'rower', 'casual' ), 'description' => 'Świat produktu: moto (MX/enduro), rower (MTB), casual (odzież na co dzień: bluzy z kapturem, t-shirty, czapki). „Bluza z kapturem” / „hoodie” to casual, a „bluza motocrossowa / rowerowa” (jersey) to moto / rower.' ),
 			'kategoria'      => array( 'type' => 'string', 'description' => 'Opcjonalnie: nazwa (albo jej fragment) kategorii sklepu, w której szukać, np. „Zbroje i buzery”, „Nakolanniki”, „Kaski MTB”. Używaj, gdy instrukcja właściciela wskazuje kategorię albo gdy wyniki są z innego rodzaju produktu.' ),
@@ -50,6 +51,8 @@ function fx_ai_tool_defs() {
 			'klatka_cm'      => array( 'type' => 'number' ),
 			'biodra_cm'      => array( 'type' => 'number' ),
 			'dlon_cm'        => array( 'type' => 'number' ),
+			'rozmiar_eu'     => array( 'type' => 'number', 'description' => 'Numer buta / rozmiar w skali EU podany przez klienta (np. 46) – przelicza na rozmiar tego modelu (np. US) z jego tabeli.' ),
+			'rozmiar_uk'     => array( 'type' => 'number', 'description' => 'Rozmiar w skali UK podany przez klienta.' ),
 			'obwod_glowy_cm' => array( 'type' => 'number' ),
 			'stopa_cm'       => array( 'type' => 'number' ),
 		), array( 'id' ) ),
@@ -318,7 +321,7 @@ function fx_ai_size_set( $size, $kid ) {
 
 /** Wymiary klienta z parametrów narzędzia: [ rodzaj => wartość ]. */
 function fx_ai_measures( array $a ) {
-	$map = array( 'obwod_glowy_cm' => 'obwod_glowy', 'wzrost_cm' => 'wzrost', 'waga_kg' => 'waga', 'pas_cm' => 'pas', 'klatka_cm' => 'klatka', 'biodra_cm' => 'biodra', 'wiek' => 'wiek', 'stopa_cm' => 'stopa', 'dlon_cm' => 'dlon' );
+	$map = array( 'obwod_glowy_cm' => 'obwod_glowy', 'wzrost_cm' => 'wzrost', 'waga_kg' => 'waga', 'pas_cm' => 'pas', 'klatka_cm' => 'klatka', 'biodra_cm' => 'biodra', 'wiek' => 'wiek', 'stopa_cm' => 'stopa', 'dlon_cm' => 'dlon', 'rozmiar_eu' => 'eu', 'rozmiar_uk' => 'uk' );
 	$out = array();
 	foreach ( $map as $k => $kind ) {
 		if ( isset( $a[ $k ] ) && (float) str_replace( ',', '.', (string) $a[ $k ] ) > 0 ) {
@@ -593,7 +596,7 @@ function fx_ai_search_wide( array $a, $limit ) {
 	}
 	$base = '' !== $noc ? $noc : $q;
 	$b2   = $a;
-	unset( $b2['kolor'], $b2['rozmiar'], $b2['obwod_glowy_cm'], $b2['wzrost_cm'], $b2['waga_kg'], $b2['pas_cm'], $b2['klatka_cm'], $b2['biodra_cm'], $b2['dlon_cm'], $b2['wiek'], $b2['stopa_cm'] );
+	unset( $b2['kolor'], $b2['rozmiar'], $b2['obwod_glowy_cm'], $b2['wzrost_cm'], $b2['waga_kg'], $b2['pas_cm'], $b2['klatka_cm'], $b2['biodra_cm'], $b2['dlon_cm'], $b2['rozmiar_eu'], $b2['rozmiar_uk'], $b2['wiek'], $b2['stopa_cm'] );
 	if ( $b2 !== $a ) {
 		$steps[] = array( array_merge( $b2, array( 'zapytanie' => $base ) ), 'w tym rozmiarze nic nie ma na stanie – pokazuję te modele w dostępnych rozmiarach' );
 	}
@@ -665,7 +668,7 @@ function fx_ai_tool_search( array $a ) {
 			$groups[] = $g;
 			$all      = array_merge( $all, $match );
 		}
-		$GLOBALS['fx_ai_run']['last'] = array( 'q' => $q, 'ids' => array_slice( array_unique( $all ), 0, 40 ), 'dla' => (string) ( $a['dla_kogo'] ?? '' ) );
+		$GLOBALS['fx_ai_run']['last'] = array( 'q' => $q, 'ids' => array_slice( array_unique( $all ), 0, 40 ), 'dla' => (string) ( $a['dla_kogo'] ?? '' ), 'typed' => true );
 		fx_ai_remember_types( $all, (string) ( $a['dla_kogo'] ?? '' ) );
 		return array(
 			'grupy' => $groups,
@@ -678,7 +681,7 @@ function fx_ai_tool_search( array $a ) {
 		$GLOBALS['fx_ai_run']['callback']   = 1;
 		return array( 'wyniki' => array(), 'uwaga' => 'Brak propozycji nawet po poszerzeniu wyszukiwania. ' . $no_result );
 	}
-	$GLOBALS['fx_ai_run']['last'] = array( 'q' => $q, 'ids' => $match, 'dla' => (string) ( $a['dla_kogo'] ?? '' ) );
+	$GLOBALS['fx_ai_run']['last'] = array( 'q' => $q, 'ids' => $match, 'dla' => (string) ( $a['dla_kogo'] ?? '' ), 'typed' => (bool) $found || ! empty( $a['kategoria'] ) );
 	fx_ai_remember_types( $match, (string) ( $a['dla_kogo'] ?? '' ) );
 	$res = array( 'wyniki' => $out );
 	if ( $note ) {
@@ -770,6 +773,8 @@ function fx_ai_fit( WC_Product $p, $kind, $cm ) {
 		'waga'        => '/wag[ai]|weight|\bkg\b/iu',
 		'wiek'        => '/wiek|\bage\b|\blat\b|years/iu',
 		'dlon'        => '/d[lł]ugo[sś][cć] d[lł]oni|d[lł]o[nń]|hand/iu',
+		'eu'          => '/^\s*(eu|eur|euro|europ\w*)\b|\b(eu|eur)\s*$|rozmiar eu/iu',
+		'uk'          => '/^\s*uk\b|\buk\s*$|rozmiar uk/iu',
 	);
 	$out = array( 'rozmiar' => '', 'zakres' => '', 'tabela' => '' );
 	if ( ! isset( $re[ $kind ] ) || $cm <= 0 ) {
@@ -792,6 +797,18 @@ function fx_ai_fit( WC_Product $p, $kind, $cm ) {
 				if ( preg_match( '/rozmiar|size/iu', $h ) ) {
 					$scol = $i;
 					break;
+				}
+			}
+			// Przeliczenie EU / UK → rozmiar modelu (buty FOX w rozmiarach US): kolumna US, gdy jest.
+			if ( in_array( $kind, array( 'eu', 'uk' ), true ) ) {
+				foreach ( $head as $i => $h ) {
+					if ( $i !== $col && preg_match( '/^\s*(us|usa)\b|\bus\s*$|rozmiar us/iu', $h ) ) {
+						$scol = $i;
+						break;
+					}
+				}
+				if ( $scol === $col ) {
+					$scol = 0 === $col ? 1 : 0;
 				}
 			}
 			foreach ( array_slice( $rows, 1 ) as $r ) {
@@ -835,7 +852,7 @@ function fx_ai_fit( WC_Product $p, $kind, $cm ) {
 	if ( ! $pairs ) {
 		return $out;
 	}
-	$unit = array( 'waga' => ' kg', 'wiek' => ' lat' );
+	$unit = array( 'waga' => ' kg', 'wiek' => ' lat', 'eu' => ' EU', 'uk' => ' UK' );
 	$unit = $unit[ $kind ] ?? ' cm';
 	$fmt  = function ( $a, $b ) use ( $unit ) {
 		$f = function ( $x ) {
@@ -848,6 +865,20 @@ function fx_ai_fit( WC_Product $p, $kind, $cm ) {
 	}, $pairs ) );
 	if ( $fallback ) {
 		$out['tabela'] = 'tabela wyjściowa sklepu dla dorosłych (model nie ma własnej): ' . $out['tabela'];
+	}
+	if ( in_array( $kind, array( 'eu', 'uk' ), true ) ) { // numer buta: najbliższy w tabeli (przy remisie większy)
+		$best = null;
+		foreach ( $pairs as $x ) {
+			$d = abs( ( $x[1] + $x[2] ) / 2 - $cm );
+			if ( null === $best || $d < $best[0] - 0.001 || ( abs( $d - $best[0] ) < 0.001 && $x[1] > $best[1][1] ) ) {
+				$best = array( $d, $x );
+			}
+		}
+		if ( $best && $best[0] <= 1 ) {
+			$out['rozmiar'] = $best[1][0];
+			$out['zakres']  = $fmt( $best[1][1], $best[1][2] );
+		}
+		return $out;
 	}
 	$last = end( $pairs );
 	foreach ( $pairs as $x ) {
@@ -883,8 +914,8 @@ function fx_ai_glove_table() {
  * @return array rozmiar, opis („wzrost 150 cm → YL; waga 40 kg → YM”), tabela
  */
 function fx_ai_fit_multi( WC_Product $p, array $meas ) {
-	$names = array( 'obwod_glowy' => 'obwód głowy', 'wzrost' => 'wzrost', 'waga' => 'waga', 'pas' => 'pas', 'klatka' => 'klatka', 'wiek' => 'wiek', 'stopa' => 'stopa', 'biodra' => 'biodra', 'dlon' => 'długość dłoni' );
-	$units = array( 'waga' => ' kg', 'wiek' => ' lat' );
+	$names = array( 'obwod_glowy' => 'obwód głowy', 'wzrost' => 'wzrost', 'waga' => 'waga', 'pas' => 'pas', 'klatka' => 'klatka', 'wiek' => 'wiek', 'stopa' => 'stopa', 'biodra' => 'biodra', 'dlon' => 'długość dłoni', 'eu' => 'rozmiar', 'uk' => 'rozmiar' );
+	$units = array( 'waga' => ' kg', 'wiek' => ' lat', 'eu' => ' EU', 'uk' => ' UK' );
 	$hits  = array();
 	$desc  = array();
 	$tabs  = array();
