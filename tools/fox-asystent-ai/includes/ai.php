@@ -134,7 +134,8 @@ function fx_ai_system( array $ctx, array $kb ) {
 18. Słowo, którego nie rozumiem (np. „buzzer”, „nitro”, „ranger”, „flexair”) to najpewniej nazwa modelu, grafiki albo kolekcji FOX – NAJPIERW szukam go narzędziem szukaj_produktow (z rodzajem produktu z rozmowy, a gdy nic – samą frazą). Nigdy nie pytam klienta, co oznacza nazwa, zanim jej nie wyszukam.
 19. NIGDY nie wypisuję produktów w tekście (listy modeli z rozmiarami) i NIGDY nie pytam „pokazać karty?”. Gdy wiem, czego klient szuka – od razu pokaz_produkty, a w tekście jedno zdanie (model i rozmiar) plus ewentualnie jedno pytanie doprecyzowujące (np. dla kogo, rozmiar, kolor). Gdy potrzeba jest zbyt ogólna, najpierw pytam (bez wyszukiwania i bez wymieniania modeli).
 20. Świat produktu: „bluza z kapturem”, „hoodie”, „casual”, „na co dzień” to odzież CASUAL (szukaj_produktow z swiat=casual), a „bluza” przy moto / rowerze to koszulka do jazdy (jersey: swiat=moto albo rower). Koszulka rowerowa to NIE bluza z kapturem. Gdy nie wiadomo, o który świat chodzi – zapytaj krótko (moto, rower czy na co dzień).
-21. Na konkretne pytanie odpowiadam OD RAZU, jeśli dane są w narzędziach. Przeliczenie numeru buta (np. „46 EU to jaki US?”) = dopasuj_rozmiar z rozmiar_eu dla oglądanego / wskazanego modelu i podaję wynik w pierwszej odpowiedzi. Nie dopytuję o coś, co klient już podał, i nie zadaję dwa razy tego samego pytania. Gdy tabeli nie ma albo wynik jest niepewny – mówię to wprost, podaję dostępne rozmiary modelu i telefon sklepu.";
+21. Na konkretne pytanie odpowiadam OD RAZU, jeśli dane są w narzędziach. Przeliczenie numeru buta (np. „46 EU to jaki US?”) = dopasuj_rozmiar z rozmiar_eu dla oglądanego / wskazanego modelu i podaję wynik w pierwszej odpowiedzi. Nie dopytuję o coś, co klient już podał, i nie zadaję dwa razy tego samego pytania. Gdy tabeli nie ma albo wynik jest niepewny – mówię to wprost, podaję dostępne rozmiary modelu i telefon sklepu.
+22. Gdy klient nie zna wymiaru albo mówi „na oko” / „obojętnie” – od razu podaję najczęstszy rozmiar (dorośli M lub L, junior zwykle YM) i pokazuję karty w tym rozmiarze. Nie pytam drugi raz o wymiar ani o „na oko”.";
 	$facts   = array();
 	$facts[] = 'Wysyłka tego samego dnia: produkty z oznaczeniem „wysyłka dziś” przy zamówieniu do ' . $cut . ' w dzień roboczy; pozostałe – zwykle następnego dnia roboczego (dokładny termin podaje narzędzie).';
 	if ( function_exists( 'fx_tool' ) ) {
@@ -273,6 +274,51 @@ function fx_ai_hint( array $msgs ) {
 	return 'PODPOWIEDŹ SKLEPU (nie od klienta): wyszukiwarka sklepu dla frazy „' . $q . '” znajduje produkty, np.: ' . implode( '; ', $names ) . '. To nazwa modelu, grafiki albo kolekcji FOX – NIE dopytuj klienta, co znaczy. Wywołaj szukaj_produktow z tą frazą (dodaj rodzaj produktu i dla kogo z wcześniejszej rozmowy, jeśli pasują; gdy wtedy nic nie ma – szukaj samej frazy) i pokaż karty.';
 }
 
+/**
+ * Przekierowania z ustawień: [ [ słowa[], url, przycisk, opis ] ].
+ */
+function fx_ai_redirects() {
+	$out = array();
+	foreach ( preg_split( '/\r?\n/', (string) ( fx_ai_settings()['redirects'] ?? '' ) ) as $line ) {
+		$p = array_map( 'trim', explode( '|', $line ) );
+		if ( count( $p ) < 2 || '' === $p[0] || ! preg_match( '#^https?://[^\s]+$#i', $p[1] ) ) {
+			continue;
+		}
+		$out[] = array( array_filter( array_map( 'trim', explode( ',', $p[0] ) ) ), $p[1], $p[2] ?? 'Zobacz', $p[3] ?? '' );
+	}
+	return $out;
+}
+
+/** Pasująca reguła przekierowania dla ostatniej wiadomości klienta (każde słowo frazy – pierwsze 5 liter, odmiana) albo null. */
+function fx_ai_redirect_match( array $msgs ) {
+	$last = '';
+	for ( $i = count( $msgs ) - 1; $i >= 0; $i-- ) {
+		if ( 'user' === ( $msgs[ $i ]['role'] ?? '' ) ) {
+			$last = (string) $msgs[ $i ]['content'];
+			break;
+		}
+	}
+	$norm = function ( $t ) {
+		$w = preg_split( '/[^a-z0-9]+/', remove_accents( mb_strtolower( $t, 'UTF-8' ) ) );
+		return array_values( array_filter( array_map( function ( $x ) {
+			return substr( $x, 0, 5 );
+		}, $w ), 'strlen' ) );
+	};
+	$have = array_flip( $norm( $last ) );
+	if ( ! $have ) {
+		return null;
+	}
+	foreach ( fx_ai_redirects() as $r ) {
+		foreach ( $r[0] as $phrase ) {
+			$need = $norm( $phrase );
+			if ( $need && ! array_diff( $need, array_keys( $have ) ) ) {
+				return $r;
+			}
+		}
+	}
+	return null;
+}
+
 /** Dla zalogowanego administratora: treść błędu w czacie (klient widzi tylko ogólny komunikat). */
 function fx_ai_admin_detail( $msg ) {
 	return ( '' !== (string) $msg && current_user_can( 'manage_woocommerce' ) ) ? "\n\n[widoczne tylko dla administratora] " . wp_strip_all_tags( (string) $msg ) : '';
@@ -293,6 +339,12 @@ function fx_ai_answer( array $msgs, array $ctx, $dry = false ) {
 	$GLOBALS['fx_ai_run'] = array( 'cards' => array(), 'notfound' => array(), 'handoff' => 0, 'wa' => '', 'ctx' => $ctx, 'dry' => $dry, 'msgs' => $msgs, 'callback' => 0 );
 	$messages = array_merge( array( array( 'role' => 'system', 'content' => fx_ai_system( $ctx, $kb ) ) ), $msgs );
 	$hint     = fx_ai_hint( $msgs );
+	$redir    = fx_ai_redirect_match( $msgs );
+	if ( $redir ) {
+		// Produkt spoza oferty FOX – krótka odpowiedź + przycisk do drugiego sklepu, bez szukania w katalogu FOX.
+		$hint = 'PRZEKIEROWANIE (od właściciela sklepu, ma pierwszeństwo przed zasadą o innych sklepach): ' . ( $redir[3] ? $redir[3] . '. ' : '' ) . 'Napisz krótko (1–2 zdania), że w ofercie FOX tego nie ma, i że może to znaleźć w naszym drugim sklepie – pod odpowiedzią jest przycisk „' . $redir[2] . '”. Nie szukaj w katalogu FOX, nie pokazuj produktów FOX zamiast tego i nie dopytuj o rozmiar. Linku nie wpisuj w tekst.';
+		$out['link'] = array( 'url' => $redir[1], 'label' => $redir[2] );
+	}
 	if ( '' !== $hint ) {
 		$messages[] = array( 'role' => 'system', 'content' => $hint );
 	}
@@ -340,7 +392,7 @@ function fx_ai_answer( array $msgs, array $ctx, $dry = false ) {
 	$shown = array_map( 'intval', $GLOBALS['fx_ai_run']['cards'] );
 	// Model wyszukał produkty, ale nie pokazał kart (np. wypisał je w tekście albo pyta „pokazać?”) – pokazujemy od razu.
 	// …tylko gdy wyszukiwanie dotyczyło konkretnego rodzaju produktu (np. „bluza”, „kask”), nie przypadkowej frazy jak „46 US”.
-	if ( ! $shown && ! empty( $GLOBALS['fx_ai_run']['last']['ids'] ) && ! empty( $GLOBALS['fx_ai_run']['last']['typed'] ) && in_array( 'szukaj_produktow', $out['tools'], true ) ) {
+	if ( empty( $out['link'] ) && ! $shown && ! empty( $GLOBALS['fx_ai_run']['last']['ids'] ) && ! empty( $GLOBALS['fx_ai_run']['last']['typed'] ) && in_array( 'szukaj_produktow', $out['tools'], true ) ) {
 		$seen = array();
 		foreach ( array_map( 'intval', $GLOBALS['fx_ai_run']['last']['ids'] ) as $id ) {
 			$t = fx_ai_product_type( $id );
@@ -351,7 +403,7 @@ function fx_ai_answer( array $msgs, array $ctx, $dry = false ) {
 		}
 	}
 	$out['cards']    = fx_ai_cards( fx_ai_fill_cards( $shown ) );
-	if ( $out['cards'] && preg_match_all( '/^\s*[-•*]\s+.+$/mu', $out['text'], $mm ) && count( $mm[0] ) >= 2 ) {
+	if ( $out['cards'] && preg_match_all( '/^\s*[-•*]\s+.+$/mu', $out['text'], $mm ) ) {
 		// Lista produktów w tekście (model ją wypisał mimo zasady) – karty już ją pokazują: wycinamy wyliczenie
 		// i wprowadzające je zdanie zakończone dwukropkiem; zostaje reszta (np. pytanie doprecyzowujące).
 		$prod = 0;
@@ -360,7 +412,7 @@ function fx_ai_answer( array $msgs, array $ctx, $dry = false ) {
 				$prod++;
 			}
 		}
-		if ( $prod >= 2 ) {
+		if ( $prod >= 1 && $prod === count( $mm[0] ) ) { // same produkty (bez innych punktów, np. pytań)
 			$t = preg_replace( '/^\s*[-•*]\s+.+$\n?/mu', '', $out['text'] );
 			$t = preg_replace( '/[ \t]*[^.!?\n]*:[ \t]*(\n|$)/u', "\n", $t );
 			$t = trim( preg_replace( '/\n{3,}/', "\n\n", $t ) );

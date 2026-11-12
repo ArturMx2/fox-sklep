@@ -49,6 +49,7 @@ add_action( 'admin_post_fx_ai', function () {
 				'greeting'  => sanitize_textarea_field( $in['greeting'] ?? '' ),
 				'quick'     => sanitize_textarea_field( $in['quick'] ?? '' ),
 				'rules'     => sanitize_textarea_field( $in['rules'] ?? '' ),
+				'redirects' => sanitize_textarea_field( $in['redirects'] ?? '' ),
 				'email'     => sanitize_email( $in['email'] ?? '' ),
 				'phone'     => sanitize_text_field( $in['phone'] ?? '' ),
 				'privacy'   => esc_url_raw( $in['privacy'] ?? '' ),
@@ -604,6 +605,7 @@ function fx_ai_tab_ustawienia() {
 	}
 	echo '</tbody></table><p class="description">Ta sama treść jest pierwszą wiadomością asystenta po otwarciu czatu na tej stronie, a szybkie pytania dopasowują się do strony (kask: rozmiar, gogle; komplet: reszta stroju; koszyk: dostawa, zwrot).</p></td></tr>';
 	echo '<tr><th>Szybkie pytania</th><td><textarea class="large-text" rows="4" name="quick">' . esc_textarea( $s['quick'] ) . '</textarea><p class="description">Jedno w linii (maks. 6).</p></td></tr>';
+	echo '<tr><th>Przekierowania</th><td><textarea class="large-text code" rows="5" name="redirects">' . esc_textarea( $s['redirects'] ?? '' ) . '</textarea><p class="description">Czego FOX nie ma, a mamy gdzie indziej (np. w enduro.sklep.pl). Jedna linia = jedna reguła: <code>słowa klienta (po przecinku) | link | tekst przycisku | czego FOX nie ma</code>. Gdy klient użyje któregoś ze słów (także w odmianie), asystent krótko powie, że w FOX tego nie ma, i pokaże przycisk z linkiem – bez szukania w katalogu FOX.</p></td></tr>';
 	echo '<tr><th>Zasady sklepu</th><td><textarea class="large-text" rows="12" name="rules" placeholder="Dostawa: …&#10;Zwroty: 14 dni …&#10;Płatności: …&#10;Sklep stacjonarny: Mokronos Dolny, godziny …">' . esc_textarea( $s['rules'] ) . '</textarea><p class="description">Jedyne źródło odpowiedzi o dostawie, zwrotach, płatnościach i sklepie stacjonarnym. Czego tu nie ma – asystent nie wymyśli.</p></td></tr>';
 	echo '<tr><th>E-mail obsługi</th><td><input type="email" class="regular-text" name="email" value="' . esc_attr( $s['email'] ) . '" placeholder="' . esc_attr( get_option( 'admin_email' ) ) . '"><p class="description">Tu przychodzą sprawy przekazane przez asystenta (z całą rozmową, odpowiedź trafia do klienta – Reply-To).</p></td></tr>';
 	echo '<tr><th>Telefon sklepu</th><td><input class="regular-text" name="phone" value="' . esc_attr( $s['phone'] ) . '"></td></tr>';

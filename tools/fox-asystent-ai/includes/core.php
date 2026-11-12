@@ -25,6 +25,7 @@ function fx_ai_defaults() {
 		'greeting'   => 'Cześć! Pomogę dobrać sprzęt FOX na moto albo rower, sprawdzę rozmiary i status zamówienia. W czym pomóc?',
 		'quick'      => "Pomóż dobrać komplet MX\nKask rowerowy – jaki rozmiar?\nGdzie jest moje zamówienie?\nDostawa i zwroty",
 		'rules'      => '',
+		'redirects'  => "odpinana szczęka, odpinaną szczęką, odczepiana szczęka, odczepianą szczęką, zdejmowana szczęka, odpinany podbródek, kask convertible, kask 2w1, kask 2 w 1 | https://enduro.sklep.pl/?s=odpina&post_type=product&kat=4915 | Kaski z odpinaną szczęką w ENDURO.SKLEP.PL | FOX nie ma kasków z odpinaną szczęką",
 		'email'      => '',
 		'phone'      => '+48 71 880 85 54',
 		'privacy'    => '',
@@ -351,7 +352,7 @@ function fx_ai_rest_chat( WP_REST_Request $req ) {
 		'tok_in'   => $out['tok_in'],
 		'tok_out'  => $out['tok_out'],
 	), array( 'page' => $ctx['page'], 'test' => ! empty( $s['test'] ) ) );
-	$res = new WP_REST_Response( array( 'text' => $out['text'], 'cards' => $out['cards'], 'groups' => $out['groups'], 'more' => $out['more'], 'wa' => $out['wa'], 'callback' => $out['callback'] ), 200 );
+	$res = new WP_REST_Response( array( 'text' => $out['text'], 'cards' => $out['cards'], 'groups' => $out['groups'], 'more' => $out['more'], 'link' => $out['link'] ?? null, 'wa' => $out['wa'], 'callback' => $out['callback'] ), 200 );
 	$res->header( 'Cache-Control', 'no-store' );
 	return $res;
 }

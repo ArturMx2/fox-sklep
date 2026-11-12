@@ -221,6 +221,12 @@
 				w.appendChild(more);
 			}
 		});
+		if (m.link && m.link.url) {
+			var lk = el('a', 'fx-ai__all', esc(m.link.label || 'Zobacz') + ' <span aria-hidden="true">→</span>');
+			lk.href = m.link.url;
+			if (!/^https?:\/\/(www\.)?/.test(m.link.url) || m.link.url.indexOf(location.host) < 0) { lk.target = '_blank'; lk.rel = 'noopener'; }
+			w.appendChild(lk);
+		}
 		if (m.callback) {
 			var f = el('form', 'fx-ai__cb');
 			if (m.cbDone) {
@@ -323,7 +329,7 @@
 		var history = st.msgs.slice(-24).map(function (m) { return { role: m.role, content: m.content }; });
 		var body = JSON.stringify({ sid: st.sid, messages: history, product: C.product || 0, page: location.href.split('#')[0] });
 		post(body, !!C.nonce).then(function (res) {
-			st.msgs.push({ role: 'assistant', content: (res && res.text) || 'Przepraszam, spróbuj jeszcze raz.', cards: (res && res.cards) || [], groups: (res && res.groups) || [], more: (res && res.more) || null, wa: (res && res.wa) || '', callback: !!(res && res.callback) });
+			st.msgs.push({ role: 'assistant', content: (res && res.text) || 'Przepraszam, spróbuj jeszcze raz.', cards: (res && res.cards) || [], groups: (res && res.groups) || [], more: (res && res.more) || null, link: (res && res.link) || null, wa: (res && res.wa) || '', callback: !!(res && res.callback) });
 		}).catch(function () {
 			st.msgs.push({ role: 'assistant', content: 'Nie mogę się teraz połączyć. Spróbuj za chwilę.' });
 		}).then(function () {
