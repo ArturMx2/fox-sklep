@@ -8,7 +8,7 @@
 defined( 'ABSPATH' ) || exit;
 
 define( 'FX_AI_OPT', 'fx_ai_settings' );
-define( 'FX_AI_DB', 5 );
+define( 'FX_AI_DB', 6 );
 
 /* =====================================================================
  * Ustawienia
@@ -153,10 +153,26 @@ function fx_ai_install() {
 			}
 		}
 	}
+	// Instrukcje wbudowane później (np. „Dobór rękawic”): dodawane raz przy aktualizacji – usunięta w panelu nie wraca.
+	if ( get_option( 'fx_ai_seeded' ) ) {
+		$added = (array) get_option( 'fx_ai_kb_added', array( 'Badanie potrzeb', 'Dobór kasku', 'Rozmiary FOX', 'Komplety w jednej grafice' ) );
+		foreach ( fx_ai_starter_kb() as $row ) {
+			if ( in_array( $row['title'], $added, true ) ) {
+				continue;
+			}
+			$exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$kb} WHERE type = 'ins' AND title = %s", $row['title'] ) ); // phpcs:ignore
+			if ( ! $exists ) {
+				$wpdb->insert( $kb, $row + array( 'type' => 'ins', 'active' => 1, 'created' => current_time( 'mysql' ) ) );
+			}
+			$added[] = $row['title'];
+		}
+		update_option( 'fx_ai_kb_added', array_values( array_unique( $added ) ), false );
+	}
 	if ( ! get_option( 'fx_ai_seeded' ) ) {
 		foreach ( fx_ai_starter_kb() as $row ) {
 			$wpdb->insert( $kb, $row + array( 'type' => 'ins', 'active' => 1, 'created' => current_time( 'mysql' ) ) );
 		}
+		update_option( 'fx_ai_kb_added', wp_list_pluck( fx_ai_starter_kb(), 'title' ), false );
 		update_option( 'fx_ai_seeded', 1, false );
 	}
 	update_option( 'fx_ai_db', FX_AI_DB, false );
@@ -188,6 +204,12 @@ function fx_ai_starter_kb() {
 			'always'   => 0,
 			'keywords' => 'komplet, strój, zestaw, bluza, spodnie, grafika, pasuje, dobrać, do kompletu, jersey, pants',
 			'body'     => "Komplety FOX (bluza + spodnie, często rękawice) są w tych samych grafikach – np. „180 Nitro”, „360 Horyzn”. Gdy klient wybrał bluzę albo spodnie, sprawdź w szczegoly_produktu pole „komplet” i zaproponuj brakujące części w tej samej grafice. Za cały komplet w koszyku jest rabat (jeśli szczegoly_produktu go podaje – powiedz o nim).",
+		),
+		array(
+			'title'    => 'Dobór rękawic',
+			'always'   => 0,
+			'keywords' => 'rękawice, rękawic, rękawiczki, rękawicę, glove, gloves, flexair, flexer, ranger, defend, dirtpaw, dirt paw, pawtector, pavtector, bomber, 180, 360, d3o, ocieplane, zimowe, na zimę, fire, winter, długość dłoni, rozmiar rękawic',
+			'body'     => "Dobieraj rękawice do przeznaczenia, grubości i warunków. Gdy klient nie podał potrzeb, pytaj po kolei (maks. 2 pytania naraz, nie powtarzaj tego, co już wiesz): 1) rower czy motocykl (cross, enduro, quad); 2) cienkie i przewiewne z dobrym czuciem kierownicy czy grubsze, bardziej zabudowane; 3) w razie potrzeby: ochrona kostek, chłód, deszcz; 4) rozmiar – DŁUGOŚĆ DŁONI (wyprostowana dłoń, od zgięcia nadgarstka do czubka środkowego palca; nie obwód). Rozmiar zawsze z tabeli konkretnego modelu (dopasuj_rozmiar z dlon_cm); na granicy rozmiarów dopytaj o szerokość dłoni i preferowane dopasowanie, nie obiecuj idealnego rozmiaru.\n\nROWER: Ranger – rekreacja, lekkie MTB, wycieczki. Flexair – najcieńsze, najlżejsze, najbardziej przewiewne, najlepsze czucie (zwykły Flexair NIE ma D3O). Defend – wymagające MTB i enduro, wentylacja + wytrzymałość (D3O tylko w wersji D3O). Dirtpaw – najbardziej uniwersalne, nieco grubsze.\nMOTO (cross, enduro, quad): Dirtpaw – pierwsza uniwersalna propozycja dla amatora. 180 – lżejsze, elastyczne, dobre czucie. 360 – bardziej rozbudowane niż 180. Pawtector – zabudowane, wzmocnione, mniej przewiewne. To nie jest hierarchia „droższe = lepsze” – dobieraj do czucia, grubości i zastosowania.\nOCHRONA KOSTEK: najpierw Defend D3O, Flexair Pro z D3O (gdy wersja ma to w opisie). Bomber – najbardziej zabudowane, największa ochrona, najgorsza wentylacja, nie dla szukających lekkości.\nCHŁÓD / ZIMA (rower): Ranger Fire, Defend Fire, modele Winter / ocieplane – nie zwykły Ranger ani Defend. Dopytaj o temperaturę i intensywność jazdy. Ocieplenie ≠ wodoodporność: na deszcz sprawdź membranę w opisie; odróżniaj wodoodporność od DWR.\n\nPoleć jeden najlepszy model i najwyżej jedną alternatywę, z jednym zdaniem różnicy (np. „Flexair cieńsze i przewiewniejsze, Dirtpaw bardziej zabudowane i uniwersalne”). Nie wypisuj listy wszystkich modeli. Dostępność, cenę, rozmiary, kolory, obsługę ekranów, ochraniacze, wodoodporność i certyfikaty potwierdzaj na karcie konkretnego produktu – nie przenoś cech między wersjami. Jazda szosowa / homologacja – sprawdź certyfikat modelu. Klient pisze „Flexer”, „Dirt Paw”, „PavTector” – odpowiadaj poprawną nazwą bez poprawiania go.",
 		),
 	);
 }
