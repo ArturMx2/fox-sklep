@@ -45,8 +45,31 @@
 		} catch (e) {}
 		try { fetch(C.ev, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body, keepalive: true }); } catch (e) {}
 	}
+	// Rozmowa do przypisania zamówienia (7 dni). Ciasteczka znikają przy wczytaniu strony (skrypt zgód),
+	// więc numer rozmowy trzymamy w localStorage i wysyłamy na serwer przy dodaniu do koszyka i w zamówieniu.
 	function cookie() {
 		document.cookie = 'fx_ai_sid=' + st.sid + ';path=/;max-age=' + (7 * 86400) + ';SameSite=Lax' + (location.protocol === 'https:' ? ';Secure' : '');
+		try { localStorage.setItem('fxai_last', JSON.stringify({ sid: st.sid, t: Date.now() })); } catch (e) {}
+	}
+	function lastSid() {
+		try {
+			var o = JSON.parse(localStorage.getItem('fxai_last') || 'null');
+			if (o && /^[a-z0-9]{24}$/.test(o.sid) && Date.now() - (+o.t || 0) < 7 * 864e5) { return o.sid; }
+		} catch (e) {}
+		return '';
+	}
+	document.addEventListener('submit', function (e) {
+		var f = e.target.closest && e.target.closest('form.cart'), sid = lastSid();
+		if (!f || !sid) { return; }
+		var h = f.querySelector('input[name="fx_ai_sid"]');
+		if (!h) { h = document.createElement('input'); h.type = 'hidden'; h.name = 'fx_ai_sid'; f.appendChild(h); }
+		h.value = sid;
+	}, true);
+	if (window.jQuery) {
+		window.jQuery(document.body).on('adding_to_cart', function (e, btn, data) {
+			var sid = lastSid();
+			if (sid && data) { data.fx_ai_sid = sid; }
+		});
 	}
 
 	/* ---------- Budowa ---------- */
@@ -272,6 +295,7 @@
 		var fd = new FormData();
 		fd.append('product_id', b.getAttribute('data-add'));
 		fd.append('quantity', '1');
+		fd.append('fx_ai_sid', st.sid);
 		fetch(C.addUrl, { method: 'POST', body: fd, credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (res) {
 			if (res && res.error) { throw new Error('add'); }
 			b.textContent = 'W koszyku ✓';

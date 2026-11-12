@@ -539,7 +539,14 @@ add_filter( 'fx_wa_teaser', function ( $t ) {
 function fx_ai_attach_order( $order ) {
 	global $wpdb;
 	$order = $order instanceof WC_Order ? $order : wc_get_order( $order );
-	$sid   = isset( $_COOKIE['fx_ai_sid'] ) ? sanitize_text_field( wp_unslash( $_COOKIE['fx_ai_sid'] ) ) : '';
+	// Numer rozmowy: pole z formularza zamówienia → sesja koszyka (zapisana przy dodaniu do koszyka) → ciasteczko.
+	$sid = isset( $_POST['fx_ai_sid'] ) ? sanitize_text_field( wp_unslash( $_POST['fx_ai_sid'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+	if ( ! fx_ai_sid_ok( $sid ) && function_exists( 'WC' ) && WC()->session ) {
+		$sid = (string) WC()->session->get( 'fx_ai_sid', '' );
+	}
+	if ( ! fx_ai_sid_ok( $sid ) ) {
+		$sid = isset( $_COOKIE['fx_ai_sid'] ) ? sanitize_text_field( wp_unslash( $_COOKIE['fx_ai_sid'] ) ) : '';
+	}
 	if ( ! $order || ! fx_ai_sid_ok( $sid ) || $order->get_meta( '_fx_ai_sid' ) ) {
 		return;
 	}
@@ -563,6 +570,28 @@ add_action( 'woocommerce_checkout_order_processed', function ( $order_id ) {
 	fx_ai_attach_order( $order_id );
 }, 20 );
 add_action( 'woocommerce_store_api_checkout_order_processed', 'fx_ai_attach_order', 20 );
+
+/* Dodanie do koszyka po rozmowie: numer rozmowy do sesji koszyka WooCommerce (bez polegania na ciasteczkach). */
+add_action( 'woocommerce_add_to_cart', function () {
+	$sid = isset( $_REQUEST['fx_ai_sid'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['fx_ai_sid'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+	if ( fx_ai_sid_ok( $sid ) && function_exists( 'WC' ) && WC()->session ) {
+		WC()->session->set( 'fx_ai_sid', $sid );
+	}
+} );
+
+/* Strona zamówienia (asystent się tam nie ładuje): numer ostatniej rozmowy z localStorage jako ukryte pole formularza. */
+add_action( 'wp_footer', function () {
+	if ( ! function_exists( 'is_checkout' ) || ! is_checkout() || is_order_received_page() ) {
+		return;
+	}
+	?>
+	<script>
+	(function(){var s='';try{var o=JSON.parse(localStorage.getItem('fxai_last')||'null');if(o&&/^[a-z0-9]{24}$/.test(o.sid)&&Date.now()-(+o.t||0)<6048e5){s=o.sid}}catch(e){}
+	if(!s)return;function put(){document.querySelectorAll('form.checkout').forEach(function(f){var h=f.querySelector('input[name="fx_ai_sid"]');if(!h){h=document.createElement('input');h.type='hidden';h.name='fx_ai_sid';f.appendChild(h)}h.value=s})}
+	put();if(window.jQuery){jQuery(document.body).on('updated_checkout',put)}})();
+	</script>
+	<?php
+}, 30 );
 
 /* Archiwum: usuwanie starszych rozmów (gdy ustawiono okres). */
 add_action( 'init', function () {
