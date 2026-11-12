@@ -244,7 +244,7 @@ function fx_ai_chat_save( $sid, array $turn, array $meta ) {
 	$log   = json_decode( (string) $row['log'], true );
 	$log   = is_array( $log ) ? $log : array();
 	$log[] = array( 'r' => 'user', 't' => (string) $turn['q'], 'at' => time() );
-	$log[] = array( 'r' => 'assistant', 't' => (string) $turn['a'], 'cards' => $turn['cards'], 'tools' => $turn['tools'], 'kb' => $turn['kb'], 'at' => time() );
+	$log[] = array( 'r' => 'assistant', 't' => (string) $turn['a'], 'cards' => $turn['cards'], 'tools' => $turn['tools'], 'kb' => $turn['kb'], 'cb' => ! empty( $turn['cb'] ) ? 1 : 0, 'at' => time() );
 	$shown = array_filter( array_map( 'intval', explode( ',', (string) $row['shown'] ) ) );
 	$shown = array_values( array_unique( array_merge( $shown, array_map( 'intval', $turn['cards'] ) ) ) );
 	$tools = array_filter( explode( ',', (string) $row['tools'] ) );
@@ -363,6 +363,28 @@ function fx_ai_rest_chat( WP_REST_Request $req ) {
 		'page'    => esc_url_raw( (string) $req->get_param( 'page' ) ),
 	);
 	$out = fx_ai_answer( $msgs, $ctx );
+	// Trudna rozmowa: od 5. wiadomości klienta, gdy w ostatnich 3 odpowiedziach (z tą) nie było żadnych produktów –
+	// propozycja kontaktu ze specjalistą („Zostaw numer”), najwyżej co 3 odpowiedzi.
+	$users = count( array_filter( $msgs, function ( $m ) {
+		return 'user' === $m['role'];
+	} ) );
+	if ( $users >= 5 && empty( $out['cards'] ) && empty( $out['link'] ) && empty( $out['callback'] ) ) {
+		$prev    = $row ? array_values( array_filter( (array) json_decode( (string) $row['log'], true ), function ( $m ) {
+			return 'assistant' === ( $m['r'] ?? '' );
+		} ) ) : array();
+		$recent  = array_slice( $prev, -2 );
+		$dry     = count( $recent ) >= 2 && ! array_filter( $recent, function ( $m ) {
+			return ! empty( $m['cards'] );
+		} );
+		$offered = array_filter( $recent, function ( $m ) {
+			return ! empty( $m['cb'] );
+		} );
+		if ( $dry && ! $offered ) {
+			$out['callback'] = 1;
+			$out['cb_auto']  = 1;
+			$out['text']     = rtrim( $out['text'] ) . "\n\nJeśli wolisz, zostaw numer telefonu albo e-mail – specjalista ze sklepu skontaktuje się z Tobą i pomoże dobrać sprzęt.";
+		}
+	}
 	fx_ai_chat_save( $sid, array(
 		'q'        => end( $msgs )['content'],
 		'a'        => $out['text'],
@@ -370,6 +392,7 @@ function fx_ai_rest_chat( WP_REST_Request $req ) {
 		'tools'    => $out['tools'],
 		'kb'       => $out['kb'],
 		'notfound' => $out['notfound'],
+		'cb'       => ! empty( $out['callback'] ),
 		'handoff'  => $out['handoff'],
 		'tok_in'   => $out['tok_in'],
 		'tok_out'  => $out['tok_out'],
@@ -386,9 +409,13 @@ function fx_ai_rest_callback( WP_REST_Request $req ) {
 	$sid   = (string) $req->get_param( 'sid' );
 	$phone = preg_replace( '/[^\d+ ]/', '', (string) $req->get_param( 'phone' ) );
 	$name  = sanitize_text_field( mb_substr( (string) $req->get_param( 'name' ), 0, 60 ) );
-	if ( ! fx_ai_sid_ok( $sid ) || strlen( preg_replace( '/\D/', '', $phone ) ) < 9 ) {
-		return new WP_REST_Response( array( 'ok' => false, 'msg' => 'Podaj poprawny numer telefonu (9 cyfr).' ), 200 );
+	$email = sanitize_email( (string) $req->get_param( 'email' ) );
+	$email = is_email( $email ) ? $email : '';
+	$ph_ok = strlen( preg_replace( '/\D/', '', $phone ) ) >= 9;
+	if ( ! fx_ai_sid_ok( $sid ) || ( ! $ph_ok && ! $email ) ) {
+		return new WP_REST_Response( array( 'ok' => false, 'msg' => 'Podaj numer telefonu (9 cyfr) albo adres e-mail.' ), 200 );
 	}
+	$phone = $ph_ok ? $phone : '';
 	if ( '' !== (string) $req->get_param( 'website' ) || ! fx_ai_hit( 'cb|' . fx_ai_ip(), 3, HOUR_IN_SECONDS ) ) {
 		return new WP_REST_Response( array( 'ok' => false, 'msg' => 'Zadzwoń do nas: ' . $s['phone'] ), 200 );
 	}
@@ -400,16 +427,16 @@ function fx_ai_rest_callback( WP_REST_Request $req ) {
 		}
 		$log   = json_decode( (string) $row['log'], true );
 		$log   = is_array( $log ) ? $log : array();
-		$log[] = array( 'r' => 'system', 't' => 'Klient zostawił numer do kontaktu: ' . $phone . ( $name ? ' (' . $name . ')' : '' ), 'at' => time() );
+		$log[] = array( 'r' => 'system', 't' => 'Klient zostawił kontakt: ' . trim( $phone . ( $email ? ' ' . $email : '' ) ) . ( $name ? ' (' . $name . ')' : '' ), 'at' => time() );
 		$wpdb->update( fx_ai_table( 'chat' ), array( 'handoff' => 1, 'log' => wp_json_encode( $log ) ), array( 'id' => (int) $row['id'] ) );
 	}
 	$to   = is_email( $s['email'] ) ? $s['email'] : get_option( 'admin_email' );
-	$body = "Prośba o telefon z czatu na fox.sklep.pl\n\nTelefon: {$phone}\nImię: " . ( $name ? $name : '—' ) . "\n\n--- Rozmowa ---\n" . ( $txt ? $txt : '(brak)' );
+	$body = "Prośba o kontakt z czatu na fox.sklep.pl\n\nTelefon: " . ( $phone ? $phone : '—' ) . "\nE-mail: " . ( $email ? $email : '—' ) . "\nImię: " . ( $name ? $name : '—' ) . "\n\n--- Rozmowa ---\n" . ( $txt ? $txt : '(brak)' );
 	if ( $row ) {
 		$body .= "\nPodgląd w panelu: " . admin_url( 'admin.php?page=fx-ai&tab=rozmowy&chat=' . (int) $row['id'] );
 	}
-	wp_mail( $to, 'Czat: prośba o telefon ' . $phone, $body );
-	return new WP_REST_Response( array( 'ok' => true, 'msg' => 'Dziękujemy! Oddzwonimy najszybciej, jak to możliwe (w godzinach pracy sklepu).' ), 200 );
+	wp_mail( $to, 'Czat: prośba o kontakt ' . trim( $phone . ' ' . $email ), $body, $email ? array( 'Reply-To: ' . $email ) : array() );
+	return new WP_REST_Response( array( 'ok' => true, 'msg' => $phone ? 'Dziękujemy! Specjalista oddzwoni najszybciej, jak to możliwe (w godzinach pracy sklepu).' : 'Dziękujemy! Specjalista odpisze na podany e-mail najszybciej, jak to możliwe.' ), 200 );
 }
 
 /** Zdarzenia z dymku: klik w kartę, dodanie do koszyka. */

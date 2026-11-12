@@ -232,11 +232,12 @@
 			if (m.cbDone) {
 				f.innerHTML = '<p class="fx-ai__cb-ok">' + esc(m.cbDone) + '</p>';
 			} else {
-				f.innerHTML = '<strong>Zostaw numer – oddzwonimy</strong>' +
-					'<div class="fx-ai__cb-row"><input type="tel" name="phone" required placeholder="Telefon" autocomplete="tel" inputmode="tel" aria-label="Telefon"><input type="text" name="name" placeholder="Imię (opcjonalnie)" autocomplete="given-name" aria-label="Imię"></div>' +
+				f.innerHTML = '<strong>Zostaw kontakt – specjalista ze sklepu pomoże</strong>' +
+					'<div class="fx-ai__cb-row"><input type="tel" name="phone" placeholder="Telefon" autocomplete="tel" inputmode="tel" aria-label="Telefon"><input type="email" name="email" placeholder="albo e-mail" autocomplete="email" aria-label="E-mail"></div>' +
+					'<div class="fx-ai__cb-row"><input type="text" name="name" placeholder="Imię (opcjonalnie)" autocomplete="given-name" aria-label="Imię"></div>' +
 					'<input type="text" name="website" tabindex="-1" autocomplete="off" class="fx-ai__hp" aria-hidden="true">' +
-					'<button type="submit">Poproś o telefon</button>' +
-					'<small>Numer wykorzystamy tylko do kontaktu w tej sprawie' + (C.phone ? ' · albo zadzwoń: <a href="tel:' + esc(C.phone.replace(/[^\d+]/g, '')) + '">' + esc(C.phone) + '</a>' : '') + '</small><p class="fx-ai__cb-err" hidden></p>';
+					'<button type="submit">Poproś o kontakt</button>' +
+					'<small>Dane wykorzystamy tylko do kontaktu w tej sprawie' + (C.phone ? ' · albo zadzwoń: <a href="tel:' + esc(C.phone.replace(/[^\d+]/g, '')) + '">' + esc(C.phone) + '</a>' : '') + '</small><p class="fx-ai__cb-err" hidden></p>';
 				f.addEventListener('submit', function (e) { e.preventDefault(); callback(f, m); });
 			}
 			w.appendChild(f);
@@ -288,7 +289,7 @@
 	function callback(f, m) {
 		var btn = f.querySelector('button'), err = f.querySelector('.fx-ai__cb-err');
 		btn.disabled = true;
-		fetch(C.cb, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ sid: st.sid, phone: f.phone.value, name: f.name.value, website: f.website.value }) })
+		fetch(C.cb, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ sid: st.sid, phone: f.phone.value, email: f.email.value, name: f.name.value, website: f.website.value }) })
 			.then(function (r) { return r.json(); }).then(function (res) {
 				if (res && res.ok) {
 					m.cbDone = res.msg;
