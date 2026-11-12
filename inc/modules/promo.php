@@ -533,6 +533,9 @@ add_action( 'admin_post_fx_promo', function () {
 		}
 		fx_promo_schedule();
 	}
+	if ( function_exists( 'fx_pl_restart' ) ) {
+		fx_pl_restart(); // etykiety i filtr „Wielkość promocji” z nowymi % od razu
+	}
 	do_action( 'litespeed_purge_all' );
 	if ( function_exists( 'fx_cache_touch' ) ) {
 		fx_cache_touch();
@@ -559,6 +562,12 @@ function fx_promo_page() {
 		<h1>Przeceny</h1>
 		<p>Kampania rabatowa (np. Black Week) bez zapisu cen w produktach: w podanym czasie ceny w sklepie, w koszyku i w feedach są obniżone, po końcu wracają same. Każdy rozmiar dostaje <strong>największy pasujący rabat</strong>, liczony od ceny regularnej; jeśli produkt ma już głębszą promocję (np. z „Przecen Powerbike”), zostaje ta głębsza.</p>
 		<?php if ( $msg ) : ?><div class="notice notice-info"><p><?php echo esc_html( $msg ); ?></p></div><?php endif; ?>
+		<?php
+		$fx_prog = function_exists( 'fx_pl_progress' ) ? fx_pl_progress() : null;
+		if ( $fx_prog ) :
+			?>
+			<div class="notice notice-warning"><p><strong>Trwa przeliczanie etykiet i filtra „Wielkość promocji”</strong><?php echo $fx_prog[1] ? ': ' . (int) $fx_prog[0] . ' z ' . (int) $fx_prog[1] . ' produktów' : ''; ?>. W tym czasie kafelki liczą rabat na bieżąco (nowe %), po zakończeniu sklep sam wyczyści cache. Odśwież tę stronę, żeby zobaczyć postęp.</p></div>
+		<?php endif; ?>
 		<?php
 		$pbs_on = class_exists( 'PBS_Engine' );
 		if ( $pbs_on ) :

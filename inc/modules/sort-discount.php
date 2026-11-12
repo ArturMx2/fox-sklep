@@ -163,7 +163,8 @@ function fx_pl_start() {
 		$pp       = wp_get_post_parent_id( $id );
 		$par[ $pp ? $pp : $id ] = 1;
 	}
-	update_option( 'fx_pl_job', array( 'v' => 2, 'ids' => array_keys( $par ), 'i' => 0, 'map' => array(), 'data' => array(), 'camp' => array(), 'at' => time() ), false );
+	$psig = function_exists( 'fx_omni_promo_sig' ) ? fx_omni_promo_sig() : '';
+	update_option( 'fx_pl_job', array( 'v' => 2, 'ids' => array_keys( $par ), 'i' => 0, 'map' => array(), 'data' => array(), 'camp' => array(), 'at' => time(), 'psig' => $psig ), false );
 	if ( ! wp_next_scheduled( 'fx_pl_tick' ) ) {
 		wp_schedule_single_event( time() + 5, 'fx_pl_tick' );
 	}
@@ -195,7 +196,7 @@ add_action( 'fx_pl_tick', function () {
 	$GLOBALS['fx_pl_fresh'] = false;
 	if ( $job['i'] < $n ) {
 		update_option( 'fx_pl_job', $job, false );
-		wp_schedule_single_event( time() + 30, 'fx_pl_tick' );
+		wp_schedule_single_event( time() + 15, 'fx_pl_tick' );
 		return;
 	}
 	// Gotowe: podmiana mapy i pola do sortowania.
@@ -210,6 +211,7 @@ add_action( 'fx_pl_tick', function () {
 		wp_cache_flush_group( 'post_meta' );
 	}
 	delete_option( 'fx_pl_job' );
+	update_option( 'fx_pl_psig', (string) ( $job['psig'] ?? '' ), false ); // ustawienia Przecen, z którymi policzono dane
 	update_option( 'fx_pl_built', time(), false );
 	update_option( 'fx_disc_built', time(), false );
 	if ( function_exists( 'fx_cache_touch' ) ) {
@@ -239,6 +241,38 @@ add_action( 'init', function () {
 	}
 }, 40 );
 add_action( 'fx_pl_begin', 'fx_pl_start' );
+
+/** Po zapisaniu Przecen: przeliczenie etykiet od razu (przerywa przeliczanie ze starymi ustawieniami). */
+function fx_pl_restart() {
+	delete_option( 'fx_pl_job' );
+	wp_clear_scheduled_hook( 'fx_pl_tick' );
+	delete_option( 'fx_pl_sig' ); // ustawienia z tego żądania mogą być jeszcze stare – podpis policzy następne wczytanie
+	if ( ! wp_next_scheduled( 'fx_pl_begin' ) ) {
+		wp_schedule_single_event( time(), 'fx_pl_begin' );
+	}
+	if ( function_exists( 'spawn_cron' ) ) {
+		spawn_cron();
+	}
+}
+
+/** Gotowe dane liczone przy innych ustawieniach Przecen (np. zmieniony % – trwa przeliczanie). */
+function fx_pl_stale() {
+	static $st = null;
+	if ( null === $st ) {
+		$have = get_option( 'fx_pl_psig', false );
+		$st   = false !== $have && function_exists( 'fx_omni_promo_sig' ) && $have !== fx_omni_promo_sig();
+	}
+	return $st;
+}
+
+/** Stan przeliczania dla panelu Przecen: [ zrobione, wszystkie ] albo null (nie trwa). */
+function fx_pl_progress() {
+	$job = get_option( 'fx_pl_job' );
+	if ( is_array( $job ) && isset( $job['ids'] ) ) {
+		return array( (int) $job['i'], count( $job['ids'] ) );
+	}
+	return ( wp_next_scheduled( 'fx_pl_begin' ) || fx_pl_stale() ) ? array( 0, 0 ) : null;
+}
 add_action( 'fx_disc_rebuild_once', 'fx_disc_rebuild' );
 
 /** Gotowe wartości dla kafelka: [ max %, min %, kampania 0/1, najniższa cena z 30 dni ] – liczone raz, w tle. */
@@ -270,6 +304,9 @@ function fx_pl_row( $id ) {
 		$data = (array) get_option( 'fx_pl_data', array() );
 		$map  = (array) get_option( 'fx_pl_map', array() );
 		$busy = (bool) get_option( 'fx_pl_job' );
+	}
+	if ( fx_pl_stale() ) {
+		return false; // zmienione ustawienia Przecen – do końca przeliczenia liczymy na żywo (bez starych %)
 	}
 	if ( isset( $data[ $id ] ) ) {
 		return $data[ $id ];

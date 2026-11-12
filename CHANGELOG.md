@@ -1,5 +1,12 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.45.2 – 2026-11-12
+
+- Przeceny: po zmianie % (np. „z półki” 30 → 23%) kafelki w kategoriach pokazywały stary rabat do końca przeliczania w tle.
+  - Zapis Przecen od razu uruchamia przeliczanie od nowa (przerywa trwające ze starymi ustawieniami).
+  - Dopóki dane w tle są ze starych ustawień, kafelki liczą rabat na bieżąco – nowe % widać od razu.
+  - W panelu Przecen widać postęp przeliczania („X z Y produktów”); porcje co 15 s zamiast 30 s.
+
 ## 3.45.1 – 2026-11-12
 
 - Wyszukiwarka – statystyki konwersji: ciasteczka `fx_sid` i `fx_sq` były usuwane przy każdym wczytaniu strony (skrypt zgód), więc „Do koszyka”, „Zamówienia” i „Sprzedaż z wyszukiwarki” prawie zawsze wychodziły 0, a „Osoby szukające” były zawyżone (nowa sesja na każdej stronie).
