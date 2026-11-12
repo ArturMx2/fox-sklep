@@ -334,23 +334,38 @@
 		var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
 		return m ? decodeURIComponent(m[1]) : '';
 	}
+	/*
+	 * Uwaga: ciasteczka fx_* znikały przy każdym wczytaniu strony (usuwa je skrypt zgód), dlatego
+	 * identyfikator sesji trzymamy w sessionStorage, a kliknięcia z wyszukiwarki w localStorage.
+	 */
+	function store(kind) { try { return window[kind]; } catch (e) { return null; } }
 	function sid() {
-		var v = cookie('fx_sid');
+		var ss = store('sessionStorage'), v = '';
+		try { v = (ss && ss.getItem('fx_sid')) || cookie('fx_sid'); } catch (e) { v = cookie('fx_sid'); }
 		if (!/^[a-z0-9]{12,16}$/.test(v)) {
 			v = (Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)).replace(/[^a-z0-9]/g, '').slice(0, 14);
-			document.cookie = 'fx_sid=' + v + ';path=/;SameSite=Lax';
 		}
+		try { if (ss) { ss.setItem('fx_sid', v); } } catch (e) { /* tryb prywatny */ }
+		document.cookie = 'fx_sid=' + v + ';path=/;SameSite=Lax';
 		return v;
 	}
+	var WEEK = 604800000;
 	function clicks() {
-		var out = [];
-		cookie('fx_sq').split('|').forEach(function (x) { var p = x.split('~'); if (p.length === 2 && /^\d+$/.test(p[0])) { out.push([p[0], p[1]]); } });
+		var out = [], ls = store('localStorage'), raw = null;
+		try { raw = ls && JSON.parse(ls.getItem('fx_sq') || 'null'); } catch (e) { raw = null; }
+		if (Array.isArray(raw)) {
+			raw.forEach(function (x) { if (Array.isArray(x) && /^\d+$/.test(x[0]) && Date.now() - (+x[2] || 0) < WEEK) { out.push([String(x[0]), String(x[1]), +x[2]]); } });
+		} else {
+			cookie('fx_sq').split('|').forEach(function (x) { var p = x.split('~'); if (p.length === 2 && /^\d+$/.test(p[0])) { out.push([p[0], p[1], Date.now()]); } });
+		}
 		return out;
 	}
 	function remember(pid, q) {
 		var list = clicks().filter(function (x) { return x[0] !== String(pid); });
-		list.unshift([String(pid), String(q).replace(/[|~;]/g, ' ').slice(0, 60)]);
-		document.cookie = 'fx_sq=' + encodeURIComponent(list.slice(0, 10).map(function (x) { return x[0] + '~' + x[1]; }).join('|')) + ';path=/;max-age=604800;SameSite=Lax';
+		list.unshift([String(pid), String(q).replace(/[|~;]/g, ' ').slice(0, 60), Date.now()]);
+		list = list.slice(0, 10);
+		try { var ls = store('localStorage'); if (ls) { ls.setItem('fx_sq', JSON.stringify(list)); } } catch (e) { /* tryb prywatny */ }
+		document.cookie = 'fx_sq=' + encodeURIComponent(list.map(function (x) { return x[0] + '~' + x[1]; }).join('|')) + ';path=/;max-age=604800;SameSite=Lax';
 	}
 	function qFor(pid) {
 		var q = '';
@@ -557,9 +572,23 @@
 			var f = e.target.closest && e.target.closest('form.cart');
 			if (!f) { return; }
 			var b = f.querySelector('[name="add-to-cart"]'), pid = b && b.value;
-			if (pid) { cartLog(pid); }
+			if (pid) {
+				cartLog(pid);
+				// Fraza jedzie razem z formularzem – serwer zapisuje ją w sesji koszyka (do przypisania zamówienia).
+				var q = qFor(pid), h = f.querySelector('input[name="fx_sq_q"]');
+				if (q) {
+					if (!h) { h = document.createElement('input'); h.type = 'hidden'; h.name = 'fx_sq_q'; f.appendChild(h); }
+					h.value = q;
+				}
+			}
 		}, true);
 		if (window.jQuery) {
+			// Dodanie do koszyka przez AJAX (listy, okienka): fraza w danych żądania.
+			window.jQuery(document.body).on('adding_to_cart', function (e, btn, data) {
+				var pid = data && (data.product_id || data['add-to-cart']);
+				var q = pid ? qFor(pid) : '';
+				if (q) { data.fx_sq_q = q; }
+			});
 			window.jQuery(document.body).on('added_to_cart', function (e, frags, hash, btn) {
 				var pid = btn && (btn.data ? btn.data('product_id') : '');
 				if (pid) { cartLog(pid); }

@@ -1291,21 +1291,43 @@ function fx_srch_sid( $v ) {
 }
 
 /*
- * Zamówienie: produkty kliknięte wcześniej z wyszukiwarki (ciasteczko fx_sq, 7 dni) → wpis „order”
+ * Dodanie do koszyka produktu znalezionego wyszukiwarką: fraza (pole fx_sq_q z formularza / żądania AJAX)
+ * trafia do sesji koszyka WooCommerce – nie zależy od ciasteczek przeglądarki.
+ */
+add_action( 'woocommerce_add_to_cart', function ( $key, $pid ) {
+	// phpcs:ignore WordPress.Security.NonceVerification
+	$q = isset( $_REQUEST['fx_sq_q'] ) ? mb_substr( trim( mb_strtolower( sanitize_text_field( wp_unslash( $_REQUEST['fx_sq_q'] ) ), 'UTF-8' ) ), 0, 100 ) : '';
+	if ( '' === $q || ! function_exists( 'WC' ) || ! WC()->session ) {
+		return;
+	}
+	$map = (array) WC()->session->get( 'fx_sq', array() );
+	$map[ (int) $pid ] = $q;
+	WC()->session->set( 'fx_sq', array_slice( $map, -20, null, true ) );
+}, 10, 2 );
+
+/*
+ * Zamówienie: produkty dodane do koszyka z wyszukiwarki (sesja koszyka; zapasowo ciasteczko fx_sq) → wpis „order”
  * z frazą i wartością pozycji. Fraza trafia też do zamówienia (pole _fx_search_terms).
  */
 function fx_srch_order_log( $order ) {
 	if ( is_numeric( $order ) ) {
 		$order = wc_get_order( $order );
 	}
-	if ( ! $order instanceof WC_Order || $order->get_meta( '_fx_search_terms' ) || empty( $_COOKIE['fx_sq'] ) ) { // phpcs:ignore
+	if ( ! $order instanceof WC_Order || $order->get_meta( '_fx_search_terms' ) ) {
 		return;
 	}
 	$map = array();
-	foreach ( explode( '|', sanitize_text_field( wp_unslash( $_COOKIE['fx_sq'] ) ) ) as $pair ) { // phpcs:ignore
-		$p = explode( '~', $pair, 2 );
-		if ( 2 === count( $p ) && ctype_digit( $p[0] ) && ! isset( $map[ (int) $p[0] ] ) ) {
-			$map[ (int) $p[0] ] = mb_substr( mb_strtolower( trim( $p[1] ) ), 0, 100 );
+	if ( function_exists( 'WC' ) && WC()->session ) {
+		foreach ( (array) WC()->session->get( 'fx_sq', array() ) as $id => $q ) {
+			$map[ (int) $id ] = (string) $q;
+		}
+	}
+	if ( ! empty( $_COOKIE['fx_sq'] ) ) { // phpcs:ignore
+		foreach ( explode( '|', sanitize_text_field( wp_unslash( $_COOKIE['fx_sq'] ) ) ) as $pair ) { // phpcs:ignore
+			$p = explode( '~', $pair, 2 );
+			if ( 2 === count( $p ) && ctype_digit( $p[0] ) && ! isset( $map[ (int) $p[0] ] ) ) {
+				$map[ (int) $p[0] ] = mb_substr( mb_strtolower( trim( $p[1] ) ), 0, 100 );
+			}
 		}
 	}
 	if ( ! $map ) {
@@ -1339,7 +1361,10 @@ function fx_srch_order_log( $order ) {
 	if ( $terms ) {
 		$order->update_meta_data( '_fx_search_terms', implode( ', ', array_keys( $terms ) ) );
 		$order->save();
-		setcookie( 'fx_sq', '', time() - 3600, COOKIEPATH ? COOKIEPATH : '/', COOKIE_DOMAIN ); // jedno zamówienie = jedno przypisanie
+		if ( function_exists( 'WC' ) && WC()->session ) {
+			WC()->session->set( 'fx_sq', array() ); // jedno zamówienie = jedno przypisanie
+		}
+		setcookie( 'fx_sq', '', time() - 3600, COOKIEPATH ? COOKIEPATH : '/', COOKIE_DOMAIN );
 	}
 }
 add_action( 'woocommerce_checkout_order_processed', 'fx_srch_order_log', 20 );

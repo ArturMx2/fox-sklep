@@ -1,5 +1,12 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.45.1 – 2026-11-12
+
+- Wyszukiwarka – statystyki konwersji: ciasteczka `fx_sid` i `fx_sq` były usuwane przy każdym wczytaniu strony (skrypt zgód), więc „Do koszyka”, „Zamówienia” i „Sprzedaż z wyszukiwarki” prawie zawsze wychodziły 0, a „Osoby szukające” były zawyżone (nowa sesja na każdej stronie).
+  - Sesja przeglądarki w sessionStorage, kliknięte z wyszukiwarki produkty (7 dni) w localStorage; ciasteczka zostają tylko jako zapas.
+  - Dodanie do koszyka (formularz produktu i AJAX) wysyła frazę do serwera, który zapisuje ją w sesji koszyka WooCommerce; zamówienie przypisuje frazę z sesji koszyka (zapasowo z ciasteczka).
+  - Dane sprzed aktualizacji nie da się odtworzyć – liczby wiarygodne od dnia wgrania.
+
 ## 3.45.0
 - Asystent AI wydzielony z motywu do osobnej wtyczki „FOX – Asystent AI” (źródło w repozytorium: tools/fox-asystent-ai). Motyw nie zawiera już asystenta (inc/modules/assistant, assets/js/assistant.js, assets/css/assistant.css). Wtyczka używa tych samych ustawień i tabel – rozmowy, statystyki i instrukcje zostają. Kolejność: najpierw motyw 3.45.0, potem wtyczka (przy starszym motywie wtyczka czeka i pokazuje komunikat, bez błędu).
 
