@@ -1,5 +1,12 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.45.3 – 2026-11-13
+
+- Przeceny: przeliczanie etykiet w kategoriach nie startowało, gdy WP-Cron nie uruchamiał zadań (komunikat „Trwa przeliczanie…” bez postępu, w kategoriach stare %).
+  - Przeliczanie rusza samo po wejściu na stronę Przecen i liczy porcjami z przeglądarki administratora (postęp „X z Y”, przycisk „Przelicz teraz”); na koniec czyści cache stron.
+  - Do końca przeliczenia kafelki liczą rabat na bieżąco – także przy danych sprzed 3.45.2.
+  - Zabezpieczenie przed równoczesnym liczeniem z crona i z panelu.
+
 ## 3.45.2 – 2026-11-12
 
 - Przeceny: po zmianie % (np. „z półki” 30 → 23%) kafelki w kategoriach pokazywały stary rabat do końca przeliczania w tle.

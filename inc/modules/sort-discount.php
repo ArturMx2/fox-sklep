@@ -170,16 +170,25 @@ function fx_pl_start() {
 	}
 }
 
-add_action( 'fx_pl_tick', function () {
+/**
+ * Jedna porcja przeliczania (do $budget sekund). Zwraca [ zrobione, wszystkie, gotowe ] albo null (brak zadania).
+ * Wołana z WP-Cron (fx_pl_tick) albo z panelu Przecen (przycisk „Przelicz teraz” – bez czekania na cron).
+ */
+function fx_pl_step( $budget = 8 ) {
 	global $wpdb;
+	if ( get_transient( 'fx_pl_lock' ) ) {
+		$job = get_option( 'fx_pl_job' );
+		return is_array( $job ) && isset( $job['ids'] ) ? array( (int) $job['i'], count( $job['ids'] ), false ) : null;
+	}
 	$job = get_option( 'fx_pl_job' );
 	if ( ! is_array( $job ) || ! isset( $job['ids'] ) ) {
-		return;
+		return null;
 	}
+	set_transient( 'fx_pl_lock', 1, (int) $budget + 30 );
 	$t0 = microtime( true );
 	$n  = count( $job['ids'] );
 	$GLOBALS['fx_pl_fresh'] = true; // liczymy od zera, bez gotowych wartości
-	while ( $job['i'] < $n && microtime( true ) - $t0 < 8 ) { // krótkie porcje, żeby nie obciążać sklepu
+	while ( $job['i'] < $n && microtime( true ) - $t0 < $budget ) { // krótkie porcje, żeby nie obciążać sklepu
 		$p = wc_get_product( $job['ids'][ $job['i'] ] );
 		$job['i']++;
 		if ( $p && 'publish' === $p->get_status() && function_exists( 'fx_pl_compute' ) ) {
@@ -196,8 +205,8 @@ add_action( 'fx_pl_tick', function () {
 	$GLOBALS['fx_pl_fresh'] = false;
 	if ( $job['i'] < $n ) {
 		update_option( 'fx_pl_job', $job, false );
-		wp_schedule_single_event( time() + 15, 'fx_pl_tick' );
-		return;
+		delete_transient( 'fx_pl_lock' );
+		return array( (int) $job['i'], $n, false );
 	}
 	// Gotowe: podmiana mapy i pola do sortowania.
 	update_option( 'fx_pl_map', $job['map'], false );
@@ -214,9 +223,40 @@ add_action( 'fx_pl_tick', function () {
 	update_option( 'fx_pl_psig', (string) ( $job['psig'] ?? '' ), false ); // ustawienia Przecen, z którymi policzono dane
 	update_option( 'fx_pl_built', time(), false );
 	update_option( 'fx_disc_built', time(), false );
+	wp_clear_scheduled_hook( 'fx_pl_tick' );
+	delete_transient( 'fx_pl_lock' );
 	if ( function_exists( 'fx_cache_touch' ) ) {
 		fx_cache_touch();
 	}
+	return array( $n, $n, true );
+}
+
+add_action( 'fx_pl_tick', function () {
+	$r = fx_pl_step( 8 );
+	if ( $r && ! $r[2] ) {
+		wp_schedule_single_event( time() + 15, 'fx_pl_tick' );
+	}
+} );
+
+/* Panel Przecen: przeliczanie porcjami z przeglądarki administratora (nie zależy od WP-Cron). */
+add_action( 'wp_ajax_fx_pl_run', function () {
+	if ( ! current_user_can( 'manage_woocommerce' ) || ! check_ajax_referer( 'fx_pl_run', 'nonce', false ) ) {
+		wp_send_json_error( 'Brak uprawnień.', 403 );
+	}
+	if ( ! get_option( 'fx_pl_job' ) ) {
+		wp_clear_scheduled_hook( 'fx_pl_begin' );
+		update_option( 'fx_pl_sig', fx_pl_sig(), false );
+		fx_pl_start();
+	}
+	$r = fx_pl_step( 8 );
+	if ( ! $r ) {
+		wp_send_json_success( array( 'i' => 0, 'n' => 0, 'done' => true ) );
+	}
+	if ( $r[2] && function_exists( 'fx_flush_caches' ) ) {
+		fx_flush_caches(); // od razu, bez czekania na cron
+		do_action( 'litespeed_purge_all' );
+	}
+	wp_send_json_success( array( 'i' => $r[0], 'n' => $r[1], 'done' => $r[2] ) );
 } );
 
 add_action( 'init', function () {
@@ -260,7 +300,12 @@ function fx_pl_stale() {
 	static $st = null;
 	if ( null === $st ) {
 		$have = get_option( 'fx_pl_psig', false );
-		$st   = false !== $have && function_exists( 'fx_omni_promo_sig' ) && $have !== fx_omni_promo_sig();
+		if ( false === $have ) {
+			// Dane sprzed wersji z podpisem: za nieaktualne uznajemy je tylko, gdy czeka / trwa przeliczanie.
+			$st = (bool) ( get_option( 'fx_pl_job' ) || wp_next_scheduled( 'fx_pl_begin' ) );
+		} else {
+			$st = function_exists( 'fx_omni_promo_sig' ) && $have !== fx_omni_promo_sig();
+		}
 	}
 	return $st;
 }

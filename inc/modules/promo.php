@@ -565,8 +565,24 @@ function fx_promo_page() {
 		<?php
 		$fx_prog = function_exists( 'fx_pl_progress' ) ? fx_pl_progress() : null;
 		if ( $fx_prog ) :
+			$fx_due  = wp_next_scheduled( 'fx_pl_begin' );
+			$fx_late = ! $fx_prog[1] && $fx_due && $fx_due < time() - 120;
 			?>
-			<div class="notice notice-warning"><p><strong>Trwa przeliczanie etykiet i filtra „Wielkość promocji”</strong><?php echo $fx_prog[1] ? ': ' . (int) $fx_prog[0] . ' z ' . (int) $fx_prog[1] . ' produktów' : ''; ?>. W tym czasie kafelki liczą rabat na bieżąco (nowe %), po zakończeniu sklep sam wyczyści cache. Odśwież tę stronę, żeby zobaczyć postęp.</p></div>
+			<div class="notice notice-warning" id="fx-pl-box" data-nonce="<?php echo esc_attr( wp_create_nonce( 'fx_pl_run' ) ); ?>" data-auto="1">
+				<p><strong>Etykiety rabatu w kategoriach i filtr „Wielkość promocji” czekają na przeliczenie</strong> <span id="fx-pl-st"><?php echo $fx_prog[1] ? '– ' . (int) $fx_prog[0] . ' z ' . (int) $fx_prog[1] . ' produktów' : ''; ?></span></p>
+				<p><button type="button" class="button button-primary" id="fx-pl-go">Przelicz teraz</button> <span class="description">Przeliczanie rusza samo po wejściu na tę stronę i liczy porcjami – nie zamykaj jej do końca. Kafelki do tego czasu liczą rabat na bieżąco.</span></p>
+				<?php if ( $fx_late ) : ?><p class="description">Zadanie w tle nie wystartowało (WP-Cron nie uruchamia zadań) – przeliczanie ruszyło z tej strony.</p><?php endif; ?>
+			</div>
+			<script>
+			(function(){var box=document.getElementById('fx-pl-box');if(!box)return;var b=document.getElementById('fx-pl-go'),st=document.getElementById('fx-pl-st'),run=false;
+			function step(){var fd=new FormData();fd.append('action','fx_pl_run');fd.append('nonce',box.dataset.nonce);
+			fetch(ajaxurl,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json()}).then(function(r){
+			if(!r||!r.success){throw new Error((r&&r.data)||'błąd')}var d=r.data;
+			if(d.done){st.textContent='– gotowe. Cache stron wyczyszczony.';b.textContent='Gotowe';box.className='notice notice-success';return}
+			st.textContent='– '+d.i+' z '+d.n+' produktów…';setTimeout(step,300)}).catch(function(e){st.textContent='– przerwane ('+e.message+'), kliknij ponownie.';b.disabled=false;run=false})}
+			function go(){if(run)return;run=true;b.disabled=true;b.textContent='Przeliczam…';step()}
+			b.addEventListener('click',go);if(box.dataset.auto==='1'){go()}})();
+			</script>
 		<?php endif; ?>
 		<?php
 		$pbs_on = class_exists( 'PBS_Engine' );
