@@ -42,12 +42,14 @@ function fx_home_seo_defaults( $home ) {
 		'hub_moto_links'   => "Kaski Fox na crossa i enduro | {$home}{$c}off-road/kaski/\nStroje na crossa Fox | {$home}{$c}off-road/odziez-motocross/stroj-na-crossa/\nButy crossowe Fox | {$home}{$c}off-road/buty/\nZbroje i ochraniacze na crossa | {$home}{$c}off-road/ochraniacze/\nGogle crossowe Fox | {$home}{$c}off-road/gogle/\nRękawice na crossa | {$home}{$c}off-road/rekawiczki-fox/\nOdzież enduro i motocross | {$home}{$c}off-road/odziez-motocross/\nAkcesoria na crossa | {$home}{$c}off-road/akcesoria/",
 		'hub_rower_title'  => 'Odzież rowerowa i kaski MTB',
 		'hub_rower_sub'    => 'Sprzęt Fox na enduro, trail i downhill.',
-		'hub_rower_links'  => "Odzież rowerowa Fox MTB | {$home}{$c}rowerowy/\nKaski rowerowe MTB | {$home}{$c}rowerowy/kaski-odziez-mtb/\nKaski full face Proframe | {$home}{$c}rowerowy/kaski-odziez-mtb/kaski-full-face/proframe/\nOchraniacze rowerowe | {$home}{$c}rowerowy/ochraniacze-akcesoria-rowerowy/\nButy rowerowe Fox Union | {$home}{$c}rowerowy/buty-rowerowe-fox-union/\nAkcesoria rowerowe Fox | {$home}{$c}rowerowy/akcesoria-rowerowy/",
+		'hub_rower_links'  => "Odzież rowerowa Fox MTB | {$home}{$c}rowerowy/\nKaski rowerowe MTB | {$home}{$c}rowerowy/kaski-odziez-mtb/\nKaski full face Proframe | {$home}{$c}rowerowy/kaski-odziez-mtb/kaski-full-face/proframe/\nKoszulki rowerowe Fox | {$home}{$c}rowerowy/odziez-mtb/koszulki-odziez-mtb/\nRękawice rowerowe Fox | {$home}{$c}rowerowy/rekawice-akcesoria-rowerowy/\nOchraniacze rowerowe | {$home}{$c}rowerowy/ochraniacze-akcesoria-rowerowy/\nButy rowerowe Fox Union | {$home}{$c}rowerowy/buty-rowerowe-fox-union/\nAkcesoria rowerowe Fox | {$home}{$c}rowerowy/akcesoria-rowerowy/",
 		'hub_casual_title' => 'Odzież FOX na co dzień',
 		'hub_casual_sub'   => 'Bluzy, kurtki, koszulki i czapki z kolekcji casual.',
 		'hub_casual_links' => "Bluzy Fox | {$home}{$c}fox/odziez/bluzy-odziez-codz/\nKurtki Fox | {$home}{$c}fox/kurtki-fox/\nKoszulki Fox | {$home}{$c}fox/odziez/koszulki-odziez-codz/\nCzapki Fox | {$home}{$c}fox/akcesoria-odziez-codz/czapki-akcesoria-odziez-codz/\nWyprzedaż i outlet Fox | {$home}{$c}wyprzedaz/",
 		'new_title_moto'   => 'Nowości na crossa i enduro',
-		'new_title_rower'  => 'Nowości rowerowe Fox MTB',
+		'new_title_rower'  => 'Najpopularniejsze produkty rowerowe Fox MTB',
+		'new_source_moto'  => '',        // puste = jak „Które produkty pokazać”
+		'new_source_rower' => 'popular', // najczęściej kupowane
 		'explore_title'    => 'Odkrywaj kolekcje FOX',
 		'faq_on'           => true,
 		'faq_title'        => 'Najczęstsze pytania',
@@ -100,6 +102,10 @@ add_action( 'customize_register', function ( $wp ) {
 	}
 	$add( 'new_title_moto', 'fx_home_new', 'Tytuł produktów – Moto' );
 	$add( 'new_title_rower', 'fx_home_new', 'Tytuł produktów – Rower' );
+	foreach ( array( 'moto' => 'Moto', 'rower' => 'Rower' ) as $k => $l ) {
+		$wp->add_setting( "fx_new_source_{$k}", array( 'default' => $d[ "new_source_{$k}" ] ?? '', 'sanitize_callback' => 'fx_sanitize_source_world' ) );
+		$wp->add_control( "fx_new_source_{$k}", array( 'section' => 'fx_home_new', 'label' => "Które produkty – {$l}", 'type' => 'select', 'choices' => array( '' => 'Jak w ustawieniu ogólnym', 'date' => 'Najnowsze produkty', 'popular' => 'Najpopularniejsze (najczęściej kupowane)', 'sale' => 'Produkty w promocji', 'featured' => 'Produkty polecane (gwiazdka)', 'tag' => 'Produkty z tagiem' ) ) );
+	}
 	$add( 'faq_on', 'fx_home_faq', 'Pokaż sekcję', 'checkbox' );
 	$add( 'faq_title', 'fx_home_faq', 'Tytuł sekcji' );
 	$add( 'faq', 'fx_home_faq', 'Pytania („Pytanie | Odpowiedź”, jedna para na linię; w odpowiedzi można użyć linków)', 'html' );
@@ -261,3 +267,25 @@ function fx_home_term_image( $term ) {
 	set_transient( $key, $id, DAY_IN_SECONDS );
 	return $id;
 }
+
+/*
+ * Jednorazowo (listopad 2026): Rower na głównej – najpopularniejsze zamiast nowości i 8 kafelków kategorii.
+ * Zmienia tylko wartości zapisane w Dostosuj, które są jeszcze starymi domyślnymi.
+ */
+add_action( 'admin_init', function () {
+	if ( get_option( 'fx_home_mig_2611' ) ) {
+		return;
+	}
+	update_option( 'fx_home_mig_2611', 1, false );
+	if ( 'Nowości rowerowe Fox MTB' === get_theme_mod( 'fx_new_title_rower' ) ) {
+		set_theme_mod( 'fx_new_title_rower', 'Najpopularniejsze produkty rowerowe Fox MTB' );
+	}
+	$links = get_theme_mod( 'fx_hub_rower_links' );
+	if ( is_string( $links ) && '' !== trim( $links ) && false === strpos( $links, 'koszulki-odziez-mtb' ) ) {
+		$home  = trailingslashit( home_url() );
+		$add   = "Koszulki rowerowe Fox | {$home}kategoria-produktu/rowerowy/odziez-mtb/koszulki-odziez-mtb/\nRękawice rowerowe Fox | {$home}kategoria-produktu/rowerowy/rekawice-akcesoria-rowerowy/";
+		$lines = preg_split( '/\r\n|\r|\n/', trim( $links ) );
+		array_splice( $lines, min( 3, count( $lines ) ), 0, explode( "\n", $add ) ); // po „Kaski full face Proframe”
+		set_theme_mod( 'fx_hub_rower_links', implode( "\n", $lines ) );
+	}
+} );

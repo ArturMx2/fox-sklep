@@ -183,7 +183,12 @@ function fx_sanitize_fonts( $v ) {
 	return in_array( $v, array( 'google', 'system' ), true ) ? $v : 'google';
 }
 function fx_sanitize_source( $v ) {
-	return in_array( $v, array( 'date', 'tag', 'sale', 'featured' ), true ) ? $v : 'date';
+	return in_array( $v, array( 'date', 'tag', 'sale', 'featured', 'popular' ), true ) ? $v : 'date';
+}
+
+/** Źródło produktów dla jednego świata (Moto / Rower): puste = jak w ustawieniu ogólnym. */
+function fx_sanitize_source_world( $v ) {
+	return '' === $v ? '' : fx_sanitize_source( $v );
 }
 
 add_action( 'customize_register', 'fx_customize' );
@@ -255,6 +260,7 @@ function fx_customize( $wp ) {
 				'tag'      => 'Produkty z tagiem (poniżej)',
 				'sale'     => 'Produkty w promocji',
 				'featured' => 'Produkty polecane (gwiazdka)',
+				'popular'  => 'Najpopularniejsze (najczęściej kupowane)',
 			);
 		} elseif ( 'world' === $type ) {
 			$base['type']    = 'select';

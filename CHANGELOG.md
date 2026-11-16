@@ -1,5 +1,12 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.46.0 – 2026-11-16
+
+- Strona główna, Rower: zamiast nowości – najpopularniejsze produkty (najczęściej kupowane), tytuł „Najpopularniejsze produkty rowerowe Fox MTB”.
+  - Dostosuj → Strona główna → Produkty: osobny wybór „Które produkty – Moto / Rower” (nowe źródło „Najpopularniejsze”). Moto bez zmian (nowości).
+- Kafelki kategorii Rower: 8 zamiast 6 – doszły „Koszulki rowerowe Fox” i „Rękawice rowerowe Fox”.
+- Jednorazowa zmiana zapisanych ustawień: podmienia tylko stary tytuł „Nowości rowerowe Fox MTB” i dopisuje 2 kafelki (gdy jeszcze ich nie ma).
+
 ## 3.45.3 – 2026-11-13
 
 - Przeceny: przeliczanie etykiet w kategoriach nie startowało, gdy WP-Cron nie uruchamiał zadań (komunikat „Trwa przeliczanie…” bez postępu, w kategoriach stare %).

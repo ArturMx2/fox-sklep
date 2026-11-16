@@ -158,18 +158,23 @@ if ( $fx_worlds ) {
 <?php /* ---------- Produkty ---------- */ ?>
 <?php
 if ( class_exists( 'WooCommerce' ) && fx_mod( 'new_on' ) ) :
-	$count  = max( 3, min( 12, (int) fx_mod( 'new_count' ) ) );
-	$source = fx_mod( 'new_source' );
-	$atts   = 'limit="' . $count . '" columns="3"';
-	if ( 'tag' === $source && fx_mod( 'new_tag' ) ) {
-		$atts .= ' visibility="visible" tag="' . esc_attr( sanitize_title( fx_mod( 'new_tag' ) ) ) . '" orderby="date" order="DESC"';
-	} elseif ( 'sale' === $source ) {
-		$atts .= ' visibility="visible" on_sale="true"';
-	} elseif ( 'featured' === $source ) {
-		$atts .= ' visibility="featured"';
-	} else {
-		$atts .= ' visibility="visible" orderby="date" order="DESC"';
-	}
+	$count = max( 3, min( 12, (int) fx_mod( 'new_count' ) ) );
+	// Atrybuty listy produktów dla źródła (ogólne albo osobne dla Moto / Rower).
+	$fx_atts = function ( $source ) use ( $count ) {
+		$atts = 'limit="' . $count . '" columns="3"';
+		if ( 'tag' === $source && fx_mod( 'new_tag' ) ) {
+			$atts .= ' visibility="visible" tag="' . esc_attr( sanitize_title( fx_mod( 'new_tag' ) ) ) . '" orderby="date" order="DESC"';
+		} elseif ( 'sale' === $source ) {
+			$atts .= ' visibility="visible" on_sale="true"';
+		} elseif ( 'featured' === $source ) {
+			$atts .= ' visibility="featured"';
+		} elseif ( 'popular' === $source ) {
+			$atts .= ' visibility="visible" orderby="popularity"';
+		} else {
+			$atts .= ' visibility="visible" orderby="date" order="DESC"';
+		}
+		return $atts;
+	};
 	$rows = array( array( '', '', '' ) );
 	if ( $fx_worlds && fx_mod( 'new_split' ) ) {
 		$rows = array();
@@ -195,7 +200,10 @@ if ( class_exists( 'WooCommerce' ) && fx_mod( 'new_on' ) ) :
 			<a class="fx-btn fx-btn--outline fx-btn--sm" href="<?php echo esc_url( fx_mod( 'new_btn_url' ) ); ?>"><?php echo esc_html( fx_mod( 'new_btn_label' ) ); ?></a>
 		<?php endif; ?>
 	</div>
-	<?php echo do_shortcode( '[products ' . $atts . ( $slug ? ' category="' . esc_attr( $slug ) . '"' : '' ) . ']' ); ?>
+	<?php
+	$fx_src = $w && fx_mod( "new_source_{$w}" ) ? fx_mod( "new_source_{$w}" ) : fx_mod( 'new_source' );
+	echo do_shortcode( '[products ' . $fx_atts( $fx_src ) . ( $slug ? ' category="' . esc_attr( $slug ) . '"' : '' ) . ']' );
+	?>
 </section>
 		<?php
 	endforeach;
