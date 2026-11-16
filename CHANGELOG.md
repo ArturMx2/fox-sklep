@@ -1,5 +1,11 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.47.0 – 2026-11-16
+
+- Karta produktu – rekomendowany serwis (kategoria Amortyzatory FOX z podkategoriami): ramka „Rekomendowany serwis amortyzatorów FOX” – Tucan Bike, „Autoryzowany serwis amortyzacji”, ocena 5,0 w Google Maps, opis, przyciski „Zadzwoń” i „Zleć serwis online”, adres (link do mapy), godziny, e-mail, strona.
+- Pomiar kliknięć (Zadzwoń, Zleć serwis, mapa, strona, e-mail) – telefon i komputer osobno, 7 / 30 / 90 dni i ostatnie dni; zdarzenie GA4 `service_click` (`click_type`).
+- WooCommerce → Serwis (rekomendacja): statystyki i ustawienia (dane serwisu, ocena, kategorie, włącz/wyłącz).
+
 ## 3.46.0 – 2026-11-16
 
 - Strona główna, Rower: zamiast nowości – najpopularniejsze produkty (najczęściej kupowane), tytuł „Najpopularniejsze produkty rowerowe Fox MTB”.

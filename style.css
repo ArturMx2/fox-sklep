@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.46.0
+Version: 3.47.0
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -678,6 +678,21 @@ a.fx-cbar__txt[href]:hover{text-decoration:underline}
 .fx-ask__msg.is-error{color:#c0392b}
 .fx-ask__tel{margin:10px 0 0;font-size:14px;color:var(--fx-muted)}
 .fx-ask__tel a{color:inherit;font-weight:700}
+/* Rekomendowany serwis (np. amortyzatory) */
+.fx-svc{margin:18px 0 22px;padding:18px 20px;border:1px solid var(--fx-line);border-radius:12px;background:var(--fx-soft)}
+.fx-svc__kicker{margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fx-muted)}
+.fx-svc__head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.fx-svc__name{font:500 22px/1.15 var(--fx-display)}
+.fx-svc__badge{font-size:12px;font-weight:700;padding:3px 9px;border-radius:var(--fx-pill);background:var(--fx-ink);color:var(--fx-white)}
+.fx-svc__rating{display:inline-flex;align-items:center;gap:6px;margin:8px 0 0;font-size:14px;color:var(--fx-ink-2)}
+.fx-svc__rating:hover{color:var(--fx-ink)}
+.fx-svc__stars{color:#E8A317;letter-spacing:1px;font-size:16px}
+.fx-svc__text{margin:10px 0 0;font-size:14px;color:var(--fx-ink-2)}
+.fx-svc__btns{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0}
+.fx-svc__btns .fx-btn{flex:1 1 220px;justify-content:center;text-align:center;white-space:nowrap}
+.fx-svc__info{list-style:none;margin:14px 0 0;padding:12px 0 0;border-top:1px solid var(--fx-line);font-size:14px;display:grid;gap:4px}
+.fx-svc__info span{display:inline-block;min-width:68px;color:var(--fx-muted)}
+.fx-svc__info a{text-decoration:underline;text-underline-offset:2px}
 .fx-ask-price{font-weight:700}
 .fx-hp{position:absolute!important;left:-9999px!important;width:1px;height:1px;opacity:0}
 
