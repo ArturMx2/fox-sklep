@@ -1,5 +1,12 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.48.0 – 2026-11-17
+
+- „Bez Paczkomatu” dla gabarytów (jak na enduro.sklep.pl): Dostosuj → Narzędzia sklepu → „Bez Paczkomatu – frazy w nazwie produktu” (jedna w linii, puste = wyłączone).
+  - Produkt z frazą w nazwie (także nazwa produktu głównego wariantu, bez wielkości liter) → w koszyku i zamówieniu znika „Paczkomat InPost” (inpost_paczkomaty), zostaje kurier i odbiór osobisty; bezpiecznik – gdyby nie została żadna metoda, stawki bez zmian.
+  - Komunikaty: karta produktu („wysyłamy kurierem…”), koszyk i zamówienie (lista gabarytów, odświeżana z podsumowaniem).
+  - Zmiana fraz przelicza stawki od razu, także w otwartych koszykach.
+
 ## 3.47.0 – 2026-11-16
 
 - Karta produktu – rekomendowany serwis (kategoria Amortyzatory FOX z podkategoriami): ramka „Rekomendowany serwis amortyzatorów FOX” – Tucan Bike, „Autoryzowany serwis amortyzacji”, ocena 5,0 w Google Maps, opis, przyciski „Zadzwoń” i „Zleć serwis online”, adres (link do mapy), godziny, e-mail, strona.
