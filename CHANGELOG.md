@@ -1,5 +1,14 @@
 # Zmiany w motywie FOX.SKLEP.PL
 
+## 3.49.0 – 2026-11-24
+
+- Strona główna pod Search Console:
+  - H1: „Sklep FOX Racing – sprzęt na crossa, enduro i MTB” (zamiast „FOX SKLEP współpracuj z najlepszymi”);
+  - wstęp pod H1: „Oficjalny sklep FOX Racing w Polsce: kaski, odzież i ochraniacze…”;
+  - tytuł w Google: „Oficjalny sklep FOX Racing – sklep crossowy, enduro i MTB”; opis: „Oficjalny sklep FOX Racing: kaski, odzież i ochraniacze na motocross, enduro i MTB. Wysyłka tego samego dnia, zwrot do 30 dni, sklep pod Wrocławiem.” (nadpisują Yoast; edycja w Dostosuj → Strona główna – SEO);
+  - H1 jest pierwszym nagłówkiem: baner kampanii (Black Week) i tytuł dużego banera to już zwykły tekst, nie H2 (wygląd bez zmian).
+- Jednorazowa zmiana zapisanych ustawień: podmienia tylko puste albo stare wartości.
+
 ## 3.48.0 – 2026-11-17
 
 - „Bez Paczkomatu” dla gabarytów (jak na enduro.sklep.pl): Dostosuj → Narzędzia sklepu → „Bez Paczkomatu – frazy w nazwie produktu” (jedna w linii, puste = wyłączone).

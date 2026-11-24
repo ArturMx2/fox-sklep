@@ -260,7 +260,7 @@ function fx_camp_home_banner() {
 		echo '</picture>';
 	}
 	echo '<div class="fx-chome__in fx-wrap">';
-	echo '<h2 class="fx-chome__title">' . esc_html( $title ) . '</h2>';
+	echo '<p class="fx-chome__title">' . esc_html( $title ) . '</p>'; // nie nagłówek – H1 strony ma być pierwszym nagłówkiem
 	echo '<p class="fx-chome__sub">' . esc_html( fx_camp_fill( fx_camp( 'camp_sub_' . $mode ) ) ) . '</p>';
 	echo '<div class="fx-chome__row">';
 	if ( $count ) {

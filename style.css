@@ -2,7 +2,7 @@
 Theme Name: FOX.SKLEP.PL
 Theme URI: https://fox.sklep.pl/
 Description: Własny motyw dla FOX.SKLEP.PL na WooCommerce. Biała baza, duże zdjęcia, moduł Zbuduj komplet. Nie zmienia adresów URL ani treści – wyświetla istniejące opisy kategorii i produktów.
-Version: 3.48.0
+Version: 3.49.0
 GitHub Theme URI: https://github.com/ArturMx2/fox-sklep
 Primary Branch: main
 Requires at least: 6.3
@@ -168,7 +168,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 /* ---------- Hero ---------- */
 .fx-hero{position:relative;min-height:clamp(460px,72vh,720px);display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;overflow:hidden}
 .fx-hero__in{position:relative;z-index:1;padding:48px 16px}
-.fx-hero__title{font-size:clamp(44px,7vw,96px);line-height:1;letter-spacing:-.02em;margin:0;color:#fff}
+.fx-hero__title{font-family:var(--fx-display);font-weight:500;font-size:clamp(44px,7vw,96px);line-height:1;letter-spacing:-.02em;margin:0;color:#fff}
 .fx-hero__sub{margin:18px 0 0;font-size:19px;font-weight:500}
 .fx-hero__ctas{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:28px}
 .fx-hero--cat{min-height:320px}
@@ -646,7 +646,7 @@ a.fx-cbar__txt[href]:hover{text-decoration:underline}
 .fx-chome__bg img{width:100%;height:100%;object-fit:cover}
 .fx-chome.has-img::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(12,10,8,.35),rgba(12,10,8,.6))}
 .fx-chome__in{position:relative;z-index:1;padding:clamp(36px,6vw,72px) 16px}
-.fx-chome__title{margin:0;color:#fff;font-size:clamp(34px,6vw,72px);line-height:1;letter-spacing:-.02em}
+.fx-chome__title{font-family:var(--fx-display);font-weight:500;margin:0;color:#fff;font-size:clamp(34px,6vw,72px);line-height:1;letter-spacing:-.02em}
 .fx-chome__sub{margin:14px auto 0;max-width:680px;font-size:clamp(16px,1.6vw,19px)}
 .fx-chome__row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:14px 20px;margin-top:24px}
 .fx-chome__count{display:inline-flex;align-items:baseline;gap:8px;padding:12px 18px;border:1.5px solid rgba(255,255,255,.4)}

@@ -32,10 +32,10 @@ function fx_home_seo_defaults( $home ) {
 		 * tytuł „Sklep FOX Racing – motocross, enduro i MTB | FOX.SKLEP.PL”,
 		 * H1 „Sklep FOX Racing – sprzęt na crossa, enduro i MTB”.
 		 */
-		'seo_title'        => '',
-		'seo_desc'         => '',
-		'seo_h1'           => 'FOX SKLEP współpracuj z najlepszymi',
-		'seo_lead'         => 'Sklep Fox to najlepsze produkty na rynku dedykowane fanom sportów ekstremalnych, ale nie tylko. Tutaj bez problemu skompletujesz pełny strój niezwykle przydatny do uprawnia ulubionej dyscypliny sportowej wraz z niezbędnymi akcesoriami, jak również odzież codzienną.',
+		'seo_title'        => 'Oficjalny sklep FOX Racing – sklep crossowy, enduro i MTB',
+		'seo_desc'         => 'Oficjalny sklep FOX Racing: kaski, odzież i ochraniacze na motocross, enduro i MTB. Wysyłka tego samego dnia, zwrot do 30 dni, sklep pod Wrocławiem.',
+		'seo_h1'           => 'Sklep FOX Racing – sprzęt na crossa, enduro i MTB',
+		'seo_lead'         => 'Oficjalny sklep FOX Racing w Polsce: kaski, odzież i ochraniacze na motocross, enduro i rower. Produkty z magazynu wysyłamy tego samego dnia, a sklep stacjonarny czeka pod Wrocławiem.',
 		'seo_points'       => "Wysyłka w 48 h\nDarmowa dostawa od 300 zł\n14 dni na zwrot lub wymianę rozmiaru\nSklep stacjonarny pod Wrocławiem",
 		'hub_moto_title'   => 'Sklep crossowy i enduro',
 		'hub_moto_sub'     => 'Wszystko na tor i w teren – od kasku po buty.',
@@ -288,4 +288,32 @@ add_action( 'admin_init', function () {
 		array_splice( $lines, min( 3, count( $lines ) ), 0, explode( "\n", $add ) ); // po „Kaski full face Proframe”
 		set_theme_mod( 'fx_hub_rower_links', implode( "\n", $lines ) );
 	}
+} );
+
+/*
+ * Jednorazowo (24.11.2026): strona główna pod Search Console – H1, wstęp, tytuł i opis w Google.
+ * Podmienia tylko wartości puste albo stare (H1 „FOX SKLEP współpracuj z najlepszymi”, dawny wstęp).
+ */
+add_action( 'admin_init', function () {
+	if ( get_option( 'fx_home_mig_2411' ) ) {
+		return;
+	}
+	update_option( 'fx_home_mig_2411', 1, false );
+	$d   = fx_home_seo_defaults( trailingslashit( home_url() ) );
+	$old = array(
+		'seo_h1'    => array( '', 'FOX SKLEP współpracuj z najlepszymi' ),
+		'seo_lead'  => array( '', 'Sklep Fox to najlepsze produkty na rynku dedykowane fanom sportów ekstremalnych, ale nie tylko. Tutaj bez problemu skompletujesz pełny strój niezwykle przydatny do uprawnia ulubionej dyscypliny sportowej wraz z niezbędnymi akcesoriami, jak również odzież codzienną.' ),
+		'seo_title' => array( '' ),
+		'seo_desc'  => array( '' ),
+	);
+	foreach ( $old as $k => $vals ) {
+		$cur = get_theme_mod( 'fx_' . $k, null );
+		if ( null === $cur ) {
+			continue; // niezapisane – działa nowa wartość domyślna
+		}
+		if ( in_array( trim( (string) $cur ), $vals, true ) ) {
+			set_theme_mod( 'fx_' . $k, $d[ $k ] );
+		}
+	}
+	do_action( 'litespeed_purge_all' );
 } );

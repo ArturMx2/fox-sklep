@@ -72,7 +72,7 @@ if ( function_exists( 'fx_camp_home_banner' ) ) {
 	<?php echo fx_media( fx_mod( 'hero_img' ), 'full', 'fx-cover', '', true ); // phpcs:ignore ?>
 	<div class="fx-hero__in">
 		<?php if ( fx_mod( 'hero_title' ) ) : ?>
-			<h2 class="fx-hero__title"><?php echo esc_html( fx_mod( 'hero_title' ) ); ?></h2>
+			<p class="fx-hero__title"><?php echo esc_html( fx_mod( 'hero_title' ) ); ?></p>
 		<?php endif; ?>
 		<?php if ( fx_mod( 'hero_sub' ) ) : ?>
 			<p class="fx-hero__sub"><?php echo esc_html( fx_mod( 'hero_sub' ) ); ?></p>
